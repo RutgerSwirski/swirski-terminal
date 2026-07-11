@@ -6,6 +6,7 @@ idf_component_register(
         "inputs/rotary_encoder.cpp"
         "${APP_DIR}/app.cpp"
         "${APP_DIR}/screen/screen.cpp"
+        "${APP_DIR}/input/input.cpp"
 
     INCLUDE_DIRS
         "."

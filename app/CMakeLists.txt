@@ -2,7 +2,7 @@ idf_component_register(
     SRCS
         "app.cpp"
         "screen/screen.cpp"
-        # "input/input.cpp"
+        "input/input.cpp"
     INCLUDE_DIRS
         "."
         "screen"

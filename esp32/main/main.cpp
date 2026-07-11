@@ -153,6 +153,7 @@ extern "C" void app_main()
 
     while (true)
     {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        swirski::inputs::pollRotary();
+        vTaskDelay(1);
     }
 }

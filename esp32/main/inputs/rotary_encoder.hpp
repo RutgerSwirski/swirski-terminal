@@ -5,4 +5,6 @@ namespace swirski::inputs
 
 {
     void initialiseRotary();
+
+    void pollRotary();
 }

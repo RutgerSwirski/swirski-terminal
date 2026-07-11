@@ -13,6 +13,12 @@ namespace swirski::inputs
         constexpr gpio_num_t ROTARY_PIN_A = GPIO_NUM_11;
         constexpr gpio_num_t ROTARY_PIN_B = GPIO_NUM_10;
         constexpr gpio_num_t ROTARY_SWITCH = GPIO_NUM_9;
+
+        // persist previous A , B and Switch states
+        int prevA = 0;
+        int prevB = 0;
+        int prevSwitch = 0;
+
     }
 
     void initialiseRotary()
@@ -34,6 +40,48 @@ namespace swirski::inputs
         ESP_ERROR_CHECK(gpio_config(&rotaryConfig));
 
         ESP_LOGI(swirski::TAG, "Rotary encoder initialised");
+
+        prevA = gpio_get_level(ROTARY_PIN_A);
+        prevB = gpio_get_level(ROTARY_PIN_B);
+        prevSwitch = gpio_get_level(ROTARY_SWITCH);
     }
 
+    void pollRotary()
+    {
+        const int currentA = gpio_get_level(ROTARY_PIN_A);
+        const int currentB = gpio_get_level(ROTARY_PIN_B);
+        const int currentSwitch = gpio_get_level(ROTARY_SWITCH);
+
+        // Detect A changing from HIGH to LOW.
+        if (prevA == 1 && currentA == 0)
+        {
+            if (currentB == 1)
+            {
+                ESP_LOGI(swirski::TAG, "NEXT");
+
+                swirski::input::handleInput(
+                    swirski::input::Input::NEXT);
+            }
+            else
+            {
+                ESP_LOGI(swirski::TAG, "PREVIOUS");
+
+                swirski::input::handleInput(
+                    swirski::input::Input::PREVIOUS);
+            }
+        }
+
+        // Detect the button changing from not pressed to pressed.
+        if (prevSwitch == 1 && currentSwitch == 0)
+        {
+            ESP_LOGI(swirski::TAG, "CONFIRM");
+
+            swirski::input::handleInput(
+                swirski::input::Input::CONFIRM);
+        }
+
+        prevA = currentA;
+        prevB = currentB;
+        prevSwitch = currentSwitch;
+    }
 }
