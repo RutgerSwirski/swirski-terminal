@@ -8,12 +8,14 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lvgl.h"
+#include "driver/gpio.h"
 
 #include "app.hpp"
+#include "./inputs/rotary_encoder.hpp"
+#include "app_constants.hpp"
 
 namespace
 {
-    constexpr const char *TAG = "SWIRSKI_OS";
 
     constexpr spi_host_device_t LCD_HOST = SPI2_HOST;
 
@@ -38,7 +40,7 @@ void initialiseDisplay()
         drawBufferHeight *
         sizeof(uint16_t);
 
-    ESP_LOGI(TAG, "Initialising SPI bus");
+    ESP_LOGI(swirski::TAG, "Initialising SPI bus");
 
     spi_bus_config_t busConfig{};
 
@@ -56,7 +58,7 @@ void initialiseDisplay()
             &busConfig,
             SPI_DMA_CH_AUTO));
 
-    ESP_LOGI(TAG, "Creating LCD SPI interface");
+    ESP_LOGI(swirski::TAG, "Creating LCD SPI interface");
 
     esp_lcd_panel_io_handle_t ioHandle = nullptr;
 
@@ -76,7 +78,7 @@ void initialiseDisplay()
             &ioConfig,
             &ioHandle));
 
-    ESP_LOGI(TAG, "Creating ILI9341 panel");
+    ESP_LOGI(swirski::TAG, "Creating ILI9341 panel");
 
     esp_lcd_panel_handle_t panelHandle = nullptr;
 
@@ -96,7 +98,7 @@ void initialiseDisplay()
     ESP_ERROR_CHECK(esp_lcd_panel_init(panelHandle));
     ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panelHandle, true));
 
-    ESP_LOGI(TAG, "Registering display with LVGL");
+    ESP_LOGI(swirski::TAG, "Registering display with LVGL");
 
     lvgl_port_display_cfg_t displayConfig{};
 
@@ -121,17 +123,17 @@ void initialiseDisplay()
 
     if (displayHandle == nullptr)
     {
-        ESP_LOGE(TAG, "Could not register display with LVGL");
+        ESP_LOGE(swirski::TAG, "Could not register display with LVGL");
         return;
     }
 
-    ESP_LOGI(TAG, "Display initialised");
+    ESP_LOGI(swirski::TAG, "Display initialised");
 }
 
 // use C linkage
 extern "C" void app_main()
 {
-    ESP_LOGI(TAG, "Starting Swirski OS");
+    ESP_LOGI(swirski::TAG, "Starting Swirski OS");
 
     const lvgl_port_cfg_t lvglConfig =
         ESP_LVGL_PORT_INIT_CONFIG();
@@ -140,6 +142,8 @@ extern "C" void app_main()
         lvgl_port_init(&lvglConfig));
 
     initialiseDisplay();
+
+    swirski::inputs::initialiseRotary();
 
     lvgl_port_lock(0);
 
