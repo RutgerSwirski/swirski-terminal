@@ -3,8 +3,20 @@
 #include "lvgl.h"
 #include "app.hpp"
 
+#include <SDL2/SDL.h>
+
+#include <iostream>
+
+#include "keyboard.hpp"
+
 int main()
+
 {
+
+    SDL_Event event;
+
+    bool running = true;
+
     lv_init();
 
     lv_display_t *display =
@@ -25,8 +37,11 @@ int main()
 
     swirski::app::createInterface(display);
 
-    while (true)
+    while (running)
     {
+
+        swirski::inputs::initialiseKeyboard(event, running);
+
         lv_timer_handler();
         lv_delay_ms(5);
     }

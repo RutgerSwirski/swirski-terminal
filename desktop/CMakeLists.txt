@@ -43,12 +43,20 @@ add_executable(
 
     ../app/app.cpp
     ../app/screen/screen.cpp
+    ../app/input/input.cpp
+    inputs/keyboard.cpp
+
+
 )
 
 target_include_directories(
     swirski_os_desktop
     PRIVATE
         ../app
+        ../app/screen
+        ../app/input
+        inputs
+        
 )
 
 target_link_libraries(
