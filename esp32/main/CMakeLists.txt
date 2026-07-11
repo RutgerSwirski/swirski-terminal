@@ -12,6 +12,8 @@ idf_component_register(
         "."
         "inputs"
         "${APP_DIR}"
+        "${APP_DIR}/screen"
+        "${APP_DIR}/input"
 
     PRIV_REQUIRES
         esp_driver_gpio

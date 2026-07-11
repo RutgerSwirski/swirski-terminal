@@ -1,9 +1,11 @@
 // ESP32 rotary encoder GPIO setup and input decoding
 #include "driver/gpio.h"
 #include "esp_log.h"
+#include "esp_lvgl_port.h"
 
 #include "rotary_encoder.hpp"
 #include "app_constants.hpp"
+#include "input.hpp"
 
 namespace swirski::inputs
 {
@@ -59,15 +61,23 @@ namespace swirski::inputs
             {
                 ESP_LOGI(swirski::TAG, "NEXT");
 
+                lvgl_port_lock(0);
+
                 swirski::input::handleInput(
-                    swirski::input::Input::NEXT);
+                    swirski::input::InputAction::Next);
+
+                lvgl_port_unlock();
             }
             else
             {
                 ESP_LOGI(swirski::TAG, "PREVIOUS");
 
+                lvgl_port_lock(0);
+
                 swirski::input::handleInput(
-                    swirski::input::Input::PREVIOUS);
+                    swirski::input::InputAction::Previous);
+
+                lvgl_port_unlock();
             }
         }
 
@@ -76,8 +86,12 @@ namespace swirski::inputs
         {
             ESP_LOGI(swirski::TAG, "CONFIRM");
 
+            lvgl_port_lock(0);
+
             swirski::input::handleInput(
-                swirski::input::Input::CONFIRM);
+                swirski::input::InputAction::Confirm);
+
+            lvgl_port_unlock();
         }
 
         prevA = currentA;
