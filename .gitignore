@@ -1,0 +1,77 @@
+# -------------------------
+# ESP32 / ESP-IDF
+# -------------------------
+esp32/build/
+esp32/managed_components/
+esp32/sdkconfig
+esp32/sdkconfig.old
+
+# ESP-IDF generated files
+esp32/compile_commands.json
+
+# -------------------------
+# Desktop CMake
+# -------------------------
+build-desktop/
+desktop/build/
+desktop/build-*/
+desktop/cmake-build-*/
+
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+build.ninja
+.ninja_deps
+.ninja_log
+compile_commands.json
+
+# -------------------------
+# React Native / Node
+# -------------------------
+mobile/node_modules/
+mobile/.expo/
+mobile/.expo-shared/
+mobile/dist/
+mobile/web-build/
+
+mobile/android/.gradle/
+mobile/android/build/
+mobile/android/app/build/
+mobile/android/local.properties/
+
+mobile/ios/Pods/
+mobile/ios/build/
+mobile/ios/DerivedData/
+
+# -------------------------
+# Environment and secrets
+# -------------------------
+.env
+.env.*
+!.env.example
+
+# -------------------------
+# Editors
+# -------------------------
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+.idea/
+*.swp
+*.swo
+*~
+
+# -------------------------
+# Operating system
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Logs
+# -------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

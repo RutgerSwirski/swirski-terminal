@@ -1,0 +1,35 @@
+#define SDL_MAIN_HANDLED
+
+#include "lvgl.h"
+#include "app.hpp"
+
+int main()
+{
+    lv_init();
+
+    lv_display_t *display =
+        lv_sdl_window_create(320, 240);
+
+    lv_sdl_window_set_zoom(display, 2.0f);
+
+    if (display == nullptr)
+    {
+        return 1;
+    }
+
+    lv_display_set_default(display);
+
+    lv_sdl_mouse_create();
+    lv_sdl_mousewheel_create();
+    lv_sdl_keyboard_create();
+
+    swirski::app::createInterface(display);
+
+    while (true)
+    {
+        lv_timer_handler();
+        lv_delay_ms(5);
+    }
+
+    return 0;
+}
