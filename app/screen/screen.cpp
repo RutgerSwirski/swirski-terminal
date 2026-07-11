@@ -32,6 +32,13 @@ namespace swirski::screen
 
     void createScreenRoot()
     {
+
+        if (screenRoot != nullptr)
+        {
+            lv_obj_delete(screenRoot);
+            screenRoot = nullptr;
+        }
+
         screenRoot = lv_obj_create(lv_screen_active());
 
         lv_obj_remove_style_all(screenRoot);
@@ -85,6 +92,10 @@ namespace swirski::screen
         lv_obj_set_style_bg_color(flexContainer, lv_color_hex(0x00283d), LV_PART_MAIN);
 
         lv_obj_set_flex_align(flexContainer, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
+
+        lv_obj_set_style_pad_row(flexContainer, 10, LV_PART_MAIN);
+
+        lv_obj_set_style_pad_column(flexContainer, 10, LV_PART_MAIN);
 
         lv_obj_align(
             flexContainer,
