@@ -44,6 +44,7 @@ add_executable(
     ../app/app.cpp
     ../app/screens/screen_manager.cpp
     ../app/screens/home_screen.cpp
+    ../app/screens/notifications_screen.cpp
     ../app/input/input.cpp
     inputs/keyboard.cpp
 )

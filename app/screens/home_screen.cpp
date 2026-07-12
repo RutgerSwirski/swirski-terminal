@@ -11,7 +11,7 @@
 
 #include <iostream>
 
-namespace swirski::screens::Home
+namespace swirski::screens::home
 {
 
     namespace

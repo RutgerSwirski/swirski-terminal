@@ -2,6 +2,8 @@
 
 #include "home_screen.hpp"
 
+#include "notifications_screen.hpp"
+
 namespace swirski::screens::manager
 {
 
@@ -69,9 +71,11 @@ namespace swirski::screens::manager
         switch (screen)
         {
         case Screen::Home:
-            swirski::screens::Home::render();
+            swirski::screens::home::render();
             break;
         case Screen::Notifications:
+
+            swirski::screens::notifications::render();
 
             // showNotificationsScreen();
             break;

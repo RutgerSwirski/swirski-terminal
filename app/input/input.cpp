@@ -16,7 +16,7 @@ namespace swirski::input
         switch (currentScreen)
         {
         case swirski::screens::manager::Screen::Home:
-            swirski::screens::Home::handleInput(action);
+            swirski::screens::home::handleInput(action);
             break;
         case swirski::screens::manager::Screen::Notifications:
             // handleNotificationsInput(action);

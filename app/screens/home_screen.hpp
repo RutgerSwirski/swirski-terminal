@@ -2,7 +2,7 @@
 
 #include "../input/input.hpp"
 
-namespace swirski::screens::Home
+namespace swirski::screens::home
 {
     void render();
 

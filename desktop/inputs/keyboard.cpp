@@ -1,4 +1,6 @@
 #include "keyboard.hpp"
+#include "input.hpp"
+#include "screens/screen_manager.hpp"
 
 #include <iostream>
 
@@ -69,8 +71,8 @@ namespace swirski::inputs::keyboard
                 {
                     std::cout << "H key pressed" << std::endl;
 
-                    swirski::input::handleInput(
-                        swirski::input::input_action::Home);
+                    swirski::screens::manager::showScreen(
+                        swirski::screens::manager::Screen::Home);
                 }
             }
         }
