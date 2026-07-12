@@ -16,14 +16,44 @@ namespace swirski::screens::Home
 
     namespace
     {
-        int selectedItemIndex = 0;
+        std::size_t selectedItemIndex = 0;
 
-        std::array<std::string, 5> homeMenuItems{
-            "Home",
+        std::array<std::string, 4> homeMenuItems{
             "Notifications",
             "Music",
             "Studio",
             "Settings"};
+
+        std::array<lv_obj_t *, 4> menuItemLabels{};
+
+        const std::array<swirski::screens::Manager::Screen, 4> homeMenuScreens{
+            swirski::screens::Manager::Screen::Notifications,
+            swirski::screens::Manager::Screen::Music,
+            swirski::screens::Manager::Screen::Studio,
+            swirski::screens::Manager::Screen::Settings};
+    }
+
+    void updateSelection()
+    {
+
+        for (std::size_t i = 0; i < homeMenuItems.size(); ++i)
+        {
+            const bool isSelected = i == selectedItemIndex;
+
+            std::string labelText = isSelected ? std::string("> ") + homeMenuItems[i] : homeMenuItems[i];
+
+            lv_label_set_text(menuItemLabels[i], labelText.c_str());
+
+            const lv_color_t textColor =
+                isSelected
+                    ? lv_color_hex(0x00ff00)
+                    : lv_color_white();
+
+            lv_obj_set_style_text_color(
+                menuItemLabels[i],
+                textColor,
+                LV_PART_MAIN);
+        }
     }
 
     void render()
@@ -71,40 +101,12 @@ namespace swirski::screens::Home
             0,
             0);
 
-        for (int i = 0; i < homeMenuItems.size(); i++)
+        for (std::size_t i = 0; i < homeMenuItems.size(); ++i)
         {
-
-            const char *item = homeMenuItems[i].c_str();
-
-            const bool isSelected = i == selectedItemIndex;
-
-            lv_obj_t *menuItem = lv_label_create(flexContainer);
-
-            if (isSelected)
-            {
-
-                std::string labelText = std::string("> ") + item;
-                lv_label_set_text(menuItem, labelText.c_str());
-            }
-            else
-            {
-                lv_label_set_text(menuItem, item);
-            }
-
-            lv_obj_set_style_text_color(
-                menuItem,
-                lv_color_white(),
-                LV_PART_MAIN);
-
-            if (i == selectedItemIndex)
-            {
-                lv_obj_set_style_text_color(
-
-                    menuItem,
-                    lv_color_hex(0x00ff00),
-                    LV_PART_MAIN);
-            }
+            menuItemLabels[i] = lv_label_create(flexContainer);
         }
+
+        updateSelection();
     }
 
     void handleInput(swirski::input::InputAction action)
@@ -120,6 +122,8 @@ namespace swirski::screens::Home
             }
             else
                 selectedItemIndex--;
+
+            updateSelection();
             break;
         case swirski::input::InputAction::Next:
 
@@ -131,15 +135,20 @@ namespace swirski::screens::Home
             else
                 selectedItemIndex++;
 
+            updateSelection();
+
             break;
         case swirski::input::InputAction::Confirm:
+
+            std::cout << "Selected: " << homeMenuItems[selectedItemIndex] << std::endl;
+
+            swirski::screens::Manager::showScreen(
+                homeMenuScreens[selectedItemIndex]);
             break;
         case swirski::input::InputAction::Back:
             break;
         case swirski::input::InputAction::Home:
             break;
         }
-
-        render();
     }
 }

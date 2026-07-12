@@ -9,8 +9,6 @@ namespace swirski::screens::Manager
     {
         lv_display_t *displayHandle = nullptr;
 
-        lv_obj_t *currentScreenObj = nullptr;
-
         lv_obj_t *screenRoot = nullptr;
 
         Screen currentScreen = Screen::Home;
@@ -65,10 +63,6 @@ namespace swirski::screens::Manager
 
     void showScreen(Screen screen)
     {
-        if (currentScreenObj != nullptr)
-        {
-            lv_obj_delete(currentScreenObj);
-        }
 
         currentScreen = screen;
 
@@ -78,6 +72,7 @@ namespace swirski::screens::Manager
             swirski::screens::Home::render();
             break;
         case Screen::Notifications:
+
             // showNotificationsScreen();
             break;
         case Screen::Music:
