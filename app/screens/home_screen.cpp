@@ -3,8 +3,26 @@
 
 #include "screen_manager.hpp"
 
+#include "lvgl.h"
+
+#include <array>
+
+#include <string>
+
 namespace swirski::screens::Home
 {
+
+    namespace
+    {
+        int selectedItemIndex = 0;
+
+        std::array<std::string, 5> homeMenuItems{
+            "Home",
+            "Notifications",
+            "Music",
+            "Studio",
+            "Settings"};
+    }
 
     void render()
     {
@@ -51,48 +69,39 @@ namespace swirski::screens::Home
             0,
             0);
 
-        // create new label Notifications
-        lv_obj_t *notifications =
-            lv_label_create(flexContainer);
+        for (int i = 0; i < homeMenuItems.size(); i++)
+        {
 
-        lv_label_set_text(notifications, "> Notifications");
+            const char *item = homeMenuItems[i].c_str();
 
-        lv_obj_set_style_text_color(
-            notifications,
-            lv_color_white(),
-            LV_PART_MAIN);
+            const bool isSelected = i == selectedItemIndex;
 
-        // create new label Music
-        lv_obj_t *music =
-            lv_label_create(flexContainer);
+            lv_obj_t *menuItem = lv_label_create(flexContainer);
 
-        lv_label_set_text(music, "Music");
+            if (isSelected)
+            {
 
-        lv_obj_set_style_text_color(
-            music,
-            lv_color_white(),
-            LV_PART_MAIN);
+                std::string labelText = std::string("> ") + item;
+                lv_label_set_text(menuItem, labelText.c_str());
+            }
+            else
+            {
+                lv_label_set_text(menuItem, item);
+            }
 
-        // create new label Studio
-        lv_obj_t *studio =
-            lv_label_create(flexContainer);
+            lv_obj_set_style_text_color(
+                menuItem,
+                lv_color_white(),
+                LV_PART_MAIN);
 
-        lv_label_set_text(studio, "Studio");
+            if (i == selectedItemIndex)
+            {
+                lv_obj_set_style_text_color(
 
-        lv_obj_set_style_text_color(
-            studio,
-            lv_color_white(),
-            LV_PART_MAIN);
-
-        // create new label Settings
-        lv_obj_t *settings =
-            lv_label_create(flexContainer);
-
-        lv_label_set_text(settings, "Settings");
-
-        lv_obj_set_style_text_color(
-            settings,
-            lv_color_white(),
-            LV_PART_MAIN);
+                    menuItem,
+                    lv_color_hex(0x00ff00),
+                    LV_PART_MAIN);
+            }
+        }
     }
 }
