@@ -9,12 +9,11 @@ namespace swirski::screens::Manager
     {
         lv_display_t *displayHandle = nullptr;
 
-        Screen currentScreen = Screen::Home;
-
         lv_obj_t *currentScreenObj = nullptr;
 
         lv_obj_t *screenRoot = nullptr;
 
+        Screen currentScreen = Screen::Home;
     }
 
     void initialise(lv_display_t *display)
@@ -57,6 +56,11 @@ namespace swirski::screens::Manager
             LV_PART_MAIN);
 
         return screenRoot;
+    }
+
+    Screen getCurrentScreen()
+    {
+        return currentScreen;
     }
 
     void showScreen(Screen screen)

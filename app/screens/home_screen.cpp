@@ -1,13 +1,15 @@
 
 #include "home_screen.hpp"
-
 #include "screen_manager.hpp"
+#include "../input/input.hpp"
 
 #include "lvgl.h"
 
 #include <array>
 
 #include <string>
+
+#include <iostream>
 
 namespace swirski::screens::Home
 {
@@ -57,7 +59,7 @@ namespace swirski::screens::Home
 
         lv_obj_set_style_bg_color(flexContainer, lv_color_hex(0x00283d), LV_PART_MAIN);
 
-        lv_obj_set_flex_align(flexContainer, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_flex_align(flexContainer, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 
         lv_obj_set_style_pad_row(flexContainer, 10, LV_PART_MAIN);
 
@@ -103,5 +105,41 @@ namespace swirski::screens::Home
                     LV_PART_MAIN);
             }
         }
+    }
+
+    void handleInput(swirski::input::InputAction action)
+    {
+
+        switch (action)
+        {
+        case swirski::input::InputAction::Previous:
+            // only decrement if we are not at the first item, else go back to the last
+            if (selectedItemIndex == 0)
+            {
+                selectedItemIndex = homeMenuItems.size() - 1;
+            }
+            else
+                selectedItemIndex--;
+            break;
+        case swirski::input::InputAction::Next:
+
+            // only increment if we are not at the last item, else go back to the first
+            if (selectedItemIndex == homeMenuItems.size() - 1)
+            {
+                selectedItemIndex = 0;
+            }
+            else
+                selectedItemIndex++;
+
+            break;
+        case swirski::input::InputAction::Confirm:
+            break;
+        case swirski::input::InputAction::Back:
+            break;
+        case swirski::input::InputAction::Home:
+            break;
+        }
+
+        render();
     }
 }

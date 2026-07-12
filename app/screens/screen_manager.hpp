@@ -19,4 +19,6 @@ namespace swirski::screens::Manager
 
     lv_obj_t *createScreenRoot();
 
+    Screen getCurrentScreen();
+
 }
