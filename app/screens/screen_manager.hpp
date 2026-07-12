@@ -2,7 +2,7 @@
 
 #include "lvgl.h"
 
-namespace swirski::screen
+namespace swirski::screens::Manager
 {
     enum class Screen
     {
@@ -16,5 +16,7 @@ namespace swirski::screen
     void showScreen(Screen screen);
 
     void initialise(lv_display_t *display);
+
+    lv_obj_t *createScreenRoot();
 
 }

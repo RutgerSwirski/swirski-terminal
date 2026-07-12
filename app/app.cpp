@@ -1,6 +1,6 @@
 #include "app.hpp"
 
-#include "screen/screen.hpp"
+#include "screens/screen_manager.hpp"
 
 namespace swirski::app
 {
@@ -12,8 +12,8 @@ namespace swirski::app
             return;
         }
 
-        screen::initialise(display);
+        screens::Manager::initialise(display);
 
-        screen::showScreen(screen::Screen::Home);
+        screens::Manager::showScreen(screens::Manager::Screen::Home);
     }
 }

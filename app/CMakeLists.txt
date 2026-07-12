@@ -1,12 +1,12 @@
 idf_component_register(
     SRCS
         "app.cpp"
-        "screen/screen.cpp"
-        "input/input.cpp"
+        "input/*.cpp"
+        "screens/*.cpp"
     INCLUDE_DIRS
         "."
-        "screen"
         "input"
+        "screens"
     REQUIRES
         lvgl
 )

@@ -42,18 +42,17 @@ add_executable(
     main.cpp
 
     ../app/app.cpp
-    ../app/screen/screen.cpp
+    ../app/screens/screen_manager.cpp
+    ../app/screens/home_screen.cpp
     ../app/input/input.cpp
     inputs/keyboard.cpp
-
-
 )
 
 target_include_directories(
     swirski_os_desktop
     PRIVATE
         ../app
-        ../app/screen
+        ../app/screens
         ../app/input
         inputs
         
