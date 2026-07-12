@@ -12,8 +12,8 @@ namespace swirski::app
             return;
         }
 
-        screens::Manager::initialise(display);
+        screens::manager::initialise(display);
 
-        screens::Manager::showScreen(screens::Manager::Screen::Home);
+        screens::manager::showScreen(screens::manager::Screen::Home);
     }
 }

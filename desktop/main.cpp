@@ -40,7 +40,7 @@ int main()
     while (running)
     {
 
-        swirski::inputs::initialiseKeyboard(event, running);
+        swirski::inputs::keyboard::initialise(event, running);
 
         lv_timer_handler();
         lv_delay_ms(5);

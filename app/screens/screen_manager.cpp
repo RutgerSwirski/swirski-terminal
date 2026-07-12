@@ -2,7 +2,7 @@
 
 #include "home_screen.hpp"
 
-namespace swirski::screens::Manager
+namespace swirski::screens::manager
 {
 
     namespace // variables in here only exist here

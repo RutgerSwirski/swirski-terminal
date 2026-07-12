@@ -9,25 +9,25 @@
 namespace swirski::input
 {
 
-    void handleInput(InputAction action)
+    void handleInput(input_action action)
     {
-        const auto currentScreen = swirski::screens::Manager::getCurrentScreen();
+        const auto currentScreen = swirski::screens::manager::getCurrentScreen();
 
         switch (currentScreen)
         {
-        case swirski::screens::Manager::Screen::Home:
+        case swirski::screens::manager::Screen::Home:
             swirski::screens::Home::handleInput(action);
             break;
-        case swirski::screens::Manager::Screen::Notifications:
+        case swirski::screens::manager::Screen::Notifications:
             // handleNotificationsInput(action);
             break;
-        case swirski::screens::Manager::Screen::Music:
+        case swirski::screens::manager::Screen::Music:
             // handleMusicInput(action);
             break;
-        case swirski::screens::Manager::Screen::Studio:
+        case swirski::screens::manager::Screen::Studio:
             // handleStudioInput(action);
             break;
-        case swirski::screens::Manager::Screen::Settings:
+        case swirski::screens::manager::Screen::Settings:
             // handleSettingsInput(action);
             break;
         }

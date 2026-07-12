@@ -6,5 +6,5 @@ namespace swirski::screens::Home
 {
     void render();
 
-    void handleInput(swirski::input::InputAction action);
+    void handleInput(swirski::input::input_action action);
 }

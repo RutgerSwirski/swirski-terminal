@@ -7,7 +7,7 @@
 #include "app_constants.hpp"
 #include "input.hpp"
 
-namespace swirski::inputs
+namespace swirski::inputs::rotary_encoder
 {
 
     namespace
@@ -23,7 +23,7 @@ namespace swirski::inputs
 
     }
 
-    void initialiseRotary()
+    void initialise()
     {
         ESP_LOGI(swirski::TAG, "Initialising rotary encoder");
 
@@ -48,7 +48,7 @@ namespace swirski::inputs
         prevSwitch = gpio_get_level(ROTARY_SWITCH);
     }
 
-    void pollRotary()
+    void poll()
     {
         const int currentA = gpio_get_level(ROTARY_PIN_A);
         const int currentB = gpio_get_level(ROTARY_PIN_B);
@@ -64,7 +64,7 @@ namespace swirski::inputs
                 lvgl_port_lock(0);
 
                 swirski::input::handleInput(
-                    swirski::input::InputAction::Next);
+                    swirski::input::input_action::Next);
 
                 lvgl_port_unlock();
             }
@@ -75,7 +75,7 @@ namespace swirski::inputs
                 lvgl_port_lock(0);
 
                 swirski::input::handleInput(
-                    swirski::input::InputAction::Previous);
+                    swirski::input::input_action::Previous);
 
                 lvgl_port_unlock();
             }
@@ -89,7 +89,7 @@ namespace swirski::inputs
             lvgl_port_lock(0);
 
             swirski::input::handleInput(
-                swirski::input::InputAction::Confirm);
+                swirski::input::input_action::Confirm);
 
             lvgl_port_unlock();
         }

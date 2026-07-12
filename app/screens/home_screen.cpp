@@ -26,11 +26,11 @@ namespace swirski::screens::Home
 
         std::array<lv_obj_t *, 4> menuItemLabels{};
 
-        const std::array<swirski::screens::Manager::Screen, 4> homeMenuScreens{
-            swirski::screens::Manager::Screen::Notifications,
-            swirski::screens::Manager::Screen::Music,
-            swirski::screens::Manager::Screen::Studio,
-            swirski::screens::Manager::Screen::Settings};
+        const std::array<swirski::screens::manager::Screen, 4> homeMenuScreens{
+            swirski::screens::manager::Screen::Notifications,
+            swirski::screens::manager::Screen::Music,
+            swirski::screens::manager::Screen::Studio,
+            swirski::screens::manager::Screen::Settings};
     }
 
     void updateSelection()
@@ -59,7 +59,7 @@ namespace swirski::screens::Home
     void render()
     {
         // TODO
-        lv_obj_t *screenRoot = swirski::screens::Manager::createScreenRoot();
+        lv_obj_t *screenRoot = swirski::screens::manager::createScreenRoot();
 
         lv_obj_t *title =
             lv_label_create(screenRoot);
@@ -109,12 +109,12 @@ namespace swirski::screens::Home
         updateSelection();
     }
 
-    void handleInput(swirski::input::InputAction action)
+    void handleInput(swirski::input::input_action action)
     {
 
         switch (action)
         {
-        case swirski::input::InputAction::Previous:
+        case swirski::input::input_action::Previous:
             // only decrement if we are not at the first item, else go back to the last
             if (selectedItemIndex == 0)
             {
@@ -125,7 +125,7 @@ namespace swirski::screens::Home
 
             updateSelection();
             break;
-        case swirski::input::InputAction::Next:
+        case swirski::input::input_action::Next:
 
             // only increment if we are not at the last item, else go back to the first
             if (selectedItemIndex == homeMenuItems.size() - 1)
@@ -138,16 +138,15 @@ namespace swirski::screens::Home
             updateSelection();
 
             break;
-        case swirski::input::InputAction::Confirm:
+        case swirski::input::input_action::Confirm:
 
-            std::cout << "Selected: " << homeMenuItems[selectedItemIndex] << std::endl;
-
-            swirski::screens::Manager::showScreen(
+            swirski::screens::manager::showScreen(
                 homeMenuScreens[selectedItemIndex]);
+
             break;
-        case swirski::input::InputAction::Back:
+        case swirski::input::input_action::Back:
             break;
-        case swirski::input::InputAction::Home:
+        case swirski::input::input_action::Home:
             break;
         }
     }

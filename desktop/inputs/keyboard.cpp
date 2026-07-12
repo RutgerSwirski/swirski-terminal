@@ -6,10 +6,10 @@
 
 #include <SDL2/SDL.h>
 
-namespace swirski::inputs
+namespace swirski::inputs::keyboard
 {
 
-    void initialiseKeyboard(SDL_Event &event, bool &running)
+    void initialise(SDL_Event &event, bool &running)
     {
 
         while (SDL_PollEvent(&event))
@@ -34,7 +34,7 @@ namespace swirski::inputs
                     std::cout << "Left arrow key pressed" << std::endl;
 
                     swirski::input::handleInput(
-                        swirski::input::InputAction::Previous);
+                        swirski::input::input_action::Previous);
                 }
 
                 // if right arrow pressed
@@ -43,7 +43,7 @@ namespace swirski::inputs
                     std::cout << "Right arrow key pressed" << std::endl;
 
                     swirski::input::handleInput(
-                        swirski::input::InputAction::Next);
+                        swirski::input::input_action::Next);
                 }
 
                 // if enter key pressed
@@ -52,7 +52,7 @@ namespace swirski::inputs
                     std::cout << "Enter key pressed" << std::endl;
 
                     swirski::input::handleInput(
-                        swirski::input::InputAction::Confirm);
+                        swirski::input::input_action::Confirm);
                 }
 
                 // if backspace key pressed
@@ -61,7 +61,7 @@ namespace swirski::inputs
                     std::cout << "Backspace key pressed" << std::endl;
 
                     swirski::input::handleInput(
-                        swirski::input::InputAction::Back);
+                        swirski::input::input_action::Back);
                 }
 
                 // if H key pressed
@@ -70,7 +70,7 @@ namespace swirski::inputs
                     std::cout << "H key pressed" << std::endl;
 
                     swirski::input::handleInput(
-                        swirski::input::InputAction::Home);
+                        swirski::input::input_action::Home);
                 }
             }
         }

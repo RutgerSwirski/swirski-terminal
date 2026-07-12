@@ -2,7 +2,7 @@
 
 namespace swirski::input
 {
-    enum class InputAction
+    enum class input_action
     {
         Previous,
         Next,
@@ -11,5 +11,5 @@ namespace swirski::input
         Home
     };
 
-    void handleInput(InputAction action);
+    void handleInput(input_action action);
 }

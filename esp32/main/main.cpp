@@ -143,7 +143,7 @@ extern "C" void app_main()
 
     initialiseDisplay();
 
-    swirski::inputs::initialiseRotary();
+    swirski::inputs::rotary_encoder::initialise();
 
     lvgl_port_lock(0);
 
@@ -153,7 +153,7 @@ extern "C" void app_main()
 
     while (true)
     {
-        swirski::inputs::pollRotary();
+        swirski::inputs::rotary_encoder::poll();
         vTaskDelay(1);
     }
 }

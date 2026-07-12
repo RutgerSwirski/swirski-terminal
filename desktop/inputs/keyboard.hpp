@@ -2,9 +2,9 @@
 
 #include <SDL2/SDL.h>
 
-namespace swirski::inputs
+namespace swirski::inputs::keyboard
 {
 
-    void initialiseKeyboard(SDL_Event &event, bool &running);
+    void initialise(SDL_Event &event, bool &running);
 
 }

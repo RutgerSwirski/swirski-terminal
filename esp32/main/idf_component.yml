@@ -1,8 +1,8 @@
-## IDF Component Manager Manifest File
+## IDF Component manager Manifest File
 dependencies:
   ## Required IDF version
   idf:
-    version: '>=4.1.0'
+    version: ">=4.1.0"
   # # Put list of dependencies here
   # # For components maintained by Espressif:
   # component: "~1.0.0"
