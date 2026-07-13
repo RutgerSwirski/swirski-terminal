@@ -24,4 +24,6 @@ namespace swirski::service::date_time
 
     void setFromTimestamp(std::time_t timestamp);
 
+    std::time_t getTimestamp();
+
 }

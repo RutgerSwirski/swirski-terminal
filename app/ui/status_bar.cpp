@@ -20,8 +20,24 @@ namespace swirski::ui::status_bar
     {
         clockLabel = lv_label_create(parent);
 
-        const std::string clockSnapshot = swirski::service::date_time::getTimeText();
-        lv_label_set_text(clockLabel, clockSnapshot.c_str());
+        const std::time_t timestamp = swirski::service::date_time::getTimestamp();
+
+        std::tm localTime{};
+
+        if (localtime_r(&timestamp, &localTime) == nullptr)
+        {
+            return;
+        }
+
+        char clockSnapshot[6];
+
+        std::strftime(
+            clockSnapshot,
+            sizeof(clockSnapshot),
+            "%H:%M",
+            &localTime);
+
+        lv_label_set_text(clockLabel, clockSnapshot);
 
         lv_obj_set_style_text_color(
             clockLabel,
@@ -47,26 +63,24 @@ namespace swirski::ui::status_bar
             return;
         }
 
-        const std::string timestamp =
-            swirski::service::date_time::getTimeText();
+        const std::time_t timestamp =
+            swirski::service::date_time::getTimestamp();
 
-        std::cout << "Timestamp: " << timestamp << std::endl;
+        std::tm localTime{};
 
-        lv_label_set_text(clockLabel, timestamp.c_str());
+        if (localtime_r(&timestamp, &localTime) == nullptr)
+        {
+            return;
+        }
 
-        // const uint32_t totalMinutes = timestamp / 60;
-        // const uint32_t hours = (totalMinutes / 60) % 24;
-        // const uint32_t minutes = totalMinutes % 60;
+        char timeText[6];
 
-        // char timeText[6];
+        std::strftime(
+            timeText,
+            sizeof(timeText),
+            "%H:%M",
+            &localTime);
 
-        // std::snprintf(
-        //     timeText,
-        //     sizeof(timeText),
-        //     "%02lu:%02lu",
-        //     static_cast<unsigned long>(hours),
-        //     static_cast<unsigned long>(minutes));
-
-        // lv_label_set_text(clockLabel, timeText);
+        lv_label_set_text(clockLabel, timeText);
     }
 }

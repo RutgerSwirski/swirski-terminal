@@ -20,6 +20,11 @@ namespace swirski::service::date_time
 
     }
 
+    time_t getTimestamp()
+    {
+        return timestamp;
+    }
+
     void initialise(time_t initialTimestamp)
     {
         timestamp = initialTimestamp;
@@ -37,8 +42,6 @@ namespace swirski::service::date_time
 
         lastUpdateTick = currentTick;
         timestamp += 1;
-
-        std::cout << "Updating timestamp to " << timestamp << std::endl;
 
         return true;
     }

@@ -45,15 +45,13 @@ int main()
 
     swirski::app::createInterface(display);
 
-    // get current datetime from system
-    auto now = std::chrono::system_clock::now();
+    const auto now = std::chrono::system_clock::now();
 
-    // 2. Convert it to a legacy time_t object
-    std::time_t current_time = std::chrono::system_clock::to_time_t(now);
+    const std::time_t currentTime =
+        std::chrono::system_clock::to_time_t(now);
 
-    std::cout << "Current time: " << current_time << std::endl;
-
-    swirski::service::date_time::initialise(current_time);
+    swirski::service::date_time::initialise(currentTime);
+    swirski::ui::status_bar::updateClock();
 
     while (running)
     {
