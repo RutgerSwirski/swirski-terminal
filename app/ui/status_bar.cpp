@@ -29,12 +29,12 @@ namespace swirski::ui::status_bar
             return;
         }
 
-        char clockSnapshot[6];
+        char clockSnapshot[9];
 
         std::strftime(
             clockSnapshot,
             sizeof(clockSnapshot),
-            "%H:%M",
+            "%H:%M:%S",
             &localTime);
 
         lv_label_set_text(clockLabel, clockSnapshot);
@@ -52,7 +52,7 @@ namespace swirski::ui::status_bar
         lv_obj_align(
             clockLabel,
             LV_ALIGN_TOP_LEFT,
-            0,
+            10,
             15);
     }
 
@@ -73,12 +73,12 @@ namespace swirski::ui::status_bar
             return;
         }
 
-        char timeText[6];
+        char timeText[9];
 
         std::strftime(
             timeText,
             sizeof(timeText),
-            "%H:%M",
+            "%H:%M:%S",
             &localTime);
 
         lv_label_set_text(clockLabel, timeText);

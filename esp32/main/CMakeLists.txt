@@ -9,6 +9,8 @@ idf_component_register(
         "${APP_DIR}/screens/notifications_screen.cpp"
         "${APP_DIR}/screens/screen_manager.cpp"
         "${APP_DIR}/input/input.cpp"
+        "${APP_DIR}/ui/status_bar.cpp"
+        "${APP_DIR}/services/date_time.cpp"
 
 
     INCLUDE_DIRS
@@ -17,6 +19,8 @@ idf_component_register(
         "${APP_DIR}"
         "${APP_DIR}/screens"
         "${APP_DIR}/input"
+        "${APP_DIR}/ui"
+        "${APP_DIR}/services"
 
     PRIV_REQUIRES
         esp_driver_gpio

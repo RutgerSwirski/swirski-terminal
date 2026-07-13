@@ -40,7 +40,7 @@ namespace swirski::service::date_time
             return false;
         }
 
-        lastUpdateTick = currentTick;
+        lastUpdateTick += 1000;
         timestamp += 1;
 
         return true;
