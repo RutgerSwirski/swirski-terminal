@@ -13,6 +13,8 @@
 #include "app.hpp"
 #include "./inputs/rotary_encoder.hpp"
 #include "app_constants.hpp"
+#include "services/date_time.hpp"
+#include "ui/status_bar.hpp"
 
 namespace
 {
@@ -141,19 +143,41 @@ extern "C" void app_main()
     ESP_ERROR_CHECK(
         lvgl_port_init(&lvglConfig));
 
+    vTaskDelay(1);
+
     initialiseDisplay();
 
+    vTaskDelay(1);
+
     swirski::inputs::rotary_encoder::initialise();
+    swirski::service::date_time::initialise(0);
 
-    lvgl_port_lock(0);
+    vTaskDelay(1);
 
-    swirski::app::createInterface(displayHandle);
+    if (lvgl_port_lock(0))
+    {
+        swirski::app::createInterface(displayHandle);
 
-    lvgl_port_unlock();
+        swirski::ui::status_bar::updateClock();
+
+        lvgl_port_unlock();
+    }
+
+    vTaskDelay(1);
 
     while (true)
     {
         swirski::inputs::rotary_encoder::poll();
+
+        if (swirski::service::date_time::update())
+        {
+            if (lvgl_port_lock(20))
+            {
+                swirski::ui::status_bar::updateClock();
+                lvgl_port_unlock();
+            }
+        }
+
         vTaskDelay(1);
     }
 }

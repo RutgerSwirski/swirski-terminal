@@ -14,7 +14,7 @@ namespace swirski::service::date_time
 
         time_t timestamp = 0;
 
-        SyncState syncState = SyncState::NotSynced;
+        // SyncState syncState = SyncState::NotSynced;
 
         uint32_t lastUpdateTick = 0;
 
@@ -32,16 +32,20 @@ namespace swirski::service::date_time
 
     bool update()
     {
-
         const uint32_t currentTick = lv_tick_get();
+        const uint32_t elapsedMilliseconds =
+            currentTick - lastUpdateTick;
 
-        if (currentTick - lastUpdateTick < 1000)
+        if (elapsedMilliseconds < 1000)
         {
             return false;
         }
 
-        lastUpdateTick += 1000;
-        timestamp += 1;
+        const uint32_t elapsedSeconds =
+            elapsedMilliseconds / 1000;
+
+        lastUpdateTick += elapsedSeconds * 1000;
+        timestamp += elapsedSeconds;
 
         return true;
     }
