@@ -11,7 +11,7 @@
 namespace swirski::inputs::keyboard
 {
 
-    void initialise(SDL_Event &event, bool &running)
+    void processInput(SDL_Event &event, bool &running)
     {
 
         while (SDL_PollEvent(&event))

@@ -4,6 +4,8 @@
 
 #include "notifications_screen.hpp"
 
+#include "status_bar.hpp"
+
 namespace swirski::screens::manager
 {
 
@@ -33,7 +35,6 @@ namespace swirski::screens::manager
 
     lv_obj_t *createScreenRoot()
     {
-
         clearCurrentScreen();
 
         screenRoot = lv_obj_create(lv_screen_active());
@@ -54,6 +55,8 @@ namespace swirski::screens::manager
             screenRoot,
             LV_OPA_COVER,
             LV_PART_MAIN);
+
+        swirski::ui::status_bar::create(screenRoot);
 
         return screenRoot;
     }

@@ -45,7 +45,9 @@ add_executable(
     ../app/screens/screen_manager.cpp
     ../app/screens/home_screen.cpp
     ../app/screens/notifications_screen.cpp
+    ../app/services/date_time.cpp
     ../app/input/input.cpp
+    ../app/ui/status_bar.cpp
     inputs/keyboard.cpp
 )
 
@@ -55,6 +57,8 @@ target_include_directories(
         ../app
         ../app/screens
         ../app/input
+        ../app/services
+        ../app/ui
         inputs
         
 )
