@@ -73,6 +73,14 @@ namespace swirski::transport::websocket
                     std::cout
                         << "Client disconnected"
                         << std::endl;
+
+                    std::cout
+                        << "Connection ID: "
+                        << connectionState->getId()
+                        << std::endl;
+
+                    // Close the connection
+                    // webSocket.close();
                 }
                 else if (
                     message->type ==
