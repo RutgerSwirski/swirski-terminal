@@ -152,6 +152,8 @@ namespace swirski::screens::notifications_screen
             break;
         case swirski::input::input_action::Back:
             std::cout << "Back" << std::endl;
+
+            swirski::screens::manager::showScreen(swirski::screens::manager::Screen::Home);
             break;
         case swirski::input::input_action::Home:
             break;
