@@ -17,6 +17,8 @@
 
 #include <ctime>
 
+#include "websocket_transport.hpp"
+
 int main()
 
 {
@@ -53,8 +55,16 @@ int main()
     swirski::service::date_time::initialise(currentTime);
     swirski::ui::status_bar::updateClock();
 
+    swirski::transport::websocket::WebSocketTransport websocketTransport;
+
+    // initialise transport websocket
+    websocketTransport.initialise();
+
     while (running)
     {
+
+        websocketTransport.update();
+
         swirski::inputs::keyboard::processInput(event, running);
 
         const bool time_changed = swirski::service::date_time::update();

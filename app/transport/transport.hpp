@@ -1,0 +1,34 @@
+#pragma once
+
+#include <string>
+#include <vector>
+
+#include "notifications.hpp"
+
+namespace swirski::transport
+{
+
+    class Transport
+    {
+    public:
+        virtual ~Transport() = default;
+
+        virtual void initialise() = 0;
+        virtual void update() = 0;
+        virtual void send(const std::string &message) = 0;
+    };
+
+    struct NotificationsSnapshot
+    {
+        std::vector<
+            swirski::services::notifications_service::Notification>
+            notifications;
+    };
+
+    struct SystemData
+    {
+        int batteryPercentage;
+        bool isCharging;
+        std::string deviceName;
+    };
+}

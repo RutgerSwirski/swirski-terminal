@@ -7,6 +7,8 @@ idf_component_register(
         "inputs/rotary_encoder.cpp"
         "inputs/push_buttons.cpp"
 
+        "ble_transport/ble_transport.cpp"
+
         "${APP_DIR}/app.cpp"
         
         "${APP_DIR}/input/input.cpp"
@@ -25,11 +27,13 @@ idf_component_register(
     INCLUDE_DIRS
         "."
         "inputs"
+        "ble_transport"
         "${APP_DIR}"
         "${APP_DIR}/screens"
         "${APP_DIR}/input"
         "${APP_DIR}/ui"
         "${APP_DIR}/services"
+        "${APP_DIR}/transport"
 
     PRIV_REQUIRES
         esp_driver_gpio

@@ -18,6 +18,8 @@
 #include "ui/status_bar.hpp"
 #include "input.hpp"
 
+#include "ble_transport.hpp"
+
 namespace
 {
 
@@ -155,6 +157,10 @@ extern "C" void app_main()
     swirski::inputs::push_buttons::initialise();
     swirski::service::date_time::initialise(0);
 
+    swirski::transport::ble::BleTransport bleTransport;
+
+    bleTransport.initialise();
+
     vTaskDelay(1);
 
     if (lvgl_port_lock(0))
@@ -170,6 +176,8 @@ extern "C" void app_main()
 
     while (true)
     {
+        bleTransport.update();
+
         swirski::inputs::rotary_encoder::poll();
 
         if (swirski::inputs::push_buttons::backPressed())

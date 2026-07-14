@@ -55,7 +55,11 @@ add_executable(
     ../app/services/date_time.cpp
     ../app/services/notifications.cpp
 
+    # ../app/transport/message_handler.cpp
+
     inputs/keyboard.cpp
+
+    websocket_transport/websocket_transport.cpp
 )
 
 target_include_directories(
@@ -66,7 +70,9 @@ target_include_directories(
         ../app/ui
         ../app/screens
         ../app/services
+        ../app/transport
         inputs
+        websocket_transport
 )
 
 target_link_libraries(

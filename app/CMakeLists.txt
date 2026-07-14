@@ -5,12 +5,14 @@ idf_component_register(
         "screens/*.cpp"
         "services/*.cpp"
         "ui/*.cpp"
+        "transport/*.cpp"
     INCLUDE_DIRS
         "."
         "input"
         "screens"
         "services"
         "ui"
+        "transport"
     REQUIRES
         lvgl
 )
