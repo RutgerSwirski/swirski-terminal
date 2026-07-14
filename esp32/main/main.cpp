@@ -69,7 +69,7 @@ void initialiseDisplay()
     ioConfig.cs_gpio_num = LCD_PIN_CS;
     ioConfig.dc_gpio_num = LCD_PIN_DC;
     ioConfig.spi_mode = 0;
-    ioConfig.pclk_hz = 20 * 1000 * 1000;
+    ioConfig.pclk_hz = 40 * 1000 * 1000;
     ioConfig.trans_queue_depth = 10;
     ioConfig.lcd_cmd_bits = 8;
     ioConfig.lcd_param_bits = 8;

@@ -55,7 +55,7 @@ namespace swirski::screens::notifications_screen
             const lv_color_t textColor =
                 isSelected
                     ? lv_color_hex(0x00ff00)
-                    : lv_color_black();
+                    : lv_color_white();
 
             lv_obj_set_style_text_color(
                 row.titleLabel,
@@ -67,7 +67,7 @@ namespace swirski::screens::notifications_screen
         {
             lv_obj_scroll_to_view(
                 notificationRows[selectedNotificationIndex].container,
-                LV_ANIM_ON);
+                LV_ANIM_OFF);
         }
     }
 
@@ -96,7 +96,7 @@ namespace swirski::screens::notifications_screen
 
         lv_obj_set_scrollbar_mode(notificationList, LV_SCROLLBAR_MODE_AUTO);
 
-        for (const auto notification : notifications)
+        for (const auto &notification : notifications)
         {
 
             lv_obj_t *container = lv_obj_create(notificationList);
@@ -151,6 +151,8 @@ namespace swirski::screens::notifications_screen
             break;
         case swirski::input::input_action::Back:
             std::cout << "Back" << std::endl;
+            break;
+        case swirski::input::input_action::Home:
             break;
         }
     }

@@ -11,6 +11,7 @@ idf_component_register(
         "${APP_DIR}/input/input.cpp"
         "${APP_DIR}/ui/status_bar.cpp"
         "${APP_DIR}/services/date_time.cpp"
+        "${APP_DIR}/services/notifications.cpp"
 
 
     INCLUDE_DIRS
