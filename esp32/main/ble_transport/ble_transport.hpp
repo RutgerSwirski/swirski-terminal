@@ -10,6 +10,16 @@ namespace swirski::transport::ble
         void initialise() override;
         void update() override;
         void send(const std::string &message) override;
+
+    private:
+        NimBLEServer *server = nullptr;
+
+        NimBLECharacteristic *recieveCharacteristic = nullptr;
+
+        NimBLECharacteristic *transmitCharacteristic = nullptr;
+
+        bool connected = false;
+        bool subscribed = false;
     };
 
 }

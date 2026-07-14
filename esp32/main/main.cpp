@@ -176,7 +176,6 @@ extern "C" void app_main()
 
     while (true)
     {
-        bleTransport.update();
 
         swirski::inputs::rotary_encoder::poll();
 
