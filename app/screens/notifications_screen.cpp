@@ -1,11 +1,11 @@
 
-#include "notifications_screen.hpp"
+
+#include "input.hpp"
 
 #include "screen_manager.hpp"
-
-#include "lvgl.h"
-
-#include "services/notifications.hpp"
+#include "notifications_screen.hpp"
+#include "notification_screen.hpp"
+#include "notifications.hpp"
 
 #include <vector>
 
@@ -13,7 +13,7 @@
 
 #include <string>
 
-#include "input.hpp"
+#include "lvgl.h"
 
 namespace swirski::screens::notifications_screen
 {
@@ -147,7 +147,8 @@ namespace swirski::screens::notifications_screen
         case swirski::input::input_action::Confirm:
             std::cout << "Confirm" << std::endl;
 
-            // show notification screen
+            swirski::screens::manager::showNotificationScreen(notificationRows[selectedNotificationIndex].id);
+
             break;
         case swirski::input::input_action::Back:
             std::cout << "Back" << std::endl;

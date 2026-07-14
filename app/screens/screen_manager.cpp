@@ -3,8 +3,11 @@
 #include "home_screen.hpp"
 
 #include "notifications_screen.hpp"
+#include "notification_screen.hpp"
 
 #include "status_bar.hpp"
+
+#include <string>
 
 namespace swirski::screens::manager
 {
@@ -66,6 +69,16 @@ namespace swirski::screens::manager
         return currentScreen;
     }
 
+    void showNotificationScreen(std::string notificationId)
+    {
+
+        clearCurrentScreen();
+
+        currentScreen = Screen::Notification;
+
+        swirski::screens::notification_screen::render(notificationId);
+    }
+
     void showScreen(Screen screen)
     {
 
@@ -79,6 +92,7 @@ namespace swirski::screens::manager
         case Screen::Notifications:
             swirski::screens::notifications_screen::render();
             break;
+
         case Screen::Music:
             // showMusicScreen();
             break;

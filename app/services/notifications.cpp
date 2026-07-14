@@ -60,7 +60,7 @@ namespace swirski::services::notifications_service
         return notifications;
     }
 
-    Notification getNotificationById(std::string id)
+    Notification getNotification(std::string id)
     {
         for (auto notification : notifications)
         {

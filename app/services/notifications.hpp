@@ -20,6 +20,6 @@ namespace swirski::services::notifications_service
 
     std::vector<Notification> getNotifications();
 
-    Notification getNotificationById(std::string id);
+    Notification getNotification(std::string id);
 
 }
