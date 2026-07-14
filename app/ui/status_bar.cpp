@@ -62,7 +62,7 @@ namespace swirski::ui::status_bar
 
         pagePathLabel = lv_label_create(parent);
 
-        lv_label_set_text(pagePathLabel, "SWIRSKI OS!");
+        lv_label_set_text(pagePathLabel, "SWIRSKI OS");
 
         lv_obj_set_style_text_color(
             pagePathLabel,

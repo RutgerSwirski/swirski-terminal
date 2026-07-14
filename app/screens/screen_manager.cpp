@@ -102,6 +102,8 @@ namespace swirski::screens::manager
         case Screen::Settings:
             // showSettingsScreen();
             break;
+        default:
+            break;
         }
     }
 
