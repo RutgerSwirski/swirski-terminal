@@ -3,6 +3,8 @@
 
 #include "transport.hpp"
 
+#include <mutex>
+#include <queue>
 #include <string>
 
 namespace swirski::transport::websocket
@@ -13,6 +15,10 @@ namespace swirski::transport::websocket
         void initialise() override;
         void update() override;
         void send(const std::string &message) override;
+
+    private:
+        std::queue<std::string> incomingMessages;
+        std::mutex incomingMessagesMutex;
     };
 
 }

@@ -5,6 +5,7 @@ project(
     LANGUAGES C CXX
 )
 
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -20,6 +21,21 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
     GIT_PROGRESS TRUE
 )
+
+set(USE_TLS OFF CACHE BOOL "" FORCE)
+set(USE_ZLIB OFF CACHE BOOL "" FORCE)
+set(USE_WS OFF CACHE BOOL "" FORCE)
+set(USE_TEST OFF CACHE BOOL "" FORCE)
+set(IXWEBSOCKET_INSTALL OFF CACHE BOOL "" FORCE)
+
+FetchContent_Declare(
+    ixwebsocket
+    GIT_REPOSITORY https://github.com/machinezone/IXWebSocket.git
+    GIT_TAG v12.0.0
+    GIT_SHALLOW TRUE
+)
+
+FetchContent_MakeAvailable(ixwebsocket)
 
 # Point LVGL at the desktop-specific configuration.
 set(
@@ -80,4 +96,5 @@ target_link_libraries(
     PRIVATE
         lvgl::lvgl
         SDL2::SDL2
+        ixwebsocket::ixwebsocket
 )
