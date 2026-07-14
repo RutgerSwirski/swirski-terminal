@@ -46,6 +46,7 @@ add_executable(
     ../app/screens/home_screen.cpp
     ../app/screens/notifications_screen.cpp
     ../app/services/date_time.cpp
+    ../app/services/notifications.cpp
     ../app/input/input.cpp
     ../app/ui/status_bar.cpp
     inputs/keyboard.cpp

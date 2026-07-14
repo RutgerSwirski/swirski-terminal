@@ -77,10 +77,7 @@ namespace swirski::screens::manager
             swirski::screens::home::render();
             break;
         case Screen::Notifications:
-
-            swirski::screens::notifications::render();
-
-            // showNotificationsScreen();
+            swirski::screens::notifications_screen::render();
             break;
         case Screen::Music:
             // showMusicScreen();

@@ -4,6 +4,8 @@
 
 #include "screens/home_screen.hpp"
 
+#include "screens/notifications_screen.hpp"
+
 #include <iostream>
 
 namespace swirski::input
@@ -19,6 +21,7 @@ namespace swirski::input
             swirski::screens::home::handleInput(action);
             break;
         case swirski::screens::manager::Screen::Notifications:
+            swirski::screens::notifications_screen::handleInput(action);
             // handleNotificationsInput(action);
             break;
         case swirski::screens::manager::Screen::Music:
