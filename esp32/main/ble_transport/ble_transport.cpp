@@ -10,6 +10,7 @@
 #include <NimBLEDevice.h>
 
 #include "protocol.hpp"
+#include "system_state.hpp"
 
 namespace
 {
@@ -21,6 +22,42 @@ namespace
 
     constexpr char TRANSMIT_CHARACTERISTIC_UUID[] =
         "0c83378b-52ed-4500-bc9e-5bb153bbd4d6";
+
+    class ServerCallbacks : public NimBLEServerCallbacks
+    {
+    public:
+        void setConnectionHandler(
+            std::function<void(bool)> handler)
+        {
+            connectionHandler =
+                std::move(handler);
+        }
+
+        void onConnect(
+            NimBLEServer *,
+            NimBLEConnInfo &) override
+        {
+            if (connectionHandler)
+            {
+                connectionHandler(true);
+            }
+        }
+
+        void onDisconnect(
+            NimBLEServer *,
+            NimBLEConnInfo &,
+            int) override
+        {
+            if (connectionHandler)
+            {
+                connectionHandler(false);
+            }
+        }
+
+    private:
+        std::function<void(bool)> connectionHandler;
+    };
+
     class ReceiveCallbacks : public NimBLECharacteristicCallbacks
     {
     public:
@@ -46,18 +83,36 @@ namespace
     };
 
     ReceiveCallbacks receiveCallbacks;
+    ServerCallbacks serverCallbacks;
+
 }
 
 namespace swirski::transport::ble
 {
     void BleTransport::initialise()
     {
+        const auto setBleStatus =
+            [](swirski::state::system::ConnectionStatus status)
+        {
+            swirski::state::system::setConnection(
+                swirski::state::system::TransportType::Ble,
+                status);
+
+                
+        };
+
         std::cout << "Initialising BLE Server" << std::endl;
+
+        setBleStatus(
+            swirski::state::system::ConnectionStatus::Connecting);
 
         const bool initialised = NimBLEDevice::init("Swirski Terminal");
 
         if (!initialised)
         {
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
             std::cerr
                 << "Could not initialise NimBLE"
                 << std::endl;
@@ -65,19 +120,34 @@ namespace swirski::transport::ble
             return;
         }
 
-        // Optional: Adjust transmit power (values range from -12 to +9dBm)
-        // NimBLEDevice::setPower(ESP_PWR_LVL_P9);
-
         server = NimBLEDevice::createServer();
 
         if (server == nullptr)
         {
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
             std::cerr
                 << "Could not create BLE server"
                 << std::endl;
-
             return;
         }
+
+        serverCallbacks.setConnectionHandler(
+            [this](bool connected)
+            {
+                std::lock_guard<std::mutex> lock(
+                    connectionEventMutex);
+
+                pendingConnectionEvent =
+                    connected
+                        ? ConnectionEvent::Connected
+                        : ConnectionEvent::Disconnected;
+            });
+
+        server->setCallbacks(
+            &serverCallbacks,
+            false);
 
         server->advertiseOnDisconnect(true);
 
@@ -85,6 +155,9 @@ namespace swirski::transport::ble
 
         if (service == nullptr)
         {
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
             std::cerr
                 << "Could not create BLE service"
                 << std::endl;
@@ -101,6 +174,9 @@ namespace swirski::transport::ble
 
         if (receiveCharacteristic == nullptr || transmitCharacteristic == nullptr)
         {
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
             std::cerr
                 << "Could not create BLE characteristic"
                 << std::endl;
@@ -124,6 +200,10 @@ namespace swirski::transport::ble
 
         if (!serverStarted)
         {
+
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
             std::cerr
                 << "Could not start BLE server"
                 << std::endl;
@@ -135,6 +215,10 @@ namespace swirski::transport::ble
 
         if (advertising == nullptr)
         {
+
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
             std::cerr
                 << "Could not get BLE advertising"
                 << std::endl;
@@ -148,6 +232,10 @@ namespace swirski::transport::ble
 
         if (!serviceUuidAdded)
         {
+
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
             std::cerr
                 << "Could not add service UUID to BLE advertising"
                 << std::endl;
@@ -158,6 +246,9 @@ namespace swirski::transport::ble
 
         if (!nameSet)
         {
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
             std::cerr
                 << "Could not set name to BLE advertising"
                 << std::endl;
@@ -168,6 +259,10 @@ namespace swirski::transport::ble
 
         if (!advertisingStarted)
         {
+
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
             std::cerr
                 << "Could not start BLE advertising"
                 << std::endl;
@@ -175,11 +270,46 @@ namespace swirski::transport::ble
             return;
         }
 
+        setBleStatus(
+            swirski::state::system::ConnectionStatus::Disconnected);
+
         std::cout << "BLE Server started and advertising" << std::endl;
     }
 
     void BleTransport::update()
     {
+        std::optional<ConnectionEvent> connectionEvent;
+
+        {
+            std::lock_guard<std::mutex> lock(
+                connectionEventMutex);
+
+            connectionEvent = pendingConnectionEvent;
+
+            pendingConnectionEvent.reset();
+        }
+
+        if (connectionEvent)
+        {
+            switch (*connectionEvent)
+            {
+            case ConnectionEvent::Connected:
+                swirski::state::system::setConnection(
+                    swirski::state::system::TransportType::Ble,
+                    swirski::state::system::ConnectionStatus::Connected);
+
+                std::cout << "BLE connected" << std::endl;
+                break;
+            case ConnectionEvent::Disconnected:
+                swirski::state::system::setConnection(
+                    swirski::state::system::TransportType::Ble,
+                    swirski::state::system::ConnectionStatus::Disconnected);
+
+                std::cout << "BLE disconnected" << std::endl;
+                break;
+            }
+        }
+
         std::string nextMessage;
 
         {

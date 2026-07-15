@@ -25,6 +25,8 @@ idf_component_register(
 
         "${APP_DIR}/protocol/protocol.cpp"
 
+        "${APP_DIR}/state/system_state.cpp"
+
 
     INCLUDE_DIRS
         "."
@@ -37,6 +39,7 @@ idf_component_register(
         "${APP_DIR}/services"
         "${APP_DIR}/transport"
         "${APP_DIR}/protocol"
+        "${APP_DIR}/state"
 
     PRIV_REQUIRES
         esp_driver_gpio

@@ -5,6 +5,8 @@
 #include <mutex>
 #include <queue>
 #include <string>
+#include <optional>
+
 class NimBLEServer;
 class NimBLECharacteristic;
 
@@ -29,6 +31,17 @@ namespace swirski::transport::ble
 
         std::queue<std::string> incomingMessages;
         std::mutex incomingMessagesMutex;
+
+        enum class ConnectionEvent
+        {
+            Connected,
+            Disconnected
+        };
+
+        std::optional<ConnectionEvent>
+            pendingConnectionEvent;
+
+        std::mutex connectionEventMutex;
     };
 
 }
