@@ -157,8 +157,46 @@ namespace swirski::transport::ble
     {
     }
 
-    void BleTransport::send(const std::string &message)
+    void BleTransport::send(
+        const std::string &message)
     {
-        std::cout << "Sending ble message: " << message << std::endl;
+        if (transmitCharacteristic == nullptr)
+        {
+            std::cerr
+                << "Transmit characteristic is not initialised"
+                << std::endl;
+
+            return;
+        }
+
+        if (
+            server == nullptr ||
+            server->getConnectedCount() == 0)
+        {
+            std::cout
+                << "No BLE client connected"
+                << std::endl;
+
+            return;
+        }
+
+        transmitCharacteristic->setValue(message);
+
+        const bool sent =
+            transmitCharacteristic->notify();
+
+        if (!sent)
+        {
+            std::cerr
+                << "Could not send BLE notification"
+                << std::endl;
+
+            return;
+        }
+
+        std::cout
+            << "Sent BLE message: "
+            << message
+            << std::endl;
     }
 }
