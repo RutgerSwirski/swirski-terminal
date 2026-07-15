@@ -8,6 +8,8 @@
 #include <queue>
 #include <string>
 
+#include "protocol.hpp"
+
 namespace
 {
     constexpr int PORT = 8008;
@@ -39,10 +41,6 @@ namespace swirski::transport::websocket
                         << "Connection ID: "
                         << connectionState->getId()
                         << std::endl;
-
-                    // send a welcome message
-                    webSocket.send(
-                        "Welcome to the WebSocket server");
                 }
 
                 else if (
@@ -50,7 +48,7 @@ namespace swirski::transport::websocket
                     ix::WebSocketMessageType::Message)
                 {
                     std::cout
-                        << "Received: "
+                        << "Received WebSocket message: "
                         << message->str
                         << std::endl;
 
@@ -61,10 +59,6 @@ namespace swirski::transport::websocket
                         incomingMessages.push(
                             message->str);
                     }
-
-                    webSocket.send(
-                        message->str,
-                        message->binary);
                 }
                 else if (
                     message->type ==
@@ -135,20 +129,43 @@ namespace swirski::transport::websocket
         }
 
         std::cout
-            << "Processing message in app thread: "
+            << "Processing WebSocket message in app thread: "
             << nextMessage
             << std::endl;
+
+        const auto response =
+            swirski::protocol::handleIncomingMessage(
+                nextMessage);
+
+        if (response)
+        {
+            send(*response);
+        }
     }
 
     void WebSocketTransport::send(
         const std::string &message)
     {
+        const auto clients =
+            server.getClients();
+
+        if (clients.empty())
+        {
+            std::cout
+                << "No WebSocket client connected"
+                << std::endl;
+
+            return;
+        }
+
+        for (const auto &client : clients)
+        {
+            client->send(message);
+        }
+
         std::cout
-            << "Application wants to send: "
+            << "Sent WebSocket message: "
             << message
             << std::endl;
-
-        // We still need to retain/find a connected client
-        // before this can actually transmit.
     }
 }

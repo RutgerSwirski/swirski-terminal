@@ -79,7 +79,7 @@ add_executable(
     ../app/services/date_time.cpp
     ../app/services/notifications.cpp
 
-    # ../app/transport/message_handler.cpp
+    ../app/protocol/protocol.cpp
 
     inputs/keyboard.cpp
 
@@ -95,6 +95,7 @@ target_include_directories(
         ../app/screens
         ../app/services
         ../app/transport
+        ../app/protocol
         inputs
         websocket_transport
 )
