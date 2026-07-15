@@ -37,6 +37,14 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(ixwebsocket)
 
+FetchContent_Declare(
+    ArduinoJson
+    GIT_REPOSITORY https://github.com/bblanchon/ArduinoJson.git
+    GIT_TAG v7.4.3
+)
+
+FetchContent_MakeAvailable(ArduinoJson)
+
 # Point LVGL at the desktop-specific configuration.
 set(
     LV_BUILD_CONF_PATH
@@ -97,4 +105,5 @@ target_link_libraries(
         lvgl::lvgl
         SDL2::SDL2
         ixwebsocket::ixwebsocket
+        ArduinoJson
 )

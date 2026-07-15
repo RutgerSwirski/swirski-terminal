@@ -18,17 +18,4 @@ namespace swirski::transport
         virtual void send(const std::string &message) = 0;
     };
 
-    struct NotificationsSnapshot
-    {
-        std::vector<
-            swirski::services::notifications_service::Notification>
-            notifications;
-    };
-
-    struct SystemData
-    {
-        int batteryPercentage;
-        bool isCharging;
-        std::string deviceName;
-    };
 }

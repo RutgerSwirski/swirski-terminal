@@ -9,9 +9,7 @@ namespace swirski::protocol
     struct Message
     {
         int version = 1;
-
         MessageType type = MessageType::Unknown;
-
         std::string id;
     };
 }

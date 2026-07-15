@@ -6,6 +6,12 @@ namespace swirski::protocol
     {
         Ping,
         Pong,
+        // NotificationReceived,
+        // MediaStateChanged,
+        // MediaCommand,
+        // TerminalStatus,
         Unknown
     };
+
+    // MessageType messageTypeFromString(const std::string &value)
 }

@@ -202,16 +202,12 @@ namespace swirski::transport::ble
             << nextMessage
             << std::endl;
 
-        // Later:
-        // swirski::protocol::handleMessage(nextMessage);
+        const auto response = swirski::protocol::handleIncomingMessage(
+            nextMessage);
 
-        const auto response =
-            swirski::protocol::handleIncomingMessage(
-                nextMessage);
-
-        if (response.has_value())
+        if (response)
         {
-            send(response.value());
+            send(*response);
         }
     }
 
