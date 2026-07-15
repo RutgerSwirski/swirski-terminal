@@ -80,15 +80,15 @@ namespace swirski::screens::notifications_screen
 
         std::cout << "Rendering notifications screen" << std::endl;
 
-        lv_obj_t *screenRoot = swirski::screens::manager::createScreenRoot();
+        lv_obj_t *pageRoot = swirski::screens::manager::createPageRoot();
 
-        lv_obj_t *notificationList = lv_obj_create(screenRoot);
+        lv_obj_t *notificationList = lv_obj_create(pageRoot);
 
         lv_obj_set_size(notificationList, 300, 200);
 
         lv_obj_set_style_bg_color(notificationList, lv_color_hex(0x00283d), LV_PART_MAIN);
 
-        lv_obj_align(notificationList, LV_ALIGN_TOP_MID, 0, 35);
+        lv_obj_align(notificationList, LV_ALIGN_TOP_MID, 0, 5);
 
         lv_obj_set_flex_flow(notificationList, LV_FLEX_FLOW_COLUMN);
 

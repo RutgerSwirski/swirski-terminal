@@ -21,7 +21,7 @@ namespace swirski::screens::manager
 
     void initialise(lv_display_t *display);
 
-    lv_obj_t *createScreenRoot();
+    lv_obj_t *createPageRoot();
 
     Screen getCurrentScreen();
 

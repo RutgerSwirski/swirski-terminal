@@ -59,11 +59,11 @@ namespace swirski::screens::home
     void render()
     {
         // TODO
-        lv_obj_t *screenRoot = swirski::screens::manager::createScreenRoot();
+        lv_obj_t *pageRoot = swirski::screens::manager::createPageRoot();
 
         // create a flex container
 
-        lv_obj_t *flexContainer = lv_obj_create(screenRoot);
+        lv_obj_t *flexContainer = lv_obj_create(pageRoot);
 
         lv_obj_set_layout(flexContainer, LV_LAYOUT_FLEX);
 
@@ -81,9 +81,9 @@ namespace swirski::screens::home
 
         lv_obj_align(
             flexContainer,
-            LV_ALIGN_CENTER,
+            LV_ALIGN_TOP_MID,
             0,
-            0);
+            5);
 
         for (std::size_t i = 0; i < homeMenuItems.size(); ++i)
         {

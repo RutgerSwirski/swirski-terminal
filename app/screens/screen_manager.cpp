@@ -16,52 +16,161 @@ namespace swirski::screens::manager
     {
         lv_display_t *displayHandle = nullptr;
 
-        lv_obj_t *screenRoot = nullptr;
+        lv_obj_t *applicationRoot = nullptr;
+        lv_obj_t *contentRoot = nullptr;
+        lv_obj_t *pageRoot = nullptr;
+        lv_obj_t *statusBarRoot = nullptr;
 
         Screen currentScreen = Screen::Home;
+
+        constexpr int32_t STATUS_BAR_HEIGHT = 35;
+
+        void createApplicationShell()
+        {
+            if (applicationRoot != nullptr)
+            {
+                return;
+            }
+
+            applicationRoot =
+                lv_obj_create(lv_screen_active());
+
+            lv_obj_remove_style_all(
+                applicationRoot);
+
+            const int32_t screenWidth =
+                lv_display_get_horizontal_resolution(
+                    displayHandle);
+
+            const int32_t screenHeight =
+                lv_display_get_vertical_resolution(
+                    displayHandle);
+
+            lv_obj_set_size(
+                applicationRoot,
+                screenWidth,
+                screenHeight);
+
+            lv_obj_set_style_bg_color(
+                applicationRoot,
+                lv_color_hex(0x00283d),
+                LV_PART_MAIN);
+
+            lv_obj_set_style_bg_opa(
+                applicationRoot,
+                LV_OPA_COVER,
+                LV_PART_MAIN);
+
+            lv_obj_clear_flag(
+                applicationRoot,
+                LV_OBJ_FLAG_SCROLLABLE);
+
+            statusBarRoot =
+                lv_obj_create(applicationRoot);
+
+            lv_obj_remove_style_all(
+                statusBarRoot);
+
+            lv_obj_set_pos(
+                statusBarRoot,
+                0,
+                0);
+
+            lv_obj_set_size(
+                statusBarRoot,
+                screenWidth,
+                STATUS_BAR_HEIGHT);
+
+            lv_obj_set_style_bg_opa(
+                statusBarRoot,
+                LV_OPA_TRANSP,
+                LV_PART_MAIN);
+
+            lv_obj_clear_flag(
+                statusBarRoot,
+                LV_OBJ_FLAG_SCROLLABLE);
+
+            swirski::ui::status_bar::create(
+                statusBarRoot);
+
+            contentRoot =
+                lv_obj_create(applicationRoot);
+
+            lv_obj_remove_style_all(
+                contentRoot);
+
+            lv_obj_set_pos(
+                contentRoot,
+                0,
+                STATUS_BAR_HEIGHT);
+
+            lv_obj_set_size(
+                contentRoot,
+                screenWidth,
+                screenHeight - STATUS_BAR_HEIGHT);
+
+            lv_obj_set_style_bg_opa(
+                contentRoot,
+                LV_OPA_TRANSP,
+                LV_PART_MAIN);
+
+            lv_obj_clear_flag(
+                contentRoot,
+                LV_OBJ_FLAG_SCROLLABLE);
+        }
+
+        void clearCurrentPage()
+        {
+            if (pageRoot == nullptr)
+            {
+                return;
+            }
+
+            lv_obj_delete(pageRoot);
+            pageRoot = nullptr;
+        }
+
     }
 
     void initialise(lv_display_t *display)
     {
         displayHandle = display;
         lv_display_set_default(displayHandle);
+
+        createApplicationShell();
     }
 
-    void clearCurrentScreen()
+    lv_obj_t *createPageRoot()
     {
-        if (screenRoot != nullptr)
-        {
-            lv_obj_delete(screenRoot);
-            screenRoot = nullptr;
-        }
-    }
+        createApplicationShell();
+        clearCurrentPage();
 
-    lv_obj_t *createScreenRoot()
-    {
-        clearCurrentScreen();
+        pageRoot =
+            lv_obj_create(contentRoot);
 
-        screenRoot = lv_obj_create(lv_screen_active());
+        lv_obj_remove_style_all(
+            pageRoot);
 
-        lv_obj_remove_style_all(screenRoot);
+        lv_obj_set_pos(
+            pageRoot,
+            0,
+            0);
 
         lv_obj_set_size(
-            screenRoot,
+            pageRoot,
             LV_PCT(100),
             LV_PCT(100));
 
-        lv_obj_set_style_bg_color(
-            screenRoot,
-            lv_color_hex(0x00283d),
-            LV_PART_MAIN);
-
         lv_obj_set_style_bg_opa(
-            screenRoot,
-            LV_OPA_COVER,
+            pageRoot,
+            LV_OPA_TRANSP,
             LV_PART_MAIN);
 
-        swirski::ui::status_bar::create(screenRoot);
+        lv_obj_clear_flag(
+            pageRoot,
+            LV_OBJ_FLAG_SCROLLABLE);
 
-        return screenRoot;
+        return pageRoot;
     }
 
     Screen getCurrentScreen()
@@ -69,42 +178,35 @@ namespace swirski::screens::manager
         return currentScreen;
     }
 
-    void showNotificationScreen(std::string notificationId)
+    void showNotificationScreen(
+        std::string notificationId)
     {
+        currentScreen =
+            Screen::Notification;
 
-        clearCurrentScreen();
-
-        currentScreen = Screen::Notification;
-
-        swirski::screens::notification_screen::render(notificationId);
+        swirski::screens::notification_screen::render(
+            notificationId);
     }
 
     void showScreen(Screen screen)
     {
-
-        currentScreen = screen;
-
         switch (screen)
         {
         case Screen::Home:
+            currentScreen = Screen::Home;
             swirski::screens::home::render();
             break;
+
         case Screen::Notifications:
+            currentScreen = Screen::Notifications;
             swirski::screens::notifications_screen::render();
             break;
 
         case Screen::Music:
-            // showMusicScreen();
-            break;
         case Screen::Studio:
-            // showStudioScreen();
-            break;
         case Screen::Settings:
-            // showSettingsScreen();
-            break;
-        default:
+        case Screen::Notification:
             break;
         }
     }
-
 }

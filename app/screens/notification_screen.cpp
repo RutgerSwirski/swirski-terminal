@@ -19,15 +19,15 @@ namespace swirski::screens::notification_screen
 
         swirski::services::notifications_service::Notification notification = swirski::services::notifications_service::getNotification(notificationId);
 
-        lv_obj_t *screenRoot = swirski::screens::manager::createScreenRoot();
+        lv_obj_t *pageRoot = swirski::screens::manager::createPageRoot();
 
-        lv_obj_t *container = lv_obj_create(screenRoot);
+        lv_obj_t *container = lv_obj_create(pageRoot);
 
         lv_obj_set_size(container, 300, 200);
 
         lv_obj_set_style_bg_color(container, lv_color_hex(0x00283d), LV_PART_MAIN);
 
-        lv_obj_align(container, LV_ALIGN_TOP_MID, 0, 35);
+        lv_obj_align(container, LV_ALIGN_TOP_MID, 0, 5);
 
         lv_obj_set_flex_flow(container, LV_FLEX_FLOW_COLUMN);
 
