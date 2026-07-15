@@ -5,28 +5,115 @@
 
 #include "services/date_time.hpp"
 
-#include <string>
-
 #include <ctime>
-
-#include <iostream>
 
 #include "system_state.hpp"
 
 namespace swirski::ui::status_bar
 {
-    lv_obj_t *statusBar = nullptr;
-    lv_obj_t *clockLabel = nullptr;
-    lv_obj_t *pagePathLabel = nullptr;
 
-    lv_obj_t *connectionLabel = nullptr;
-    lv_obj_t *connectionDot = nullptr;
+    namespace
+    {
+        lv_obj_t *clockLabel = nullptr;
+        lv_obj_t *pagePathLabel = nullptr;
 
-    const char *transportText = "-";
-    bool connected = false;
-    bool error = false;
+        lv_obj_t *connectionLabel = nullptr;
+        lv_obj_t *connectionDot = nullptr;
 
-    std::uint32_t lastRenderedSystemRevision = 0;
+        std::uint32_t lastRenderedSystemRevision = 0;
+
+        void renderSystemState(
+            const swirski::state::system::SystemStateSnapshot &snapshot)
+        {
+
+            if (
+                connectionLabel == nullptr ||
+                connectionDot == nullptr)
+            {
+                return;
+            }
+
+            const char *transportText = "-";
+            bool connected = false;
+            bool error = false;
+
+            switch (snapshot.connection.transport)
+            {
+            case swirski::state::system::TransportType::Ble:
+                transportText = "B";
+                break;
+
+            case swirski::state::system::TransportType::WebSocket:
+                transportText = "W";
+                break;
+
+            case swirski::state::system::TransportType::None:
+                transportText = "-";
+                break;
+            }
+
+            lv_label_set_text(
+                connectionLabel,
+                transportText);
+
+            switch (snapshot.connection.status)
+            {
+            case swirski::state::system::ConnectionStatus::Connected:
+                connected = true;
+                error = false;
+                break;
+
+            case swirski::state::system::ConnectionStatus::Error:
+                connected = false;
+                error = true;
+                break;
+
+            case swirski::state::system::ConnectionStatus::Connecting:
+            case swirski::state::system::ConnectionStatus::Disconnected:
+                connected = false;
+                error = false;
+                break;
+            }
+
+            if (error)
+            {
+                lv_obj_set_style_opa(
+                    connectionDot,
+                    LV_OPA_50,
+                    0);
+
+                lv_obj_set_style_bg_color(
+                    connectionDot,
+                    lv_color_hex(0xFF0000),
+                    LV_PART_MAIN);
+            }
+            else if (connected)
+            {
+                lv_obj_set_style_opa(
+                    connectionDot,
+                    LV_OPA_COVER,
+                    0);
+
+                lv_obj_set_style_bg_color(
+                    connectionDot,
+                    lv_color_hex(0x00FF00),
+                    LV_PART_MAIN);
+            }
+            else
+            {
+                lv_obj_set_style_opa(
+                    connectionDot,
+                    LV_OPA_30,
+                    LV_PART_MAIN);
+
+                lv_obj_set_style_bg_color(
+                    connectionDot,
+                    lv_color_hex(0x808080),
+                    LV_PART_MAIN);
+            }
+        }
+
+    }
 
     void create(lv_obj_t *parent)
     {
@@ -36,18 +123,16 @@ namespace swirski::ui::status_bar
 
         std::tm localTime{};
 
-        if (localtime_r(&timestamp, &localTime) == nullptr)
+        char clockSnapshot[13] = "-- --- --:--";
+
+        if (localtime_r(&timestamp, &localTime) != nullptr)
         {
-            return;
+            std::strftime(
+                clockSnapshot,
+                sizeof(clockSnapshot),
+                "%d %b %H:%M",
+                &localTime);
         }
-
-        char clockSnapshot[13]{};
-
-        std::strftime(
-            clockSnapshot,
-            sizeof(clockSnapshot),
-            "%d %b %H:%M",
-            &localTime);
 
         // TODO: create a flex container here
 
@@ -121,6 +206,24 @@ namespace swirski::ui::status_bar
             LV_ALIGN_TOP_RIGHT,
             -10,
             10);
+
+        lv_obj_set_style_border_width(
+            connectionDot,
+            0,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_pad_all(
+            connectionDot,
+            0,
+            LV_PART_MAIN);
+
+        const auto snapshot =
+            swirski::state::system::getSnapshot();
+
+        renderSystemState(snapshot);
+
+        lastRenderedSystemRevision =
+            snapshot.revision;
     }
 
     void updateClock()
@@ -163,59 +266,10 @@ namespace swirski::ui::status_bar
             return;
         }
 
-        // Update connection label and dot here.
-
-        switch (snapshot.connection.transport)
-        {
-        case swirski::state::system::TransportType::Ble:
-            transportText = "B";
-            break;
-
-        case swirski::state::system::TransportType::WebSocket:
-            transportText = "W";
-            break;
-
-        case swirski::state::system::TransportType::None:
-            transportText = "-";
-            break;
-        }
-
-        lv_label_set_text(
-            connectionLabel,
-            transportText);
-
-        switch (snapshot.connection.status)
-        {
-        case swirski::state::system::ConnectionStatus::Connected:
-            connected = true;
-            break;
-
-        case swirski::state::system::ConnectionStatus::Error:
-            error = true;
-            break;
-
-        case swirski::state::system::ConnectionStatus::Connecting:
-        case swirski::state::system::ConnectionStatus::Disconnected:
-            connected = false;
-            break;
-        }
-
-        if (connected)
-        {
-            lv_obj_set_style_opa(
-                connectionDot,
-                LV_OPA_COVER,
-                0);
-        }
-        else
-        {
-            lv_obj_set_style_opa(
-                connectionDot,
-                LV_OPA_30,
-                0);
-        }
+        renderSystemState(snapshot);
 
         lastRenderedSystemRevision =
             snapshot.revision;
     }
+
 }
