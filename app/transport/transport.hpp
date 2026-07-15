@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-#include "notifications.hpp"
+#include "notification_service.hpp"
 
 namespace swirski::transport
 {

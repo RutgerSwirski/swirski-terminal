@@ -6,18 +6,28 @@
 
 #include "screen_manager.hpp"
 
-#include "notifications.hpp"
+#include "notification_service.hpp"
 
 #include "lvgl.h"
 
 namespace swirski::screens::notification_screen
 {
 
-    void render(std::string notificationId)
+    void render(const std::string &notificationId)
     {
         // we need to ask the notifications screen what notification was selected
 
-        swirski::services::notifications_service::Notification notification = swirski::services::notifications_service::getNotification(notificationId);
+        const auto notificationResult =
+            swirski::services::notification_service::
+                getNotificationById(notificationId);
+
+        if (!notificationResult)
+        {
+            return;
+        }
+
+        const auto notification =
+            *notificationResult;
 
         lv_obj_t *pageRoot = swirski::screens::manager::createPageRoot();
 

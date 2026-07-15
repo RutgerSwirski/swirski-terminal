@@ -5,7 +5,7 @@
 #include "screen_manager.hpp"
 #include "notifications_screen.hpp"
 #include "notification_screen.hpp"
-#include "notifications.hpp"
+#include "notification_service.hpp"
 
 #include <vector>
 
@@ -76,7 +76,7 @@ namespace swirski::screens::notifications_screen
 
         notificationRows.clear();
 
-        std::vector<swirski::services::notifications_service::Notification> notifications = swirski::services::notifications_service::getNotifications();
+        std::vector<swirski::services::notification_service::Notification> notifications = swirski::services::notification_service::getNotifications();
 
         std::cout << "Rendering notifications screen" << std::endl;
 

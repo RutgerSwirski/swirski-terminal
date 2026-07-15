@@ -77,7 +77,7 @@ add_executable(
     ../app/screens/notification_screen.cpp
 
     ../app/services/date_time.cpp
-    ../app/services/notifications.cpp
+    ../app/services/notification_service.cpp
 
     ../app/protocol/protocol.cpp
 

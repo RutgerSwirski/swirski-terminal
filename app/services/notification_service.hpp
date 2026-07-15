@@ -3,8 +3,9 @@
 
 #include <string>
 #include <vector>
+#include <optional>
 
-namespace swirski::services::notifications_service
+namespace swirski::services::notification_service
 {
     struct Notification
     {
@@ -20,6 +21,6 @@ namespace swirski::services::notifications_service
 
     std::vector<Notification> getNotifications();
 
-    Notification getNotification(std::string id);
+    std::optional<Notification> getNotificationById(const std::string &notificationId);
 
 }

@@ -21,7 +21,7 @@ idf_component_register(
         "${APP_DIR}/screens/notification_screen.cpp"
         
         "${APP_DIR}/services/date_time.cpp"
-        "${APP_DIR}/services/notifications.cpp"
+        "${APP_DIR}/services/notification_service.cpp"
 
         "${APP_DIR}/protocol/protocol.cpp"
 

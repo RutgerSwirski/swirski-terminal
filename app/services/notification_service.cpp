@@ -1,9 +1,11 @@
 
 #include <vector>
-#include "notifications.hpp"
+#include "notification_service.hpp"
 #include <string>
 
-namespace swirski::services::notifications_service
+#include <optional>
+
+namespace swirski::services::notification_service
 {
 
     namespace
@@ -60,7 +62,7 @@ namespace swirski::services::notifications_service
         return notifications;
     }
 
-    Notification getNotification(std::string id)
+    std::optional<Notification> getNotificationById(const std::string &id)
     {
         for (auto notification : notifications)
         {
