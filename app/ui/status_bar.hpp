@@ -7,4 +7,6 @@ namespace swirski::ui::status_bar
     void create(lv_obj_t *parent);
 
     void updateClock();
+
+    void updateSystemState();
 }

@@ -19,6 +19,9 @@ namespace swirski::transport::websocket
     private:
         std::queue<std::string> incomingMessages;
         std::mutex incomingMessagesMutex;
+
+        bool connectionStateRefreshPending = false;
+        std::mutex connectionStateMutex;
     };
 
 }

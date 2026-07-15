@@ -179,6 +179,8 @@ extern "C" void app_main()
 
         bleTransport.update();
 
+        swirski::ui::status_bar::updateSystemState();
+
         swirski::inputs::rotary_encoder::poll();
 
         if (swirski::inputs::push_buttons::backPressed())

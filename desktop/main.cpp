@@ -64,6 +64,7 @@ int main()
     {
 
         websocketTransport.update();
+        swirski::ui::status_bar::updateSystemState();
 
         swirski::inputs::keyboard::processInput(event, running);
 
