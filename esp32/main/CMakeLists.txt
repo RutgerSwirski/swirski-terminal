@@ -23,6 +23,8 @@ idf_component_register(
         "${APP_DIR}/services/date_time.cpp"
         "${APP_DIR}/services/notifications.cpp"
 
+        "${APP_DIR}/protocol/protocol.cpp"
+
 
     INCLUDE_DIRS
         "."
@@ -34,6 +36,7 @@ idf_component_register(
         "${APP_DIR}/ui"
         "${APP_DIR}/services"
         "${APP_DIR}/transport"
+        "${APP_DIR}/protocol"
 
     PRIV_REQUIRES
         esp_driver_gpio

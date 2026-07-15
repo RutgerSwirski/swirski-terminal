@@ -2,11 +2,14 @@
 
 #include "ble_transport.hpp"
 
-#include <string>
-
+#include <functional>
 #include <iostream>
+#include <string>
+#include <utility>
 
 #include <NimBLEDevice.h>
+
+#include "protocol.hpp"
 
 namespace
 {
@@ -21,12 +24,25 @@ namespace
     class ReceiveCallbacks : public NimBLECharacteristicCallbacks
     {
     public:
+        void setMessageHandler(
+            std::function<void(const std::string &)> handler)
+        {
+            messageHandler = std::move(handler);
+        }
         void onWrite(NimBLECharacteristic *characteristic, NimBLEConnInfo &) override
         {
             const std::string message = characteristic->getValue();
 
+            if (messageHandler)
+            {
+                messageHandler(message);
+            }
+
             std::cout << "Received BLE message: " << message << std::endl;
         }
+
+    private:
+        std::function<void(const std::string &)> messageHandler;
     };
 
     ReceiveCallbacks receiveCallbacks;
@@ -90,6 +106,15 @@ namespace swirski::transport::ble
                 << std::endl;
             return;
         }
+
+        receiveCallbacks.setMessageHandler(
+            [this](const std::string &message)
+            {
+                std::lock_guard<std::mutex> lock(
+                    this->incomingMessagesMutex);
+
+                this->incomingMessages.push(message);
+            });
 
         receiveCharacteristic->setCallbacks(&receiveCallbacks);
 
@@ -155,6 +180,39 @@ namespace swirski::transport::ble
 
     void BleTransport::update()
     {
+        std::string nextMessage;
+
+        {
+            std::lock_guard<std::mutex> lock(
+                incomingMessagesMutex);
+
+            if (incomingMessages.empty())
+            {
+                return;
+            }
+
+            nextMessage =
+                std::move(incomingMessages.front());
+
+            incomingMessages.pop();
+        }
+
+        std::cout
+            << "Processing BLE message in app task: "
+            << nextMessage
+            << std::endl;
+
+        // Later:
+        // swirski::protocol::handleMessage(nextMessage);
+
+        const auto response =
+            swirski::protocol::handleIncomingMessage(
+                nextMessage);
+
+        if (response.has_value())
+        {
+            send(response.value());
+        }
     }
 
     void BleTransport::send(

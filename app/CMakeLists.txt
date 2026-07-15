@@ -6,6 +6,7 @@ idf_component_register(
         "services/*.cpp"
         "ui/*.cpp"
         "transport/*.cpp"
+        "protocol/*.cpp"
     INCLUDE_DIRS
         "."
         "input"
@@ -13,6 +14,7 @@ idf_component_register(
         "services"
         "ui"
         "transport"
+        "protocol"
     REQUIRES
         lvgl
 )

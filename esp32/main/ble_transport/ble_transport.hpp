@@ -1,7 +1,10 @@
+#pragma once
+
 #include "transport.hpp"
 
+#include <mutex>
+#include <queue>
 #include <string>
-
 class NimBLEServer;
 class NimBLECharacteristic;
 
@@ -18,12 +21,14 @@ namespace swirski::transport::ble
     private:
         NimBLEServer *server = nullptr;
 
-        NimBLECharacteristic *receiveCharacteristic = nullptr;
+        NimBLECharacteristic *receiveCharacteristic =
+            nullptr;
 
-        NimBLECharacteristic *transmitCharacteristic = nullptr;
+        NimBLECharacteristic *transmitCharacteristic =
+            nullptr;
 
-        // bool connected = false;
-        // bool subscribed = false;
+        std::queue<std::string> incomingMessages;
+        std::mutex incomingMessagesMutex;
     };
 
 }
