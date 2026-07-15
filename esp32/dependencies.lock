@@ -37,6 +37,30 @@ dependencies:
       registry_url: https://components.espressif.com/
       type: service
     version: 2.8.0~1
+  h2zero/esp-nimble-cpp:
+    component_hash: 720050476f7fb47bd0aa08a94642fd09a50536391d60081858702a789405d76f
+    dependencies:
+    - name: espressif/esp_hosted
+      registry_url: https://components.espressif.com
+      require: private
+      rules:
+      - if: target in [esp32p4]
+      version: '*'
+    - name: espressif/esp_wifi_remote
+      registry_url: https://components.espressif.com
+      require: private
+      rules:
+      - if: target in [esp32p4]
+      version: '>=0.5.3'
+    - name: idf
+      require: private
+      rules:
+      - if: target in [esp32p4]
+      version: '>=5.3.0'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 2.5.0
   idf:
     source:
       type: idf
@@ -51,7 +75,8 @@ dependencies:
 direct_dependencies:
 - espressif/esp_lcd_ili9341
 - espressif/esp_lvgl_port
+- h2zero/esp-nimble-cpp
 - idf
-manifest_hash: bad4e80443f4ce9d8f4b0b433bdb92d28dddefc2430d9494e83acf2781f76d09
+manifest_hash: 92526e2cc8f95d951072a1c2c3660bd5363d86fae6425191a8eddf34ae0627b7
 target: esp32s3
 version: 3.0.0

@@ -2,7 +2,7 @@
 dependencies:
   ## Required IDF version
   idf:
-    version: ">=4.1.0"
+    version: '>=4.1.0'
   # # Put list of dependencies here
   # # For components maintained by Espressif:
   # component: "~1.0.0"
@@ -16,3 +16,4 @@ dependencies:
   #   public: true
   espressif/esp_lcd_ili9341: ^2.0.2
   espressif/esp_lvgl_port: ^2.7.2
+  h2zero/esp-nimble-cpp: ^2.5.0

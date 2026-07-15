@@ -10,8 +10,14 @@
 
 namespace
 {
-    constexpr char SERVICE_UUID[] = "ee62dc78-0a3d-4c78-987d-23b73d5ae9d9";
-    constexpr char CHARACTERISTIC_UUID[] = "0c83378b-52ed-4500-bc9e-5bb153bbd4d5";
+    constexpr char SERVICE_UUID[] =
+        "ee62dc78-0a3d-4c78-987d-23b73d5ae9d9";
+
+    constexpr char RECEIVE_CHARACTERISTIC_UUID[] =
+        "0c83378b-52ed-4500-bc9e-5bb153bbd4d5";
+
+    constexpr char TRANSMIT_CHARACTERISTIC_UUID[] =
+        "0c83378b-52ed-4500-bc9e-5bb153bbd4d6";
     class ReceiveCallbacks : public NimBLECharacteristicCallbacks
     {
     public:
@@ -19,12 +25,12 @@ namespace
         {
             const std::string message = characteristic->getValue();
 
-            std::cout << "Received message: " << message << std::endl;
+            std::cout << "Received BLE message: " << message << std::endl;
         }
-    }
+    };
 
     ReceiveCallbacks receiveCallbacks;
-};
+}
 
 namespace swirski::transport::ble
 {
@@ -32,37 +38,119 @@ namespace swirski::transport::ble
     {
         std::cout << "Initialising BLE Server" << std::endl;
 
-        // 1. Initialize the global NimBLE Engine
-        NimBLEDevice::init("Swirski Terminal");
+        const bool initialised = NimBLEDevice::init("Swirski Terminal");
+
+        if (!initialised)
+        {
+            std::cerr
+                << "Could not initialise NimBLE"
+                << std::endl;
+
+            return;
+        }
 
         // Optional: Adjust transmit power (values range from -12 to +9dBm)
         // NimBLEDevice::setPower(ESP_PWR_LVL_P9);
 
-        NimBLEServer *server = NimBLEDevice::createServer();
+        server = NimBLEDevice::createServer();
 
-        NimBLEService *service = pServer->createService(SERVICE_UUID);
+        if (server == nullptr)
+        {
+            std::cerr
+                << "Could not create BLE server"
+                << std::endl;
 
-        // 4. Create a BLE Characteristic with Read and Write properties
-        NimBLECharacteristic *characteristic = service->createCharacteristic(
-            CHARACTERISTIC_UUID,
-            NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::WRITE);
+            return;
+        }
 
-        // Set an initial value
-        characteristic->setValue("Hello from NimBLE!");
+        server->advertiseOnDisconnect(true);
 
-        characteristic->setCallbacks(&receiveCallbacks);
+        NimBLEService *service = server->createService(SERVICE_UUID);
 
-        // 5. Start the service
-        service->start();
+        if (service == nullptr)
+        {
+            std::cerr
+                << "Could not create BLE service"
+                << std::endl;
+            return;
+        }
 
-        // 6. Start advertising so clients can see it
-        NimBLEAdvertising *advertising = NimBLEDevice::getAdvertising();
+        receiveCharacteristic = service->createCharacteristic(
+            RECEIVE_CHARACTERISTIC_UUID,
+            NIMBLE_PROPERTY::WRITE);
 
-        advertising->addServiceUUID(SERVICE_UUID);
+        transmitCharacteristic = service->createCharacteristic(
+            TRANSMIT_CHARACTERISTIC_UUID,
+            NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY);
 
-        advertising->start();
+        if (receiveCharacteristic == nullptr || transmitCharacteristic == nullptr)
+        {
+            std::cerr
+                << "Could not create BLE characteristic"
+                << std::endl;
+            return;
+        }
 
-        std::cout << "BLE Server is up and advertising!" << std::endl;
+        receiveCharacteristic->setCallbacks(&receiveCallbacks);
+
+        transmitCharacteristic->setValue("Hello World");
+
+        const bool serverStarted = server->start();
+
+        if (!serverStarted)
+        {
+            std::cerr
+                << "Could not start BLE server"
+                << std::endl;
+
+            return;
+        }
+
+        NimBLEAdvertising *advertising = server->getAdvertising();
+
+        if (advertising == nullptr)
+        {
+            std::cerr
+                << "Could not get BLE advertising"
+                << std::endl;
+            return;
+        }
+
+        advertising->enableScanResponse(true);
+
+        const bool serviceUuidAdded =
+            advertising->addServiceUUID(SERVICE_UUID);
+
+        if (!serviceUuidAdded)
+        {
+            std::cerr
+                << "Could not add service UUID to BLE advertising"
+                << std::endl;
+            return;
+        }
+
+        const bool nameSet = advertising->setName("Swirski Terminal");
+
+        if (!nameSet)
+        {
+            std::cerr
+                << "Could not set name to BLE advertising"
+                << std::endl;
+            return;
+        }
+
+        const bool advertisingStarted = advertising->start();
+
+        if (!advertisingStarted)
+        {
+            std::cerr
+                << "Could not start BLE advertising"
+                << std::endl;
+
+            return;
+        }
+
+        std::cout << "BLE Server started and advertising" << std::endl;
     }
 
     void BleTransport::update()
@@ -73,5 +161,4 @@ namespace swirski::transport::ble
     {
         std::cout << "Sending ble message: " << message << std::endl;
     }
-
 }
