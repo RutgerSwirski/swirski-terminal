@@ -179,7 +179,11 @@ extern "C" void app_main()
 
         bleTransport.update();
 
-        swirski::ui::status_bar::updateSystemState();
+        if (lvgl_port_lock(0))
+        {
+            swirski::ui::status_bar::updateSystemState();
+            lvgl_port_unlock();
+        }
 
         swirski::inputs::rotary_encoder::poll();
 
