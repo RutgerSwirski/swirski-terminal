@@ -22,6 +22,9 @@ namespace swirski::ui::status_bar
 
         std::uint32_t lastRenderedSystemRevision = 0;
 
+        bool connected = false;
+        bool error = false;
+
         void renderSystemState(
             const swirski::state::system::SystemStateSnapshot &snapshot)
         {
@@ -34,8 +37,6 @@ namespace swirski::ui::status_bar
             }
 
             const char *transportText = "-";
-            bool connected = false;
-            bool error = false;
 
             switch (snapshot.connection.transport)
             {
