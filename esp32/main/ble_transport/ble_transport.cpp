@@ -97,8 +97,6 @@ namespace swirski::transport::ble
             swirski::state::system::setConnection(
                 swirski::state::system::TransportType::Ble,
                 status);
-
-                
         };
 
         std::cout << "Initialising BLE Server" << std::endl;
@@ -117,6 +115,19 @@ namespace swirski::transport::ble
                 << "Could not initialise NimBLE"
                 << std::endl;
 
+            return;
+        }
+
+        const bool mtuConfigured = NimBLEDevice::setMTU(128);
+
+        if (!mtuConfigured)
+        {
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
+            std::cerr
+                << "Could not configure MTU"
+                << std::endl;
             return;
         }
 

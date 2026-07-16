@@ -1,9 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
 import { State } from 'react-native-ble-plx';
-import type { Device } from 'react-native-ble-plx';
+import type { Device, Subscription } from 'react-native-ble-plx';
 import { bleManager } from './src/ble/bleManager';
 import { requestBlePermissions } from './src/ble/requestBlePermissions';
+
+import {
+  SERVICE_UUID,
+  TX_CHARACTERISTIC_UUID,
+  RX_CHARACTERISTIC_UUID,
+} from './src/ble/constants';
+
+import { decodeBase64ToUtf8, encodeUtf8ToBase64 } from './src/ble/encoding';
 
 type ConnectionStatus =
   | 'disconnected'
@@ -21,6 +29,66 @@ function App() {
     useState<ConnectionStatus>('disconnected');
 
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
+
+  const txSubscriptionRef = useRef<Subscription | null>(null);
+  const disconnectSubscriptionRef = useRef<Subscription | null>(null);
+
+  async function sendPing() {
+    if (!connectedDevice || connectionStatus !== 'ready') {
+      console.log('Not connected');
+      return;
+    }
+
+    const pingMessage = {
+      version: 1,
+      type: 'ping',
+      id: `mobile-${Date.now()}`,
+    };
+    const json = JSON.stringify(pingMessage);
+
+    const encoded = encodeUtf8ToBase64(json);
+
+    console.log('Sending ping:', encoded);
+
+    try {
+      await bleManager.writeCharacteristicWithResponseForDevice(
+        connectedDevice.id,
+        SERVICE_UUID,
+        RX_CHARACTERISTIC_UUID,
+        encoded,
+      );
+
+      console.log('Ping sent');
+    } catch (error) {
+      console.log('Error sending ping:', error);
+    }
+  }
+
+  function subscribeToTx(device: Device) {
+    txSubscriptionRef.current?.remove();
+
+    txSubscriptionRef.current = bleManager.monitorCharacteristicForDevice(
+      device.id,
+      SERVICE_UUID,
+      TX_CHARACTERISTIC_UUID,
+      (error, characteristic) => {
+        if (error) {
+          console.log(error);
+          return;
+        }
+
+        if (!characteristic?.value) {
+          return;
+        }
+
+        const message = decodeBase64ToUtf8(characteristic.value);
+
+        console.log('Received TX message:', message);
+      },
+    );
+
+    console.log('Subscribed to TX characteristic');
+  }
 
   async function inspectGatt(device: Device) {
     const services = await bleManager.servicesForDevice(device.id);
@@ -45,7 +113,8 @@ function App() {
 
   async function connectToDevice(device: Device) {
     try {
-      bleManager.stopDeviceScan(); // stop scanning for devices
+      bleManager.stopDeviceScan();
+      setIsScanning(false);
 
       setConnectionStatus('connecting');
 
@@ -53,19 +122,44 @@ function App() {
 
       console.log('Connected to device:', connected.name, connected.id);
 
+      const mtuDevice = await connected.requestMTU(128);
+
+      console.log('Negotiated MTU:', mtuDevice.mtu);
+
       setConnectionStatus('discovering');
 
       const discovered =
-        await connected.discoverAllServicesAndCharacteristics();
+        await mtuDevice.discoverAllServicesAndCharacteristics();
 
       await inspectGatt(discovered);
 
-      console.log('Discovered services and characteristics:', discovered.id);
+      subscribeToTx(discovered);
+
+      disconnectSubscriptionRef.current?.remove();
+
+      disconnectSubscriptionRef.current = bleManager.onDeviceDisconnected(
+        discovered.id,
+        error => {
+          if (error) {
+            console.log('BLE disconnected:', error);
+          }
+
+          txSubscriptionRef.current?.remove();
+          txSubscriptionRef.current = null;
+
+          setConnectedDevice(null);
+          setConnectionStatus('disconnected');
+        },
+      );
 
       setConnectedDevice(discovered);
       setConnectionStatus('ready');
     } catch (error) {
       console.error('BLE connection error:', error);
+
+      txSubscriptionRef.current?.remove();
+      txSubscriptionRef.current = null;
+
       setConnectedDevice(null);
       setConnectionStatus('error');
     }
@@ -122,13 +216,15 @@ function App() {
   };
 
   useEffect(() => {
-    const subscription = bleManager.onStateChange(nextState => {
+    const stateSubscription = bleManager.onStateChange(nextState => {
       console.log('BLE state:', nextState);
+
       setBleState(nextState);
     }, true);
 
     return () => {
-      subscription.remove();
+      stateSubscription.remove();
+      txSubscriptionRef.current?.remove();
     };
   }, []);
 
@@ -157,6 +253,16 @@ function App() {
           <Button title="Connect" onPress={() => connectToDevice(device)} />
         </View>
       ))}
+
+      {connectedDevice && (
+        <View>
+          <Button
+            title="Ping!"
+            onPress={sendPing}
+            disabled={connectionStatus !== 'ready'}
+          />
+        </View>
+      )}
     </View>
   );
 }
