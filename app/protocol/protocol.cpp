@@ -29,6 +29,11 @@ namespace
             return swirski::protocol::MessageType::NotificationReceived;
         }
 
+        if (rawType == "disconnect.requested")
+        {
+            return swirski::protocol::MessageType::DisconnectRequested;
+        }
+
         return swirski::protocol::MessageType::Unknown;
     }
 
@@ -246,6 +251,9 @@ namespace swirski::protocol
 
             return std::nullopt;
         }
+
+        case MessageType::DisconnectRequested:
+            return std::nullopt;
 
         case MessageType::Unknown:
             std::cerr

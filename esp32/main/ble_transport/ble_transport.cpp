@@ -2,6 +2,7 @@
 
 #include "ble_transport.hpp"
 
+#include <cstdint>
 #include <functional>
 #include <iostream>
 #include <string>
@@ -62,24 +63,25 @@ namespace
     {
     public:
         void setMessageHandler(
-            std::function<void(const std::string &)> handler)
+            std::function<void(const std::string &, std::uint16_t)> handler)
         {
             messageHandler = std::move(handler);
         }
-        void onWrite(NimBLECharacteristic *characteristic, NimBLEConnInfo &) override
+        void onWrite(NimBLECharacteristic *characteristic, NimBLEConnInfo &connInfo) override
         {
             const std::string message = characteristic->getValue();
+            const std::uint16_t connHandle = connInfo.getConnHandle();
 
             if (messageHandler)
             {
-                messageHandler(message);
+                messageHandler(message, connHandle);
             }
 
             std::cout << "Received BLE message: " << message << std::endl;
         }
 
     private:
-        std::function<void(const std::string &)> messageHandler;
+        std::function<void(const std::string &, std::uint16_t)> messageHandler;
     };
 
     ReceiveCallbacks receiveCallbacks;
@@ -195,12 +197,17 @@ namespace swirski::transport::ble
         }
 
         receiveCallbacks.setMessageHandler(
-            [this](const std::string &message)
+            [this](
+                const std::string &message,
+                std::uint16_t connHandle)
             {
                 std::lock_guard<std::mutex> lock(
                     this->incomingMessagesMutex);
 
-                this->incomingMessages.push(message);
+                this->incomingMessages.push(
+                    IncomingMessage{
+                        message,
+                        connHandle});
             });
 
         receiveCharacteristic->setCallbacks(&receiveCallbacks);
@@ -321,7 +328,7 @@ namespace swirski::transport::ble
             }
         }
 
-        std::string nextMessage;
+        IncomingMessage nextMessage;
 
         {
             std::lock_guard<std::mutex> lock(
@@ -340,11 +347,43 @@ namespace swirski::transport::ble
 
         std::cout
             << "Processing BLE message in app task: "
-            << nextMessage
+            << nextMessage.message
             << std::endl;
 
+        const auto parsedMessage =
+            swirski::protocol::parseMessage(
+                nextMessage.message);
+
+        if (
+            parsedMessage &&
+            parsedMessage->type ==
+                swirski::protocol::MessageType::DisconnectRequested)
+        {
+            if (server == nullptr)
+            {
+                std::cerr
+                    << "Could not disconnect BLE client because server is null"
+                    << std::endl;
+
+                return;
+            }
+
+            const bool disconnected =
+                server->disconnect(
+                    nextMessage.connHandle);
+
+            if (!disconnected)
+            {
+                std::cerr
+                    << "Could not disconnect BLE client"
+                    << std::endl;
+            }
+
+            return;
+        }
+
         const auto response = swirski::protocol::handleIncomingMessage(
-            nextMessage);
+            nextMessage.message);
 
         if (response)
         {

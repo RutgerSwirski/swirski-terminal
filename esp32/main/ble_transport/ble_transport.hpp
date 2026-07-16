@@ -2,6 +2,7 @@
 
 #include "transport.hpp"
 
+#include <cstdint>
 #include <mutex>
 #include <queue>
 #include <string>
@@ -29,7 +30,13 @@ namespace swirski::transport::ble
         NimBLECharacteristic *transmitCharacteristic =
             nullptr;
 
-        std::queue<std::string> incomingMessages;
+        struct IncomingMessage
+        {
+            std::string message;
+            std::uint16_t connHandle = 0;
+        };
+
+        std::queue<IncomingMessage> incomingMessages;
         std::mutex incomingMessagesMutex;
 
         enum class ConnectionEvent

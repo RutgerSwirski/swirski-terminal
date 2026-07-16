@@ -18,6 +18,7 @@ type ConnectionStatus =
   | 'connecting'
   | 'discovering'
   | 'ready'
+  | 'disconnecting'
   | 'error';
 
 function App() {
@@ -228,6 +229,42 @@ function App() {
     };
   }, []);
 
+  async function disconnectFromDevice() {
+    if (!connectedDevice || connectionStatus === 'disconnecting') {
+      return;
+    }
+
+    const deviceId = connectedDevice.id;
+
+    setConnectionStatus('disconnecting');
+
+    try {
+      const disconnectMessage = {
+        version: 1,
+        type: 'disconnect.requested',
+        id: `mobile-disconnect-${Date.now()}`,
+      };
+
+      await bleManager.writeCharacteristicWithResponseForDevice(
+        deviceId,
+        SERVICE_UUID,
+        RX_CHARACTERISTIC_UUID,
+        encodeUtf8ToBase64(JSON.stringify(disconnectMessage)),
+      );
+    } catch (error) {
+      console.error('BLE disconnect request error:', error);
+    }
+
+    try {
+      await bleManager.cancelDeviceConnection(deviceId);
+    } catch (error) {
+      console.error('BLE disconnect error:', error);
+
+      setConnectedDevice(null);
+      setConnectionStatus('disconnected');
+    }
+  }
+
   return (
     <View style={styles.container}>
       <Text>Swirski Terminal</Text>
@@ -250,7 +287,26 @@ function App() {
           <Text>{device.id}</Text>
           <Text>RSSI: {device.rssi ?? 'Unknown'}</Text>
 
-          <Button title="Connect" onPress={() => connectToDevice(device)} />
+          {connectedDevice?.id === device.id ? (
+            <Button
+              title={
+                connectionStatus === 'disconnecting'
+                  ? 'Disconnecting...'
+                  : 'Disconnect'
+              }
+              disabled={connectionStatus === 'disconnecting'}
+              onPress={disconnectFromDevice}
+            />
+          ) : (
+            <Button
+              disabled={
+                connectionStatus !== 'disconnected' &&
+                connectionStatus !== 'error'
+              }
+              title="Connect"
+              onPress={() => connectToDevice(device)}
+            />
+          )}
         </View>
       ))}
 
