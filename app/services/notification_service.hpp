@@ -17,10 +17,12 @@ namespace swirski::services::notification_service
 
     void setNotifications(std::vector<Notification> notifications);
 
-    void addNotification(Notification notification);
+    bool addNotification(Notification notification);
 
     std::vector<Notification> getNotifications();
 
     std::optional<Notification> getNotificationById(const std::string &notificationId);
+
+    bool removeNotificationById(const std::string &notificationId);
 
 }

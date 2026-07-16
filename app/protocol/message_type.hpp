@@ -6,7 +6,7 @@ namespace swirski::protocol
     {
         Ping,
         Pong,
-        // NotificationReceived,
+        NotificationReceived,
         // MediaStateChanged,
         // MediaCommand,
         // TerminalStatus,

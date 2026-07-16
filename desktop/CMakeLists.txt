@@ -83,6 +83,7 @@ add_executable(
 
     ../app/state/system_state.cpp
 
+
     inputs/keyboard.cpp
 
     websocket_transport/websocket_transport.cpp
@@ -99,6 +100,7 @@ target_include_directories(
         ../app/transport
         ../app/protocol
         ../app/state
+        ../app/models
         inputs
         websocket_transport
 )

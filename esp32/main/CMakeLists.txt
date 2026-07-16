@@ -40,6 +40,7 @@ idf_component_register(
         "${APP_DIR}/transport"
         "${APP_DIR}/protocol"
         "${APP_DIR}/state"
+        "${APP_DIR}/models"
 
     PRIV_REQUIRES
         esp_driver_gpio

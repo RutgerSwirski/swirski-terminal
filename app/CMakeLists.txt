@@ -8,6 +8,7 @@ idf_component_register(
         "transport/*.cpp"
         "protocol/*.cpp"
         "state/*.cpp"
+        "models/*.cpp"
     INCLUDE_DIRS
         "."
         "input"
@@ -17,6 +18,7 @@ idf_component_register(
         "transport"
         "protocol"
         "state"
+        "models"
     REQUIRES
         lvgl
 )

@@ -52,11 +52,6 @@ namespace swirski::services::notification_service
         notifications = incomingNotifications;
     }
 
-    void addNotification(Notification notification)
-    {
-        notifications.push_back(notification);
-    }
-
     std::vector<Notification> getNotifications()
     {
         return notifications;
@@ -72,6 +67,25 @@ namespace swirski::services::notification_service
             }
         }
         return {};
+    }
+
+    bool addNotification(Notification notification)
+    {
+        notifications.push_back(notification);
+        return true;
+    }
+
+    bool removeNotificationById(const std::string &id)
+    {
+        for (auto it = notifications.begin(); it != notifications.end(); ++it)
+        {
+            if (it->id == id)
+            {
+                notifications.erase(it);
+                return true;
+            }
+        }
+        return false;
     }
 
 }
