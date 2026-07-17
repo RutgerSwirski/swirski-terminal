@@ -7,6 +7,7 @@
 
 #include <ArduinoJson.h>
 
+#include "date_time.hpp"
 #include "notification_service.hpp"
 
 namespace
@@ -22,6 +23,11 @@ namespace
         if (rawType == "pong")
         {
             return swirski::protocol::MessageType::Pong;
+        }
+
+        if (rawType == "time.sync")
+        {
+            return swirski::protocol::MessageType::TimeSync;
         }
 
         if (rawType == "notification.received")
@@ -182,6 +188,37 @@ namespace swirski::protocol
                 << std::endl;
 
             return std::nullopt;
+
+        case MessageType::TimeSync:
+        {
+            JsonObjectConst payload =
+                document["payload"].as<JsonObjectConst>();
+
+            if (!payload["unixTimeSeconds"].is<long>())
+            {
+                std::cerr
+                    << "Invalid time.sync payload"
+                    << std::endl;
+
+                return std::nullopt;
+            }
+
+            const long unixTimeSeconds =
+                payload["unixTimeSeconds"].as<long>();
+
+            const long timezoneOffsetMinutes =
+                payload["timezoneOffsetMinutes"] | 0;
+
+            swirski::service::date_time::setFromTimestamp(
+                unixTimeSeconds +
+                timezoneOffsetMinutes * 60);
+
+            std::cout
+                << "Applied date/time sync"
+                << std::endl;
+
+            return std::nullopt;
+        }
 
         case MessageType::NotificationReceived:
         {

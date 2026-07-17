@@ -118,6 +118,24 @@ function App() {
     console.log('Notification snapshot sent');
   }
 
+  async function sendCurrentDateTime(device: Device) {
+    const now = new Date();
+
+    const timeMessage = {
+      version: 1,
+      type: 'time.sync',
+      id: `mobile-time-${Date.now()}`,
+      payload: {
+        unixTimeSeconds: Math.floor(now.getTime() / 1000),
+        timezoneOffsetMinutes: -now.getTimezoneOffset(),
+      },
+    };
+
+    await sendBleMessage(device, timeMessage);
+
+    console.log('Date/time sync sent');
+  }
+
   async function refreshNotificationAccess() {
     if (!SwirskiNotifications) {
       return;
@@ -286,6 +304,12 @@ function App() {
 
       setConnectedDevice(discovered);
       setConnectionStatus('ready');
+
+      try {
+        await sendCurrentDateTime(discovered);
+      } catch (error) {
+        console.error('Could not send date/time sync:', error);
+      }
 
       try {
         await sendCurrentNotificationSnapshot(discovered);

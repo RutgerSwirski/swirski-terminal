@@ -28,6 +28,7 @@ namespace swirski::service::date_time
     void initialise(time_t initialTimestamp)
     {
         timestamp = initialTimestamp;
+        lastUpdateTick = lv_tick_get();
     }
 
     bool update()
@@ -75,8 +76,10 @@ namespace swirski::service::date_time
         return buffer;
     }
 
-    void setFromTimestamp(std::time_t timestamp)
+    void setFromTimestamp(std::time_t incomingTimestamp)
     {
+        timestamp = incomingTimestamp;
+        lastUpdateTick = lv_tick_get();
     }
 
 }

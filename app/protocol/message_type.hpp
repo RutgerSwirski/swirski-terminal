@@ -6,6 +6,7 @@ namespace swirski::protocol
     {
         Ping,
         Pong,
+        TimeSync,
         NotificationReceived,
         DisconnectRequested,
         NotificationsSnapshot,
