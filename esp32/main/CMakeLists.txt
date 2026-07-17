@@ -14,6 +14,7 @@ idf_component_register(
         "${APP_DIR}/input/input.cpp"
 
         "${APP_DIR}/ui/status_bar.cpp"
+        "${APP_DIR}/ui/notification_toast.cpp"
 
         "${APP_DIR}/screens/home_screen.cpp"
         "${APP_DIR}/screens/notifications_screen.cpp"

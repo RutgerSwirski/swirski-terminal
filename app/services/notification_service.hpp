@@ -40,4 +40,6 @@ namespace swirski::services::notification_service
 
     void handleNotificationReceived(JsonObjectConst payload);
 
+    std::optional<Notification> takePendingToastNotification();
+
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import {
   AppState,
   Button,
+  NativeEventEmitter,
   NativeModules,
   StyleSheet,
   Text,
@@ -27,6 +28,8 @@ import {
 import { TerminalNotification } from './src/ble/types';
 
 type SwirskiNotificationsModule = {
+  addListener(eventName: string): void;
+  removeListeners(count: number): void;
   isNotificationAccessEnabled(): Promise<boolean>;
   openNotificationAccessSettings(): Promise<void>;
   createSnapshotMessageJson(messageId: string): Promise<string>;
@@ -57,8 +60,12 @@ function App() {
 
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
 
+  const connectedDeviceRef = useRef<Device | null>(null);
+  const connectionStatusRef = useRef<ConnectionStatus>('disconnected');
+
   const txSubscriptionRef = useRef<Subscription | null>(null);
   const disconnectSubscriptionRef = useRef<Subscription | null>(null);
+  const sendBleMessageRef = useRef(sendBleMessage);
 
   const txFrameAssemblerRef = useRef<BleFrameAssembler | null>(null);
 
@@ -387,6 +394,18 @@ function App() {
   };
 
   useEffect(() => {
+    connectedDeviceRef.current = connectedDevice;
+  }, [connectedDevice]);
+
+  useEffect(() => {
+    connectionStatusRef.current = connectionStatus;
+  }, [connectionStatus]);
+
+  useEffect(() => {
+    sendBleMessageRef.current = sendBleMessage;
+  });
+
+  useEffect(() => {
     const stateSubscription = bleManager.onStateChange(nextState => {
       console.log('BLE state:', nextState);
 
@@ -404,9 +423,36 @@ function App() {
       },
     );
 
+    const notificationEventSubscription = SwirskiNotifications
+      ? new NativeEventEmitter(SwirskiNotifications).addListener(
+          'SwirskiNotificationReceived',
+          async (messageJson: string) => {
+            const device = connectedDeviceRef.current;
+
+            if (!device || connectionStatusRef.current !== 'ready') {
+              return;
+            }
+
+            try {
+              const message = JSON.parse(messageJson) as Record<
+                string,
+                unknown
+              >;
+
+              await sendBleMessageRef.current(device, message);
+
+              console.log('Live notification sent');
+            } catch (error) {
+              console.error('Could not send live notification:', error);
+            }
+          },
+        )
+      : null;
+
     return () => {
       stateSubscription.remove();
       appStateSubscription.remove();
+      notificationEventSubscription?.remove();
       txSubscriptionRef.current?.remove();
       txFrameAssemblerRef.current?.stop();
       txFrameAssemblerRef.current = null;
@@ -474,6 +520,26 @@ function App() {
       id: `mobile-snapshot-${Date.now()}`,
       payload: {
         notifications,
+      },
+    });
+  }
+
+  async function sendTestNotificationReceived(device: Device) {
+    const notification: TerminalNotification = {
+      id: `test-live-notification-${Date.now()}`,
+      packageName: 'com.whatsapp',
+      appName: 'WhatsApp',
+      title: 'Test live notification',
+      body: 'This should appear as a toast on the ESP32.',
+      postedAt: Date.now(),
+    };
+
+    await sendBleMessage(device, {
+      version: 1,
+      type: 'notification.received',
+      id: `mobile-notification-${Date.now()}`,
+      payload: {
+        notification,
       },
     });
   }
@@ -547,6 +613,13 @@ function App() {
           <Button
             title="Send test notification snapshot"
             onPress={() => sendTestNotificationSnapshot(connectedDevice)}
+            disabled={connectionStatus !== 'ready'}
+          />
+
+          <Button
+            title="Send test notification received"
+            onPress={() => sendTestNotificationReceived(connectedDevice)}
+            disabled={connectionStatus !== 'ready'}
           />
         </View>
       )}

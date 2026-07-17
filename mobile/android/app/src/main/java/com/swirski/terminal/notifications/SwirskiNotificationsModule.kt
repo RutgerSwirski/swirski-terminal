@@ -11,7 +11,19 @@ import com.facebook.react.bridge.ReactMethod
 class SwirskiNotificationsModule(
   reactContext: ReactApplicationContext,
 ) : ReactContextBaseJavaModule(reactContext) {
+  init {
+    SwirskiNotificationListenerService.setReactContext(reactContext)
+  }
+
   override fun getName(): String = "SwirskiNotifications"
+
+  @ReactMethod
+  fun addListener(eventName: String) {
+  }
+
+  @ReactMethod
+  fun removeListeners(count: Int) {
+  }
 
   @ReactMethod
   fun isNotificationAccessEnabled(promise: Promise) {

@@ -66,6 +66,8 @@ namespace swirski::services::notification_service
              "Design meeting",
              "Starts in 10 minutes",
              0}};
+
+        std::optional<Notification> pendingToastNotification;
     }
 
     void setNotifications(std::vector<Notification> incomingNotifications)
@@ -240,10 +242,23 @@ namespace swirski::services::notification_service
 
         upsert(*notification);
 
+        pendingToastNotification =
+            *notification;
+
         std::cout
             << "Applied incoming notification: "
             << notification->id
             << std::endl;
+    }
+
+    std::optional<Notification> takePendingToastNotification()
+    {
+        auto notification =
+            std::move(pendingToastNotification);
+
+        pendingToastNotification.reset();
+
+        return notification;
     }
 
 }

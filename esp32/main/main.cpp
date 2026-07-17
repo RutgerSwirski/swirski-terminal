@@ -18,6 +18,7 @@
 #include "screen_manager.hpp"
 #include "notifications_screen.hpp"
 #include "ui/status_bar.hpp"
+#include "ui/notification_toast.hpp"
 #include "input.hpp"
 
 #include "ble_transport.hpp"
@@ -184,6 +185,7 @@ extern "C" void app_main()
         if (lvgl_port_lock(0))
         {
             swirski::ui::status_bar::updateSystemState();
+            swirski::ui::notification_toast::update();
 
             if (
                 swirski::screens::manager::getCurrentScreen() ==
