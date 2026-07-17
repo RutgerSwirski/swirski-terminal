@@ -20,6 +20,7 @@
 
 #include "protocol.hpp"
 #include "system_state.hpp"
+#include "notification_toast.hpp"
 
 namespace
 {
@@ -283,6 +284,17 @@ namespace
                     << std::endl;
             }
 
+            if (chunkCount > 1)
+            {
+                swirski::ui::notification_toast::
+                    requestSyncProgress(
+                        static_cast<int>(
+                            (
+                                pending.receivedChunkCount *
+                                100) /
+                            pending.chunkCount));
+            }
+
             if (
                 pending.receivedChunkCount !=
                 pending.chunkCount)
@@ -314,6 +326,9 @@ namespace
                 << completeMessage.size()
                 << " bytes"
                 << std::endl;
+
+            swirski::ui::notification_toast::
+                clearSyncProgress();
 
             return completeMessage;
         }
@@ -811,6 +826,9 @@ namespace swirski::transport::ble
 
         if (disconnectedConnHandle)
         {
+            swirski::ui::notification_toast::
+                clearSyncProgress();
+
             incomingFrameAssembler.clearConnection(
                 *disconnectedConnHandle);
 

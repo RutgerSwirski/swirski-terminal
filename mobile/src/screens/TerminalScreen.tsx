@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { Card, CardContent, Text } from '@swirski/ui/native';
 import type { Device } from 'react-native-ble-plx';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -105,6 +106,15 @@ export function TerminalScreen() {
           onStartScan={terminalBle.startScan}
         />
 
+        {terminalBle.transferProgress && (
+          <Card variant="outline" tone="yellow" style={styles.syncCard}>
+            <CardContent style={styles.syncContent}>
+              <Text weight="bold">{terminalBle.transferProgress.label}</Text>
+              <Text tone="muted">{terminalBle.transferProgress.percent}%</Text>
+            </CardContent>
+          </Card>
+        )}
+
         <DeviceList
           devices={terminalBle.devices}
           connectedDevice={terminalBle.connectedDevice}
@@ -137,5 +147,12 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 520,
     gap: 16,
+  },
+  syncCard: {
+    width: '100%',
+  },
+  syncContent: {
+    alignItems: 'center',
+    gap: 4,
   },
 });

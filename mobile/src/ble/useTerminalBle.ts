@@ -25,8 +25,19 @@ export type ConnectionStatus =
   | 'disconnecting'
   | 'error';
 
+export type TransferProgress = {
+  label: string;
+  percent: number;
+} | null;
+
 function shouldLogFrameProgress(frameIndex: number, frameCount: number): boolean {
   return frameIndex === 1 || frameIndex === frameCount || frameIndex % 10 === 0;
+}
+
+function labelForMessage(message: Record<string, unknown>): string {
+  return message.type === 'notifications.snapshot'
+    ? 'Syncing notifications'
+    : 'Sending';
 }
 
 export function useTerminalBle() {
@@ -36,6 +47,8 @@ export function useTerminalBle() {
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>('disconnected');
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
+  const [transferProgress, setTransferProgress] =
+    useState<TransferProgress>(null);
 
   const txSubscriptionRef = useRef<Subscription | null>(null);
   const disconnectSubscriptionRef = useRef<Subscription | null>(null);
@@ -49,24 +62,43 @@ export function useTerminalBle() {
     async (device: Device, message: Record<string, unknown>) => {
       const json = JSON.stringify(message);
       const frames = encodeMessageIntoFrames(json, device.mtu);
+      const label = labelForMessage(message);
 
       console.log(`Sending BLE message in ${frames.length} frame(s)`);
 
-      for (let index = 0; index < frames.length; index += 1) {
-        const frame = frames[index];
-
-        await bleManager.writeCharacteristicWithResponseForDevice(
-          device.id,
-          SERVICE_UUID,
-          RX_CHARACTERISTIC_UUID,
-          encodeBytesToBase64(frame),
-        );
-
-        const frameNumber = index + 1;
-
-        if (shouldLogFrameProgress(frameNumber, frames.length)) {
-          console.log(`Sent BLE frame ${frameNumber}/${frames.length}`);
+      try {
+        if (frames.length > 1) {
+          setTransferProgress({
+            label,
+            percent: 0,
+          });
         }
+
+        for (let index = 0; index < frames.length; index += 1) {
+          const frame = frames[index];
+
+          await bleManager.writeCharacteristicWithResponseForDevice(
+            device.id,
+            SERVICE_UUID,
+            RX_CHARACTERISTIC_UUID,
+            encodeBytesToBase64(frame),
+          );
+
+          const frameNumber = index + 1;
+
+          if (frames.length > 1) {
+            setTransferProgress({
+              label,
+              percent: Math.round((frameNumber / frames.length) * 100),
+            });
+          }
+
+          if (shouldLogFrameProgress(frameNumber, frames.length)) {
+            console.log(`Sent BLE frame ${frameNumber}/${frames.length}`);
+          }
+        }
+      } finally {
+        setTransferProgress(null);
       }
     },
     [],
@@ -300,6 +332,7 @@ export function useTerminalBle() {
     devices,
     connectionStatus,
     connectedDevice,
+    transferProgress,
     startScan,
     connectToDevice,
     disconnectFromDevice,
