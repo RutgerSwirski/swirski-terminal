@@ -71,7 +71,7 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
 
       val appName = packageManager.getApplicationLabel(appInfo).toString()
 
-      if (appName.isBlank() || appName == packageName) {
+      if (appName.isBlank() || appName == packageName || isGenericAppName(appName, packageName)) {
         readableNameFromPackageName(packageName)
       } else {
         appName
@@ -82,10 +82,15 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
   }
 
   private fun readableNameFromPackageName(packageName: String): String {
-    val lastSegment = packageName
+    val packageParts = packageName
       .split(".")
-      .lastOrNull { part -> part.isNotBlank() }
-      .orEmpty()
+      .filter { part -> part.isNotBlank() }
+
+    val lastSegment = packageParts
+      .asReversed()
+      .firstOrNull { part -> !isGenericPackageSegment(part) }
+      ?: packageParts.lastOrNull()
+      ?: packageName
 
     if (lastSegment.isBlank()) {
       return packageName
@@ -101,6 +106,14 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
           if (char.isLowerCase()) char.titlecase() else char.toString()
         }
       }
+  }
+
+  private fun isGenericAppName(appName: String, packageName: String): Boolean {
+    return appName.equals("Android", ignoreCase = true) && packageName != "android"
+  }
+
+  private fun isGenericPackageSegment(segment: String): Boolean {
+    return segment.equals("android", ignoreCase = true)
   }
 
   companion object {

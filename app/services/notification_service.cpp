@@ -76,6 +76,20 @@ namespace swirski::services::notification_service
             return value.find('.') != std::string::npos;
         }
 
+        bool isGenericAndroidLabel(
+            const std::string &appName,
+            const std::string &packageName)
+        {
+            return packageName != "android" &&
+                   appName == "Android";
+        }
+
+        bool isGenericPackageSegment(
+            const std::string &segment)
+        {
+            return segment == "android";
+        }
+
         std::string readableNameFromPackageName(
             const std::string &packageName)
         {
@@ -86,6 +100,26 @@ namespace swirski::services::notification_service
                 lastDot == std::string::npos
                     ? packageName
                     : packageName.substr(lastDot + 1);
+
+            if (isGenericPackageSegment(name))
+            {
+                const std::size_t previousDot =
+                    packageName.find_last_of(
+                        '.',
+                        lastDot == std::string::npos
+                            ? std::string::npos
+                            : lastDot - 1);
+
+                if (
+                    lastDot != std::string::npos &&
+                    previousDot != std::string::npos)
+                {
+                    name =
+                        packageName.substr(
+                            previousDot + 1,
+                            lastDot - previousDot - 1);
+                }
+            }
 
             for (char &character : name)
             {
@@ -229,7 +263,10 @@ namespace swirski::services::notification_service
 
         if (
             notification.appName.empty() ||
-            looksLikePackageName(notification.appName))
+            looksLikePackageName(notification.appName) ||
+            isGenericAndroidLabel(
+                notification.appName,
+                notification.packageName))
         {
             notification.appName =
                 readableNameFromPackageName(
