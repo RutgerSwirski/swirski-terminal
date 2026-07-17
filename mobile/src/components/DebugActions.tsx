@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Button, Card, CardContent, CardTitle } from '@swirski/ui/native';
 import type { Device } from 'react-native-ble-plx';
 
 import type { ConnectionStatus } from '../ble/useTerminalBle';
@@ -26,20 +27,51 @@ export function DebugActions({
   const disabled = connectionStatus !== 'ready';
 
   return (
-    <View>
-      <Button title="Ping!" onPress={onPing} disabled={disabled} />
+    <Card variant="flat" tone="black" style={styles.card}>
+      <CardContent>
+        <CardTitle size="sm" tone="inverted">
+          Debug actions
+        </CardTitle>
 
-      <Button
-        title="Send test notification snapshot"
-        onPress={() => onSendTestNotificationSnapshot(connectedDevice)}
-        disabled={disabled}
-      />
+        <View style={styles.actions}>
+          <Button
+            tone="white"
+            variant="outline"
+            onPress={onPing}
+            disabled={disabled}
+          >
+            Ping!
+          </Button>
 
-      <Button
-        title="Send test notification received"
-        onPress={() => onSendTestNotificationReceived(connectedDevice)}
-        disabled={disabled}
-      />
-    </View>
+          <Button
+            tone="white"
+            variant="outline"
+            onPress={() => onSendTestNotificationSnapshot(connectedDevice)}
+            disabled={disabled}
+          >
+            Send test notification snapshot
+          </Button>
+
+          <Button
+            tone="white"
+            variant="outline"
+            onPress={() => onSendTestNotificationReceived(connectedDevice)}
+            disabled={disabled}
+          >
+            Send test notification received
+          </Button>
+        </View>
+      </CardContent>
+    </Card>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    width: '100%',
+  },
+  actions: {
+    gap: 8,
+    marginTop: 12,
+  },
+});

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import type { Device } from 'react-native-ble-plx';
 
 import { useTerminalBle } from '../ble/useTerminalBle';
@@ -79,43 +79,53 @@ export function TerminalScreen() {
   }, [notificationBridge, terminalBle]);
 
   return (
-    <View style={styles.container}>
-      <ConnectionPanel
-        bleState={terminalBle.bleState}
-        connectionStatus={terminalBle.connectionStatus}
-        connectedDevice={terminalBle.connectedDevice}
-        isScanning={terminalBle.isScanning}
-        notificationAccessEnabled={notificationBridge.notificationAccessEnabled}
-        onOpenNotificationSettings={
-          notificationBridge.openNotificationAccessSettings
-        }
-        onStartScan={terminalBle.startScan}
-      />
+    <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.content}>
+        <ConnectionPanel
+          bleState={terminalBle.bleState}
+          connectionStatus={terminalBle.connectionStatus}
+          connectedDevice={terminalBle.connectedDevice}
+          isScanning={terminalBle.isScanning}
+          notificationAccessEnabled={
+            notificationBridge.notificationAccessEnabled
+          }
+          onOpenNotificationSettings={
+            notificationBridge.openNotificationAccessSettings
+          }
+          onStartScan={terminalBle.startScan}
+        />
 
-      <DeviceList
-        devices={terminalBle.devices}
-        connectedDevice={terminalBle.connectedDevice}
-        connectionStatus={terminalBle.connectionStatus}
-        onConnect={terminalBle.connectToDevice}
-        onDisconnect={terminalBle.disconnectFromDevice}
-      />
+        <DeviceList
+          devices={terminalBle.devices}
+          connectedDevice={terminalBle.connectedDevice}
+          connectionStatus={terminalBle.connectionStatus}
+          onConnect={terminalBle.connectToDevice}
+          onDisconnect={terminalBle.disconnectFromDevice}
+        />
 
-      <DebugActions
-        connectedDevice={terminalBle.connectedDevice}
-        connectionStatus={terminalBle.connectionStatus}
-        onPing={terminalBle.sendPing}
-        onSendTestNotificationSnapshot={sendTestNotificationSnapshot}
-        onSendTestNotificationReceived={sendTestNotificationReceived}
-      />
-    </View>
+        <DebugActions
+          connectedDevice={terminalBle.connectedDevice}
+          connectionStatus={terminalBle.connectionStatus}
+          onPing={terminalBle.sendPing}
+          onSendTestNotificationSnapshot={sendTestNotificationSnapshot}
+          onSendTestNotificationReceived={sendTestNotificationReceived}
+        />
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: '#fff',
+    flexGrow: 1,
+    backgroundColor: '#f6f2e8',
+    padding: 20,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+  },
+  content: {
+    width: '100%',
+    maxWidth: 520,
+    gap: 16,
   },
 });

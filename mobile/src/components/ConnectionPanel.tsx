@@ -1,5 +1,6 @@
 import React from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { Button, Card, CardContent, Text, Title } from '@swirski/ui/native';
 import type { Device } from 'react-native-ble-plx';
 import { State } from 'react-native-ble-plx';
 
@@ -26,41 +27,48 @@ export function ConnectionPanel({
 }: ConnectionPanelProps) {
   return (
     <>
-      <Text>Swirski Terminal</Text>
-      <Text>Bluetooth: {bleState}</Text>
-      <Text>Status: {connectionStatus}</Text>
+      <View style={styles.header}>
+        <Title size="h2">Swirski Terminal</Title>
+        <Text tone="muted">Bluetooth: {bleState}</Text>
+        <Text tone="muted">Status: {connectionStatus}</Text>
+      </View>
 
       {!notificationAccessEnabled && (
-        <View style={styles.notice}>
-          <Text style={styles.noticeText}>
-            Enable notification access to sync phone notifications.
-          </Text>
+        <Card variant="outline" tone="yellow" style={styles.notice}>
+          <CardContent>
+            <Text style={styles.noticeText}>
+              Enable notification access to sync phone notifications.
+            </Text>
 
-          <Button
-            title="Open notification settings"
-            onPress={onOpenNotificationSettings}
-          />
-        </View>
+            <Button tone="black" onPress={onOpenNotificationSettings}>
+              Open notification settings
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
-      {connectedDevice && <Text>Connected: {connectedDevice.name}</Text>}
+      {connectedDevice && (
+        <Text weight="medium">Connected: {connectedDevice.name}</Text>
+      )}
 
       <Button
-        title={isScanning ? 'Scanning...' : 'Start scanning'}
         disabled={isScanning}
         onPress={onStartScan}
-      />
+      >
+        {isScanning ? 'Scanning...' : 'Start scanning'}
+      </Button>
     </>
   );
 }
 
 const styles = StyleSheet.create({
+  header: {
+    alignItems: 'center',
+    gap: 4,
+  },
   notice: {
     width: '90%',
-    padding: 12,
     marginVertical: 12,
-    borderWidth: 1,
-    borderColor: '#cccccc',
   },
   noticeText: {
     marginBottom: 8,

@@ -1,5 +1,13 @@
 import React from 'react';
-import { Button, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import {
+  Button,
+  Card,
+  CardContent,
+  CardMeta,
+  CardTitle,
+  Text,
+} from '@swirski/ui/native';
 import type { Device } from 'react-native-ble-plx';
 
 import type { ConnectionStatus } from '../ble/useTerminalBle';
@@ -20,35 +28,56 @@ export function DeviceList({
   onDisconnect,
 }: DeviceListProps) {
   return (
-    <>
+    <View style={styles.list}>
       {devices.map(device => (
-        <View key={device.id}>
-          <Text>{device.name ?? device.localName ?? 'Unnamed device'}</Text>
-          <Text>{device.id}</Text>
-          <Text>RSSI: {device.rssi ?? 'Unknown'}</Text>
+        <Card key={device.id} variant="outline" style={styles.deviceCard}>
+          <CardContent>
+            <CardTitle size="sm">
+              {device.name ?? device.localName ?? 'Unnamed device'}
+            </CardTitle>
+            <CardMeta>{device.id}</CardMeta>
+            <Text tone="muted">RSSI: {device.rssi ?? 'Unknown'}</Text>
 
-          {connectedDevice?.id === device.id ? (
-            <Button
-              title={
-                connectionStatus === 'disconnecting'
-                  ? 'Disconnecting...'
-                  : 'Disconnect'
-              }
-              disabled={connectionStatus === 'disconnecting'}
-              onPress={onDisconnect}
-            />
-          ) : (
-            <Button
-              disabled={
-                connectionStatus !== 'disconnected' &&
-                connectionStatus !== 'error'
-              }
-              title="Connect"
-              onPress={() => onConnect(device)}
-            />
-          )}
-        </View>
+            <View style={styles.actions}>
+              {connectedDevice?.id === device.id ? (
+                <Button
+                  tone="red"
+                  variant="outline"
+                  disabled={connectionStatus === 'disconnecting'}
+                  onPress={onDisconnect}
+                >
+                  {connectionStatus === 'disconnecting'
+                    ? 'Disconnecting...'
+                    : 'Disconnect'}
+                </Button>
+              ) : (
+                <Button
+                  disabled={
+                    connectionStatus !== 'disconnected' &&
+                    connectionStatus !== 'error'
+                  }
+                  onPress={() => onConnect(device)}
+                >
+                  Connect
+                </Button>
+              )}
+            </View>
+          </CardContent>
+        </Card>
       ))}
-    </>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  list: {
+    width: '100%',
+    gap: 12,
+  },
+  deviceCard: {
+    width: '100%',
+  },
+  actions: {
+    marginTop: 12,
+  },
+});
