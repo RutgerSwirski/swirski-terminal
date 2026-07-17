@@ -6,6 +6,7 @@
 #include "notifications_screen.hpp"
 #include "notification_screen.hpp"
 #include "notification_service.hpp"
+#include "swirski_ui.hpp"
 
 #include <vector>
 
@@ -68,18 +69,18 @@ namespace swirski::screens::notifications_screen
 
             const lv_color_t titleColor =
                 isSelected
-                    ? lv_color_hex(0x00FF00)
-                    : lv_color_white();
+                    ? swirski::ui::swirski_ui::color::accentBright()
+                    : swirski::ui::swirski_ui::color::text();
 
             const lv_color_t appNameColor =
                 isSelected
-                    ? lv_color_hex(0x00CC88)
-                    : lv_color_hex(0x8FAAB7);
+                    ? swirski::ui::swirski_ui::color::accent()
+                    : swirski::ui::swirski_ui::color::textMuted();
 
             const lv_color_t bodyColor =
                 isSelected
-                    ? lv_color_hex(0xD5E8E0)
-                    : lv_color_hex(0x8FAAB7);
+                    ? swirski::ui::swirski_ui::color::text()
+                    : swirski::ui::swirski_ui::color::textMuted();
 
             lv_obj_set_style_text_color(
                 row.titleLabel,
@@ -121,7 +122,7 @@ namespace swirski::screens::notifications_screen
 
         lv_obj_set_size(notificationList, 300, 200);
 
-        lv_obj_set_style_bg_color(notificationList, lv_color_hex(0x00283d), LV_PART_MAIN);
+        swirski::ui::swirski_ui::stylePanel(notificationList);
 
         lv_obj_align(notificationList, LV_ALIGN_TOP_MID, 0, 5);
 
@@ -140,12 +141,6 @@ namespace swirski::screens::notifications_screen
         lv_obj_set_style_pad_row(
             notificationList,
             4,
-            LV_PART_MAIN);
-
-        // remove container border
-        lv_obj_set_style_border_width(
-            notificationList,
-            0,
             LV_PART_MAIN);
 
         for (const auto &notification : notifications)
@@ -170,119 +165,39 @@ namespace swirski::screens::notifications_screen
                     : notification.body;
 
             lv_obj_t *container =
-                lv_obj_create(notificationList);
-
-            lv_obj_set_width(
-                container,
-                LV_PCT(100));
-
-            lv_obj_set_height(
-                container,
-                70);
-
-            lv_obj_set_flex_grow(
-                container,
-                0);
-
-            lv_obj_set_style_bg_color(
-                container,
-                lv_color_hex(0x00283D),
-                LV_PART_MAIN);
-
-            // lv_obj_set_style_border_width(
-            //     container,
-            //     0,
-            //     LV_PART_MAIN);
-
-            lv_obj_set_style_pad_top(
-                container,
-                3,
-                LV_PART_MAIN);
-
-            lv_obj_set_style_pad_left(
-                container,
-                6,
-                LV_PART_MAIN);
-
-            lv_obj_set_scrollbar_mode(
-                container,
-                LV_SCROLLBAR_MODE_OFF);
-
-            lv_obj_clear_flag(
-                container,
-                LV_OBJ_FLAG_SCROLLABLE);
+                swirski::ui::swirski_ui::createCard(
+                    notificationList,
+                    72);
 
             // App name
 
             lv_obj_t *appNameLabel =
-                lv_label_create(container);
-
-            lv_label_set_text(
-                appNameLabel,
-                notification.appName.c_str());
-
-            lv_obj_set_size(
-                appNameLabel,
-                LV_PCT(100),
-                16);
-
-            lv_label_set_long_mode(
-                appNameLabel,
-                LV_LABEL_LONG_DOT);
-
-            lv_obj_align(
-                appNameLabel,
-                LV_ALIGN_TOP_LEFT,
-                0,
-                0);
+                swirski::ui::swirski_ui::createLabel(
+                    container,
+                    notification.appName.c_str(),
+                    swirski::ui::swirski_ui::TextTone::Accent,
+                    0,
+                    16);
 
             // Title
 
             lv_obj_t *titleLabel =
-                lv_label_create(container);
-
-            lv_label_set_text(
-                titleLabel,
-                rowTitle.c_str());
-
-            lv_obj_set_size(
-                titleLabel,
-                LV_PCT(100),
-                18);
-
-            lv_label_set_long_mode(
-                titleLabel,
-                LV_LABEL_LONG_DOT);
-
-            lv_obj_align(
-                titleLabel,
-                LV_ALIGN_TOP_LEFT,
-                0,
-                18);
+                swirski::ui::swirski_ui::createLabel(
+                    container,
+                    rowTitle.c_str(),
+                    swirski::ui::swirski_ui::TextTone::Default,
+                    18,
+                    18);
 
             // Body
 
             lv_obj_t *bodyLabel =
-                lv_label_create(container);
-
-            lv_label_set_text(
-                bodyLabel,
-                bodyPreview.c_str());
-
-            lv_obj_set_size(
-                bodyLabel,
-                LV_PCT(100),
-                18);
-
-            lv_label_set_long_mode(
-                bodyLabel,
-                LV_LABEL_LONG_DOT);
-
-            lv_obj_align(
-                bodyLabel,
-                LV_ALIGN_TOP_LEFT,
-                0,
-                38);
+                swirski::ui::swirski_ui::createLabel(
+                    container,
+                    bodyPreview.c_str(),
+                    swirski::ui::swirski_ui::TextTone::Muted,
+                    38,
+                    18);
 
             notificationRows.push_back({
                 container,
