@@ -69,10 +69,38 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
     return try {
       val appInfo = packageManager.getApplicationInfo(packageName, 0)
 
-      packageManager.getApplicationLabel(appInfo).toString()
+      val appName = packageManager.getApplicationLabel(appInfo).toString()
+
+      if (appName.isBlank() || appName == packageName) {
+        readableNameFromPackageName(packageName)
+      } else {
+        appName
+      }
     } catch (_: Exception) {
-      packageName
+      readableNameFromPackageName(packageName)
     }
+  }
+
+  private fun readableNameFromPackageName(packageName: String): String {
+    val lastSegment = packageName
+      .split(".")
+      .lastOrNull { part -> part.isNotBlank() }
+      .orEmpty()
+
+    if (lastSegment.isBlank()) {
+      return packageName
+    }
+
+    return lastSegment
+      .replace("-", " ")
+      .replace("_", " ")
+      .split(" ")
+      .filter { word -> word.isNotBlank() }
+      .joinToString(" ") { word ->
+        word.replaceFirstChar { char ->
+          if (char.isLowerCase()) char.titlecase() else char.toString()
+        }
+      }
   }
 
   companion object {

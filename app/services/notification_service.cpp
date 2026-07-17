@@ -1,6 +1,7 @@
 #include "notification_service.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -68,6 +69,60 @@ namespace swirski::services::notification_service
              0}};
 
         std::optional<Notification> pendingToastNotification;
+
+        bool looksLikePackageName(
+            const std::string &value)
+        {
+            return value.find('.') != std::string::npos;
+        }
+
+        std::string readableNameFromPackageName(
+            const std::string &packageName)
+        {
+            const std::size_t lastDot =
+                packageName.find_last_of('.');
+
+            std::string name =
+                lastDot == std::string::npos
+                    ? packageName
+                    : packageName.substr(lastDot + 1);
+
+            for (char &character : name)
+            {
+                if (
+                    character == '_' ||
+                    character == '-')
+                {
+                    character = ' ';
+                }
+            }
+
+            bool capitalizeNext = true;
+
+            for (char &character : name)
+            {
+                if (character == ' ')
+                {
+                    capitalizeNext = true;
+                    continue;
+                }
+
+                if (capitalizeNext)
+                {
+                    character =
+                        static_cast<char>(
+                            std::toupper(
+                                static_cast<unsigned char>(
+                                    character)));
+
+                    capitalizeNext = false;
+                }
+            }
+
+            return name.empty()
+                       ? packageName
+                       : name;
+        }
     }
 
     void setNotifications(std::vector<Notification> incomingNotifications)
@@ -171,6 +226,17 @@ namespace swirski::services::notification_service
         notification.appName =
             object["appName"] |
             "";
+
+        if (
+            notification.appName.empty() ||
+            looksLikePackageName(notification.appName))
+        {
+            notification.appName =
+                readableNameFromPackageName(
+                    notification.packageName.empty()
+                        ? notification.appName
+                        : notification.packageName);
+        }
 
         notification.title =
             object["title"] |
