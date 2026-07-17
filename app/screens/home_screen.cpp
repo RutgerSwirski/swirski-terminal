@@ -77,7 +77,7 @@ namespace swirski::screens::home
         lv_obj_set_pos(
             menuList,
             10,
-            36);
+            28);
 
         lv_obj_set_size(
             menuList,
