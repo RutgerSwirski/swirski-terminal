@@ -38,7 +38,6 @@ namespace swirski::screens::home
 
     void updateSelection()
     {
-
         for (std::size_t i = 0; i < homeMenuItems.size(); ++i)
         {
             const bool isSelected = i == selectedItemIndex;
@@ -51,6 +50,10 @@ namespace swirski::screens::home
                 menuItemLabels[i],
                 isSelected);
         }
+
+        lv_obj_scroll_to_view(
+            menuItemLabels[selectedItemIndex],
+            LV_ANIM_OFF);
     }
 
     void render()
@@ -85,6 +88,14 @@ namespace swirski::screens::home
             menuList,
             190,
             105);
+
+        lv_obj_set_scroll_dir(
+            menuList,
+            LV_DIR_VER);
+
+        lv_obj_set_scrollbar_mode(
+            menuList,
+            LV_SCROLLBAR_MODE_OFF);
 
         lv_obj_set_layout(menuList, LV_LAYOUT_FLEX);
 
