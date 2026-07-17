@@ -1,0 +1,29 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "node_modules/@swirski/ui/dist/native/fonts/Anton_400Regular.ttf",
+      "sha1": "726b5b90799781efcdbea11b90722cea38c9d8c7"
+    },
+    {
+      "path": "node_modules/@swirski/ui/dist/native/fonts/Bangers_400Regular.ttf",
+      "sha1": "54f14f1a7d0652f588e5dc723ffc53077686a91e"
+    },
+    {
+      "path": "node_modules/@swirski/ui/dist/native/fonts/Inter_400Regular.ttf",
+      "sha1": "7a3fa76705ad586f6410a1b5b0059dd17db20c26"
+    },
+    {
+      "path": "node_modules/@swirski/ui/dist/native/fonts/Inter_500Medium.ttf",
+      "sha1": "a961cb10310cf86b23bfbe21a637614d1046d795"
+    },
+    {
+      "path": "node_modules/@swirski/ui/dist/native/fonts/Inter_700Bold.ttf",
+      "sha1": "5a912e0600350ef7bb9c7c2e6c585815bb30ca16"
+    },
+    {
+      "path": "node_modules/@swirski/ui/dist/native/fonts/Inter_900Black.ttf",
+      "sha1": "27890301d7813ded5b0acab96f3b825ca177eded"
+    }
+  ]
+}
