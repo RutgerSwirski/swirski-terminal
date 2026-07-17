@@ -17,6 +17,7 @@ import {
   encodeBytesToBase64,
   encodeMessageIntoFrames,
 } from './src/ble/framing';
+import { TerminalNotification } from './src/ble/types';
 
 type ConnectionStatus =
   | 'disconnected'
@@ -321,6 +322,45 @@ function App() {
     }
   }
 
+  async function sendTestNotificationSnapshot(device: Device) {
+    const notifications: TerminalNotification[] = [
+      {
+        id: 'test-whatsapp-1',
+        packageName: 'com.whatsapp',
+        appName: 'WhatsApp',
+        title: 'Stella',
+        body: 'Are you still coming tonight?',
+        postedAt: Date.now(),
+      },
+      {
+        id: 'test-calendar-1',
+        packageName: 'com.google.android.calendar',
+        appName: 'Calendar',
+        title: 'Design meeting testing!',
+        body: 'Starts in 10 minutes',
+        postedAt: Date.now() - 10_000,
+      },
+    ];
+
+    // await queueBleMessage(device, {
+    //   version: 1,
+    //   type: 'notifications.snapshot',
+    //   id: `mobile-snapshot-${Date.now()}`,
+    //   payload: {
+    //     notifications,
+    //   },
+    // });
+
+    sendBleMessage(device, {
+      version: 1,
+      type: 'notifications.snapshot',
+      id: `mobile-snapshot-${Date.now()}`,
+      payload: {
+        notifications,
+      },
+    });
+  }
+
   return (
     <View style={styles.container}>
       <Text>Swirski Terminal</Text>
@@ -372,6 +412,11 @@ function App() {
             title="Ping!"
             onPress={sendPing}
             disabled={connectionStatus !== 'ready'}
+          />
+
+          <Button
+            title="Send test notification snapshot"
+            onPress={() => sendTestNotificationSnapshot(connectedDevice)}
           />
         </View>
       )}

@@ -1,12 +1,17 @@
-
-#include <vector>
 #include "notification_service.hpp"
-#include <string>
 
+#include <algorithm>
+#include <iostream>
 #include <optional>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include <ArduinoJson.h>
 
 namespace swirski::services::notification_service
 {
+    int revision = 0;
 
     namespace
     {
@@ -14,37 +19,53 @@ namespace swirski::services::notification_service
         std::vector<Notification> notifications = {
 
             {"1",
+             "com.whatsapp",
              "WhatsApp",
              "Anna",
-             "Are you still coming tonight?"},
+             "Are you still coming tonight?",
+             0},
             {"2",
+             "com.spotify.music",
              "Spotify",
              "Now playing",
-             "Once in a Lifetime — Talking Heads"},
+             "Once in a Lifetime — Talking Heads",
+             0},
             {"3",
+             "com.google.android.calendar",
              "Calendar",
              "Design meeting",
-             "Starts in 10 minutes"},
+             "Starts in 10 minutes",
+             0},
             {"4",
+             "com.google.android.calendar",
              "Calendar",
              "Design meeting",
-             "Starts in 10 minutes"},
+             "Starts in 10 minutes",
+             0},
             {"5",
+             "com.google.android.calendar",
              "Calendar",
              "Design meeting",
-             "Starts in 10 minutes"},
+             "Starts in 10 minutes",
+             0},
             {"6",
+             "com.google.android.calendar",
              "Calendar",
              "Design meeting",
-             "Starts in 10 minutes"},
+             "Starts in 10 minutes",
+             0},
             {"7",
+             "com.google.android.calendar",
              "Calendar",
              "Design meeting",
-             "Starts in 10 minutes"},
+             "Starts in 10 minutes",
+             0},
             {"8",
+             "com.google.android.calendar",
              "Calendar",
              "Design meeting",
-             "Starts in 10 minutes"}};
+             "Starts in 10 minutes",
+             0}};
     }
 
     void setNotifications(std::vector<Notification> incomingNotifications)
@@ -86,6 +107,143 @@ namespace swirski::services::notification_service
             }
         }
         return false;
+    }
+
+    void setSnapshot(std::vector<Notification> snapshot)
+    {
+        notifications = std::move(snapshot);
+
+        revision += 1;
+    }
+
+    void upsert(
+        Notification notification)
+    {
+        const auto existing =
+            std::find_if(
+                notifications.begin(),
+                notifications.end(),
+                [&notification](
+                    const Notification &current)
+                {
+                    return current.id ==
+                           notification.id;
+                });
+
+        if (existing != notifications.end())
+        {
+            *existing =
+                std::move(notification);
+        }
+        else
+        {
+            notifications.insert(
+                notifications.begin(),
+                std::move(notification));
+        }
+
+        revision += 1;
+    }
+
+    std::optional<Notification>
+    parseNotification(
+        JsonObjectConst object)
+    {
+        const char *id =
+            object["id"];
+
+        if (id == nullptr)
+        {
+            return std::nullopt;
+        }
+
+        Notification notification;
+
+        notification.id =
+            id;
+
+        notification.packageName =
+            object["packageName"] |
+            "";
+
+        notification.appName =
+            object["appName"] |
+            "";
+
+        notification.title =
+            object["title"] |
+            "";
+
+        notification.body =
+            object["body"] |
+            "";
+
+        notification.postedAt =
+            object["postedAt"] |
+            0;
+
+        return notification;
+    }
+
+    void handleNotificationsSnapshot(
+        JsonObjectConst payload)
+    {
+        JsonArrayConst notificationObjects =
+            payload["notifications"]
+                .as<JsonArrayConst>();
+
+        std::vector<Notification> snapshot;
+
+        snapshot.reserve(
+            notificationObjects.size());
+
+        for (
+            JsonObjectConst object :
+            notificationObjects)
+        {
+            const auto notification =
+                parseNotification(object);
+
+            if (notification)
+            {
+                snapshot.push_back(
+                    *notification);
+            }
+        }
+
+        setSnapshot(
+            std::move(snapshot));
+
+        std::cout
+            << "Applied notification snapshot"
+            << std::endl;
+    }
+
+    void handleNotificationReceived(
+        JsonObjectConst payload)
+    {
+        JsonObjectConst object =
+            payload["notification"]
+                .as<JsonObjectConst>();
+
+        const auto notification =
+            parseNotification(object);
+
+        if (!notification)
+        {
+            std::cerr
+                << "Invalid notification.received payload"
+                << std::endl;
+
+            return;
+        }
+
+        upsert(*notification);
+
+        std::cout
+            << "Applied incoming notification: "
+            << notification->id
+            << std::endl;
     }
 
 }

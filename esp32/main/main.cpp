@@ -15,6 +15,8 @@
 #include "./inputs/push_buttons.hpp"
 #include "app_constants.hpp"
 #include "services/date_time.hpp"
+#include "screen_manager.hpp"
+#include "notifications_screen.hpp"
 #include "ui/status_bar.hpp"
 #include "input.hpp"
 
@@ -182,6 +184,15 @@ extern "C" void app_main()
         if (lvgl_port_lock(0))
         {
             swirski::ui::status_bar::updateSystemState();
+
+            if (
+                swirski::screens::manager::getCurrentScreen() ==
+                swirski::screens::manager::Screen::Notifications)
+            {
+                swirski::screens::notifications_screen::
+                    refreshIfNeeded();
+            }
+
             lvgl_port_unlock();
         }
 

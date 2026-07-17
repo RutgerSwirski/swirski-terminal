@@ -36,6 +36,8 @@ namespace swirski::screens::notifications_screen
 
         std::size_t selectedNotificationIndex = 0;
 
+        int renderedNotificationRevision = -1;
+
     }
 
     void update()
@@ -111,11 +113,51 @@ namespace swirski::screens::notifications_screen
             notificationRows.push_back({container, titleLabel, notification.id, notification.appName, notification.title, notification.body});
         }
 
+        if (notificationRows.empty())
+        {
+            selectedNotificationIndex = 0;
+        }
+        else if (selectedNotificationIndex >= notificationRows.size())
+        {
+            selectedNotificationIndex =
+                notificationRows.size() - 1;
+        }
+
+        renderedNotificationRevision =
+            swirski::services::notification_service::
+                revision;
+
         update();
+    }
+
+    void refreshIfNeeded()
+    {
+        if (
+            renderedNotificationRevision ==
+            swirski::services::notification_service::
+                revision)
+        {
+            return;
+        }
+
+        render();
     }
 
     void handleInput(swirski::input::input_action action)
     {
+
+        if (notificationRows.empty())
+        {
+            if (
+                action ==
+                swirski::input::input_action::Back)
+            {
+                swirski::screens::manager::showScreen(
+                    swirski::screens::manager::Screen::Home);
+            }
+
+            return;
+        }
 
         switch (action)
         {

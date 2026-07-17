@@ -29,6 +29,11 @@ namespace
             return swirski::protocol::MessageType::NotificationReceived;
         }
 
+        if (rawType == "notifications.snapshot")
+        {
+            return swirski::protocol::MessageType::NotificationsSnapshot;
+        }
+
         if (rawType == "disconnect.requested")
         {
             return swirski::protocol::MessageType::DisconnectRequested;
@@ -134,74 +139,6 @@ namespace swirski::protocol
         message.id =
             document["id"].as<std::string>();
 
-        if (message.type == MessageType::NotificationReceived)
-        {
-            if (!document["payload"].is<JsonObject>())
-            {
-                std::cerr
-                    << "Notification message has no valid payload"
-                    << std::endl;
-
-                return std::nullopt;
-            }
-
-            const JsonObject payload =
-                document["payload"].as<JsonObject>();
-
-            if (!payload["notificationId"].is<const char *>() ||
-                !payload["appName"].is<const char *>() ||
-                !payload["title"].is<const char *>() ||
-                !payload["body"].is<const char *>())
-            {
-                std::cerr
-                    << "Notification payload is invalid"
-                    << std::endl;
-
-                return std::nullopt;
-            }
-
-            const char *notificationId =
-                payload["notificationId"].as<const char *>();
-
-            const char *appName =
-                payload["appName"].as<const char *>();
-
-            const char *title =
-                payload["title"].as<const char *>();
-
-            const char *body =
-                payload["body"].as<const char *>();
-
-            if (notificationId == nullptr)
-            {
-                std::cerr << "notificationId is null" << std::endl;
-                return std::nullopt;
-            }
-
-            if (appName == nullptr)
-            {
-                std::cerr << "appName is null" << std::endl;
-                return std::nullopt;
-            }
-
-            if (title == nullptr)
-            {
-                std::cerr << "title is null" << std::endl;
-                return std::nullopt;
-            }
-
-            if (body == nullptr)
-            {
-                std::cerr << "body is null" << std::endl;
-                return std::nullopt;
-            }
-
-            message.payload.notificationId = notificationId;
-            message.payload.appName = appName;
-            message.payload.title = title;
-            message.payload.body = body;
-        }
-
         return message;
     }
 
@@ -210,6 +147,21 @@ namespace swirski::protocol
     {
 
         std::cout << "1. Message parsed" << std::endl;
+
+        JsonDocument document;
+
+        const DeserializationError error =
+            deserializeJson(document, rawMessage);
+
+        if (error)
+        {
+            std::cerr
+                << "JSON parsing failed: "
+                << error.c_str()
+                << std::endl;
+
+            return std::nullopt;
+        }
 
         const auto message =
             parseMessage(rawMessage);
@@ -233,24 +185,19 @@ namespace swirski::protocol
 
         case MessageType::NotificationReceived:
         {
-
-            std::cout << "2. Creating notification" << std::endl;
-
-            swirski::services::notification_service::Notification newNotification{
-                .id = message->payload.notificationId,
-                .appName = message->payload.appName,
-                .title = message->payload.title,
-                .body = message->payload.body};
-
-            std::cout << "3. Notification created" << std::endl;
-
-            swirski::services::notification_service::addNotification(
-                newNotification);
-
-            std::cout << "4. Notification added" << std::endl;
+            swirski::services::notification_service::
+                handleNotificationReceived(
+                    document["payload"].as<JsonObjectConst>());
 
             return std::nullopt;
         }
+
+        case MessageType::NotificationsSnapshot:
+            swirski::services::notification_service::
+                handleNotificationsSnapshot(
+                    document["payload"].as<JsonObjectConst>());
+
+            return std::nullopt;
 
         case MessageType::DisconnectRequested:
             return std::nullopt;
