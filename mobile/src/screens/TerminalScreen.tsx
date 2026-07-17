@@ -29,6 +29,8 @@ export function TerminalScreen() {
   });
 
   const musicBridge = useMusicBridge({
+    connectedDevice: terminalBle.connectedDevice,
+    connectionStatus: terminalBle.connectionStatus,
     sendBleMessage: terminalBle.sendBleMessage,
   });
 
