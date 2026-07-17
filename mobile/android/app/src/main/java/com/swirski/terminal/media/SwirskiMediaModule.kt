@@ -22,6 +22,7 @@ class SwirskiMediaModule(
   private val controllerCallbacks =
     mutableMapOf<MediaController, MediaController.Callback>()
   private var lastEmittedMusicState: MusicState? = null
+  private var pendingMusicStateEmit: Runnable? = null
 
   private val listenerComponent =
     ComponentName(
@@ -155,6 +156,24 @@ class SwirskiMediaModule(
         return
       }
 
+      scheduleMusicStateEmit(musicState)
+    } catch (error: Exception) {
+      // Media updates are best-effort; connect-time sync can still work.
+    }
+  }
+
+  private fun scheduleMusicStateEmit(musicState: MusicState) {
+    pendingMusicStateEmit?.let { pendingEmit ->
+      mainHandler.removeCallbacks(pendingEmit)
+    }
+
+    val emitMusicState = Runnable {
+      pendingMusicStateEmit = null
+
+      if (musicState == lastEmittedMusicState) {
+        return@Runnable
+      }
+
       lastEmittedMusicState = musicState
 
       reactApplicationContext
@@ -166,9 +185,13 @@ class SwirskiMediaModule(
             musicState = musicState,
           ),
         )
-    } catch (error: Exception) {
-      // Media updates are best-effort; connect-time sync can still work.
     }
+
+    pendingMusicStateEmit = emitMusicState
+    mainHandler.postDelayed(
+      emitMusicState,
+      MUSIC_STATE_EMIT_DEBOUNCE_MS,
+    )
   }
 
   private fun createMusicStateMessageJson(
@@ -256,5 +279,6 @@ class SwirskiMediaModule(
 
   companion object {
     const val MUSIC_STATE_CHANGED_EVENT = "SwirskiMusicStateChanged"
+    private const val MUSIC_STATE_EMIT_DEBOUNCE_MS = 750L
   }
 }

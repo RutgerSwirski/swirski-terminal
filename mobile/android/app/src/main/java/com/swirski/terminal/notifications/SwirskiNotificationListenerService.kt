@@ -1,6 +1,8 @@
 package com.swirski.terminal.notifications
 
 import android.app.Notification
+import android.os.Handler
+import android.os.Looper
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
@@ -11,6 +13,10 @@ import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 class SwirskiNotificationListenerService : NotificationListenerService() {
+  private val emitHandler = Handler(Looper.getMainLooper())
+  private val pendingNotificationEmits =
+    ConcurrentHashMap<String, Runnable>()
+
   override fun onListenerConnected() {
     refreshSnapshot()
   }
@@ -20,16 +26,20 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
 
     if (notification.hasVisibleText()) {
       notifications[notification.id] = notification
-      emitNotificationReceived(notification)
+      scheduleNotificationReceived(notification)
     } else {
       notifications.remove(notification.id)
+      cancelNotificationReceived(notification.id)
     }
 
     Log.d(TAG, "Stored notification: ${notification.id}")
   }
 
   override fun onNotificationRemoved(sbn: StatusBarNotification) {
-    notifications.remove(createNotificationId(sbn))
+    val notificationId = createNotificationId(sbn)
+
+    notifications.remove(notificationId)
+    cancelNotificationReceived(notificationId)
 
     Log.d(TAG, "Removed notification: ${sbn.key}")
   }
@@ -63,6 +73,28 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
           ?: extras.getCharSequence(Notification.EXTRA_TEXT)?.toString().orEmpty(),
       postedAt = sbn.postTime,
     )
+  }
+
+  private fun scheduleNotificationReceived(notification: TerminalNotification) {
+    cancelNotificationReceived(notification.id)
+
+    val emitNotification = Runnable {
+      pendingNotificationEmits.remove(notification.id)
+      emitNotificationReceived(notification)
+    }
+
+    pendingNotificationEmits[notification.id] = emitNotification
+    emitHandler.postDelayed(
+      emitNotification,
+      NOTIFICATION_EMIT_DEBOUNCE_MS,
+    )
+  }
+
+  private fun cancelNotificationReceived(notificationId: String) {
+    val pendingEmit = pendingNotificationEmits.remove(notificationId)
+      ?: return
+
+    emitHandler.removeCallbacks(pendingEmit)
   }
 
   private fun getAppName(packageName: String): String {
@@ -119,6 +151,7 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
   companion object {
     private const val TAG = "SwirskiNotifications"
     const val NOTIFICATION_RECEIVED_EVENT = "SwirskiNotificationReceived"
+    private const val NOTIFICATION_EMIT_DEBOUNCE_MS = 750L
 
     private val notifications =
       ConcurrentHashMap<String, TerminalNotification>()
