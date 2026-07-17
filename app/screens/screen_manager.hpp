@@ -11,6 +11,7 @@ namespace swirski::screens::manager
         Home,
         Notifications,
         Music,
+        Games,
         Studio,
         Settings,
         Notification
