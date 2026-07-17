@@ -76,32 +76,14 @@ namespace swirski::screens::notification_screen
             container,
             LV_SCROLLBAR_MODE_AUTO);
 
-        // App name
-
-        lv_obj_t *appNameLabel =
-            lv_label_create(container);
-
         const std::string appName =
             notification.appName.empty()
                 ? "Unknown app"
                 : notification.appName;
 
-        lv_label_set_text(
-            appNameLabel,
+        swirski::ui::swirski_ui::createBadge(
+            container,
             appName.c_str());
-
-        lv_obj_set_width(
-            appNameLabel,
-            LV_PCT(100));
-
-        lv_label_set_long_mode(
-            appNameLabel,
-            LV_LABEL_LONG_DOT);
-
-        lv_obj_set_style_text_color(
-            appNameLabel,
-            swirski::ui::swirski_ui::color::accent(),
-            LV_PART_MAIN);
 
         // Notification title
 
