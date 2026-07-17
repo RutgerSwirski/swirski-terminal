@@ -105,12 +105,12 @@ namespace swirski::ui::status_bar
             {
                 lv_obj_set_style_opa(
                     connectionDot,
-                    LV_OPA_30,
+                    LV_OPA_COVER,
                     LV_PART_MAIN);
 
                 lv_obj_set_style_bg_color(
                     connectionDot,
-                    swirski::ui::swirski_ui::color::surface(),
+                    swirski::ui::swirski_ui::color::accentWarm(),
                     LV_PART_MAIN);
             }
         }
@@ -260,7 +260,12 @@ namespace swirski::ui::status_bar
 
         lv_obj_set_style_border_width(
             connectionDot,
-            0,
+            2,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_border_color(
+            connectionDot,
+            swirski::ui::swirski_ui::color::ink(),
             LV_PART_MAIN);
 
         lv_obj_set_style_pad_all(

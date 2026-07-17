@@ -120,19 +120,25 @@ namespace swirski::screens::notifications_screen
 
         lv_obj_t *notificationList = lv_obj_create(pageRoot);
 
-        lv_obj_set_size(notificationList, 300, 200);
+        lv_obj_set_size(notificationList, LV_PCT(100), LV_PCT(95));
 
         swirski::ui::swirski_ui::stylePanel(notificationList);
+        swirski::ui::swirski_ui::styleScrollbar(notificationList);
 
         lv_obj_align(notificationList, LV_ALIGN_TOP_MID, 0, 5);
 
         lv_obj_set_flex_flow(notificationList, LV_FLEX_FLOW_COLUMN);
 
+        lv_obj_set_flex_align(
+            notificationList,
+            LV_FLEX_ALIGN_START,
+            LV_FLEX_ALIGN_CENTER,
+            LV_FLEX_ALIGN_CENTER);
+
         lv_obj_set_scroll_dir(notificationList, LV_DIR_VER);
 
         lv_obj_set_scrollbar_mode(notificationList, LV_SCROLLBAR_MODE_AUTO);
 
-        // Remove the list's internal padding.
         lv_obj_set_style_pad_all(
             notificationList,
             0,
@@ -140,7 +146,7 @@ namespace swirski::screens::notifications_screen
 
         lv_obj_set_style_pad_row(
             notificationList,
-            8,
+            swirski::ui::swirski_ui::space::md,
             LV_PART_MAIN);
 
         for (const auto &notification : notifications)

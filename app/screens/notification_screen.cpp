@@ -52,6 +52,7 @@ namespace swirski::screens::notification_screen
             5);
 
         swirski::ui::swirski_ui::styleCard(container);
+        swirski::ui::swirski_ui::styleScrollbar(container);
 
         lv_obj_set_style_pad_all(
             container,

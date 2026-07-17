@@ -170,6 +170,19 @@ namespace swirski::ui::swirski_ui
             LV_PART_MAIN);
     }
 
+    inline void styleScrollbar(lv_obj_t *object)
+    {
+        lv_obj_set_style_width(
+            object,
+            0,
+            LV_PART_SCROLLBAR);
+
+        lv_obj_set_style_bg_opa(
+            object,
+            0,
+            LV_PART_SCROLLBAR);
+    }
+
     inline lv_obj_t *createCard(
         lv_obj_t *parent,
         std::int32_t height)
