@@ -20,6 +20,13 @@ const TRANSFER_TIMEOUT_MS = 3000;
 
 let nextTransportMessageId = 1;
 
+function shouldLogFrameProgress(
+  frameIndex: number,
+  frameCount: number,
+): boolean {
+  return frameIndex === 1 || frameIndex === frameCount || frameIndex % 10 === 0;
+}
+
 function createTransportMessageId(): number {
   const messageId = nextTransportMessageId;
 
@@ -178,10 +185,14 @@ export class BleFrameAssembler {
       pending.receivedByteCount += payload.length;
     }
 
-    console.log(
-      `Received BLE frame ${chunkIndex + 1}/${chunkCount} ` +
-        `for message ${messageId}`,
-    );
+    const frameIndex = chunkIndex + 1;
+
+    if (shouldLogFrameProgress(frameIndex, chunkCount)) {
+      console.log(
+        `Received BLE frame ${frameIndex}/${chunkCount} ` +
+          `for message ${messageId}`,
+      );
+    }
 
     if (pending.receivedChunkCount !== pending.chunkCount) {
       return null;

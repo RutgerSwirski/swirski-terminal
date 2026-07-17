@@ -39,6 +39,10 @@ const SwirskiNotifications = NativeModules.SwirskiNotifications as
   | SwirskiNotificationsModule
   | undefined;
 
+function shouldLogFrameProgress(frameIndex: number, frameCount: number): boolean {
+  return frameIndex === 1 || frameIndex === frameCount || frameIndex % 10 === 0;
+}
+
 type ConnectionStatus =
   | 'disconnected'
   | 'connecting'
@@ -93,7 +97,11 @@ function App() {
         encodeBytesToBase64(frame),
       );
 
-      console.log(`Sent BLE frame ${index + 1}/${frames.length}`);
+      const frameNumber = index + 1;
+
+      if (shouldLogFrameProgress(frameNumber, frames.length)) {
+        console.log(`Sent BLE frame ${frameNumber}/${frames.length}`);
+      }
     }
   }
 

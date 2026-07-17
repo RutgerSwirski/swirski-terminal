@@ -10,7 +10,7 @@ namespace swirski::ui::notification_toast
 {
     namespace
     {
-        constexpr std::uint32_t TOAST_VISIBLE_MS = 3000;
+        constexpr std::uint32_t TOAST_VISIBLE_MS = 4500;
 
         lv_obj_t *toastRoot = nullptr;
         std::uint32_t toastShownAt = 0;

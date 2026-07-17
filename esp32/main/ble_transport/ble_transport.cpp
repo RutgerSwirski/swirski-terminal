@@ -48,6 +48,15 @@ namespace
 
     std::uint32_t nextOutgoingMessageId = 1;
 
+    bool shouldLogFrameProgress(
+        std::size_t frameIndex,
+        std::size_t frameCount)
+    {
+        return frameIndex == 1 ||
+               frameIndex == frameCount ||
+               frameIndex % 10 == 0;
+    }
+
     std::uint32_t readUint32LittleEndian(
         const std::string &bytes,
         std::size_t offset)
@@ -254,14 +263,25 @@ namespace
                     payload.size();
             }
 
-            std::cout
-                << "Received BLE frame "
-                << static_cast<int>(chunkIndex) + 1
-                << "/"
-                << static_cast<int>(chunkCount)
-                << " for message "
-                << messageId
-                << std::endl;
+            const std::size_t frameIndex =
+                static_cast<std::size_t>(
+                    chunkIndex) +
+                1;
+
+            if (
+                shouldLogFrameProgress(
+                    frameIndex,
+                    chunkCount))
+            {
+                std::cout
+                    << "Received BLE frame "
+                    << frameIndex
+                    << "/"
+                    << static_cast<int>(chunkCount)
+                    << " for message "
+                    << messageId
+                    << std::endl;
+            }
 
             if (
                 pending.receivedChunkCount !=
@@ -546,12 +566,6 @@ namespace
                     frameBytes,
                     connHandle);
             }
-
-            std::cout
-                << "Queued BLE frame: "
-                << frameBytes.size()
-                << " bytes"
-                << std::endl;
         }
 
     private:
@@ -975,12 +989,18 @@ namespace swirski::transport::ble
             }
         }
 
-        std::cout
-            << "Sent queued BLE frame "
-            << nextFrame.frameIndex
-            << "/"
-            << nextFrame.frameCount
-            << std::endl;
+        if (
+            shouldLogFrameProgress(
+                nextFrame.frameIndex,
+                nextFrame.frameCount))
+        {
+            std::cout
+                << "Sent queued BLE frame "
+                << nextFrame.frameIndex
+                << "/"
+                << nextFrame.frameCount
+                << std::endl;
+        }
     }
 
     void BleTransport::send(
