@@ -63,25 +63,44 @@ namespace swirski::screens::home
                 pageRoot,
                 150);
 
-        lv_obj_set_layout(flexContainer, LV_LAYOUT_FLEX);
-
-        lv_obj_set_flex_flow(flexContainer, LV_FLEX_FLOW_COLUMN);
-
         lv_obj_set_width(flexContainer, 230);
 
-        lv_obj_set_flex_align(
+        swirski::ui::swirski_ui::createBadge(
             flexContainer,
-            LV_FLEX_ALIGN_CENTER,
-            LV_FLEX_ALIGN_CENTER,
-            LV_FLEX_ALIGN_CENTER);
+            "Menu");
+
+        lv_obj_t *menuList =
+            lv_obj_create(flexContainer);
+
+        lv_obj_remove_style_all(menuList);
+
+        lv_obj_set_pos(
+            menuList,
+            10,
+            36);
+
+        lv_obj_set_size(
+            menuList,
+            190,
+            105);
+
+        lv_obj_set_layout(menuList, LV_LAYOUT_FLEX);
+
+        lv_obj_set_flex_flow(menuList, LV_FLEX_FLOW_COLUMN);
+
+        lv_obj_set_flex_align(
+            menuList,
+            LV_FLEX_ALIGN_START,
+            LV_FLEX_ALIGN_START,
+            LV_FLEX_ALIGN_START);
 
         lv_obj_set_style_pad_row(
-            flexContainer,
+            menuList,
             swirski::ui::swirski_ui::space::xs,
             LV_PART_MAIN);
 
         lv_obj_set_style_pad_column(
-            flexContainer,
+            menuList,
             swirski::ui::swirski_ui::space::md,
             LV_PART_MAIN);
 
@@ -93,7 +112,7 @@ namespace swirski::screens::home
 
         for (std::size_t i = 0; i < homeMenuItems.size(); ++i)
         {
-            menuItemLabels[i] = lv_label_create(flexContainer);
+            menuItemLabels[i] = lv_label_create(menuList);
             lv_label_set_long_mode(
                 menuItemLabels[i],
                 LV_LABEL_LONG_DOT);
