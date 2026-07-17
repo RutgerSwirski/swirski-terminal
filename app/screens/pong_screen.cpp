@@ -15,6 +15,14 @@ namespace swirski::screens::pong_screen
         constexpr int paddleHeight = 32;
         constexpr int ballSize = 6;
 
+        enum class Difficulty
+        {
+            Easy,
+            Normal,
+            Hard,
+            Insane
+        };
+
         lv_obj_t *playerPaddle = nullptr;
         lv_obj_t *computerPaddle = nullptr;
         lv_obj_t *ball = nullptr;
@@ -30,8 +38,101 @@ namespace swirski::screens::pong_screen
         int ballYSpeed = 2;
         int playerScore = 0;
         int computerScore = 0;
+        int computerMoveFrame = 0;
         bool playing = false;
         bool gameOver = false;
+        bool hasStarted = false;
+        Difficulty difficulty = Difficulty::Normal;
+
+        const char *difficultyName()
+        {
+            switch (difficulty)
+            {
+            case Difficulty::Easy:
+                return "EASY";
+            case Difficulty::Normal:
+                return "NORMAL";
+            case Difficulty::Hard:
+                return "HARD";
+            case Difficulty::Insane:
+                return "INSANE";
+            }
+
+            return "NORMAL";
+        }
+
+        int computerMoveInterval()
+        {
+            switch (difficulty)
+            {
+            case Difficulty::Easy:
+                return 3;
+            case Difficulty::Normal:
+                return 2;
+            case Difficulty::Hard:
+            case Difficulty::Insane:
+                return 1;
+            }
+
+            return 2;
+        }
+
+        int computerMoveSpeed()
+        {
+            return difficulty == Difficulty::Insane
+                       ? 3
+                       : 1;
+        }
+
+        void showStartMessage()
+        {
+            lv_label_set_text_fmt(
+                statusLabel,
+                "%s - PRESS TO PLAY",
+                difficultyName());
+        }
+
+        void selectPreviousDifficulty()
+        {
+            switch (difficulty)
+            {
+            case Difficulty::Easy:
+                difficulty = Difficulty::Insane;
+                break;
+            case Difficulty::Normal:
+                difficulty = Difficulty::Easy;
+                break;
+            case Difficulty::Hard:
+                difficulty = Difficulty::Normal;
+                break;
+            case Difficulty::Insane:
+                difficulty = Difficulty::Hard;
+                break;
+            }
+
+            showStartMessage();
+        }
+
+        void selectNextDifficulty()
+        {
+            switch (difficulty)
+            {
+            case Difficulty::Easy:
+                difficulty = Difficulty::Normal;
+                break;
+            case Difficulty::Normal:
+                difficulty = Difficulty::Hard;
+                break;
+            case Difficulty::Hard:
+                difficulty = Difficulty::Insane;
+                break;
+            case Difficulty::Insane:
+                difficulty = Difficulty::Easy;
+                break;
+            }
+
+            showStartMessage();
+        }
 
         int clampPaddleY(int y)
         {
@@ -63,10 +164,15 @@ namespace swirski::screens::pong_screen
 
         void resetBall(int direction)
         {
+            const int speed =
+                difficulty == Difficulty::Insane
+                    ? 3
+                    : 2;
+
             ballX = 147;
             ballY = 82;
-            ballXSpeed = 2 * direction;
-            ballYSpeed = ballYSpeed < 0 ? -2 : 2;
+            ballXSpeed = speed * direction;
+            ballYSpeed = ballYSpeed < 0 ? -speed : speed;
         }
 
         bool ballTouchesPaddle(
@@ -107,16 +213,23 @@ namespace swirski::screens::pong_screen
                 return;
             }
 
-            const int computerTarget =
-                ballY - (paddleHeight - ballSize) / 2;
+            computerMoveFrame++;
 
-            if (computerY < computerTarget)
+            if (computerMoveFrame >= computerMoveInterval())
             {
-                computerY++;
-            }
-            else if (computerY > computerTarget)
-            {
-                computerY--;
+                computerMoveFrame = 0;
+
+                const int computerTarget =
+                    ballY - (paddleHeight - ballSize) / 2;
+
+                if (computerY < computerTarget)
+                {
+                    computerY += computerMoveSpeed();
+                }
+                else if (computerY > computerTarget)
+                {
+                    computerY -= computerMoveSpeed();
+                }
             }
 
             computerY = clampPaddleY(computerY);
@@ -201,6 +314,9 @@ namespace swirski::screens::pong_screen
         computerScore = 0;
         playing = false;
         gameOver = false;
+        hasStarted = false;
+        computerMoveFrame = 0;
+        difficulty = Difficulty::Normal;
         resetBall(1);
 
         lv_obj_t *pageRoot =
@@ -252,7 +368,7 @@ namespace swirski::screens::pong_screen
         lv_obj_align(scoreLabel, LV_ALIGN_TOP_MID, 0, 4);
 
         statusLabel = lv_label_create(court);
-        lv_label_set_text(statusLabel, "PRESS TO PLAY");
+        showStartMessage();
         lv_obj_set_style_bg_color(
             statusLabel,
             swirski::ui::swirski_ui::color::accentWarm(),
@@ -275,16 +391,33 @@ namespace swirski::screens::pong_screen
         switch (action)
         {
         case swirski::input::input_action::Previous:
+            if (!hasStarted)
+            {
+                selectPreviousDifficulty();
+                break;
+            }
+
             playerY = clampPaddleY(playerY - 10);
             updateObjects();
             break;
 
         case swirski::input::input_action::Next:
+            if (!hasStarted)
+            {
+                selectNextDifficulty();
+                break;
+            }
+
             playerY = clampPaddleY(playerY + 10);
             updateObjects();
             break;
 
         case swirski::input::input_action::Confirm:
+            if (!hasStarted)
+            {
+                resetBall(1);
+            }
+
             if (gameOver)
             {
                 playerScore = 0;
@@ -292,6 +425,8 @@ namespace swirski::screens::pong_screen
                 gameOver = false;
                 resetBall(1);
             }
+
+            hasStarted = true;
 
             playing = !playing;
 
