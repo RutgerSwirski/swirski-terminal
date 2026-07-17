@@ -33,7 +33,10 @@ export function createTimeSyncMessage(): Record<string, unknown> {
   };
 }
 
-export function createTestNotificationSnapshotMessage(): Record<string, unknown> {
+export function createTestNotificationSnapshotMessage(): Record<
+  string,
+  unknown
+> {
   const notifications: TerminalNotification[] = [
     {
       id: 'test-whatsapp-1',
@@ -63,10 +66,13 @@ export function createTestNotificationSnapshotMessage(): Record<string, unknown>
   };
 }
 
-export function createTestNotificationReceivedMessage(): Record<string, unknown> {
+export function createTestNotificationReceivedMessage(): Record<
+  string,
+  unknown
+> {
   const notification: TerminalNotification = {
     id: `test-live-notification-${Date.now()}`,
-    packageName: 'com.whatsapp',
+    packageName: 'com.whatsapp.android',
     appName: 'WhatsApp',
     title: 'Test live notification',
     body: 'This should appear as a toast on the ESP32.',

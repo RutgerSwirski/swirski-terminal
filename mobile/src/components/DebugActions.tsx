@@ -34,17 +34,11 @@ export function DebugActions({
         </CardTitle>
 
         <View style={styles.actions}>
-          <Button
-            tone="white"
-            variant="outline"
-            onPress={onPing}
-            disabled={disabled}
-          >
+          <Button variant="outline" onPress={onPing} disabled={disabled}>
             Ping!
           </Button>
 
           <Button
-            tone="white"
             variant="outline"
             onPress={() => onSendTestNotificationSnapshot(connectedDevice)}
             disabled={disabled}
@@ -53,7 +47,6 @@ export function DebugActions({
           </Button>
 
           <Button
-            tone="white"
             variant="outline"
             onPress={() => onSendTestNotificationReceived(connectedDevice)}
             disabled={disabled}

@@ -41,6 +41,7 @@ namespace
 
     constexpr std::size_t MAX_MESSAGE_BYTES = 64 * 1024;
     constexpr std::size_t MAX_CHUNK_COUNT = 255;
+    constexpr std::uint8_t SYNC_TOAST_MIN_CHUNKS = 5;
 
     constexpr std::chrono::milliseconds TRANSFER_TIMEOUT{
         3000};
@@ -284,7 +285,7 @@ namespace
                     << std::endl;
             }
 
-            if (chunkCount > 1)
+            if (chunkCount >= SYNC_TOAST_MIN_CHUNKS)
             {
                 swirski::ui::notification_toast::
                     requestSyncProgress(

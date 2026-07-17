@@ -362,6 +362,77 @@ namespace swirski::ui::swirski_ui
         return badge;
     }
 
+    inline lv_obj_t *createToast(
+        const char *title,
+        const char *body,
+        std::int32_t width,
+        std::int32_t height)
+    {
+        lv_obj_t *toast =
+            lv_obj_create(lv_layer_top());
+
+        lv_obj_set_size(
+            toast,
+            width,
+            height);
+
+        lv_obj_align(
+            toast,
+            LV_ALIGN_TOP_MID,
+            0,
+            space::md);
+
+        lv_obj_add_flag(
+            toast,
+            LV_OBJ_FLAG_FLOATING);
+
+        styleCard(toast);
+
+        lv_obj_clear_flag(
+            toast,
+            LV_OBJ_FLAG_SCROLLABLE);
+
+        createLabel(
+            toast,
+            title,
+            TextTone::Accent,
+            0,
+            18);
+
+        createLabel(
+            toast,
+            body,
+            TextTone::Default,
+            26,
+            22);
+
+        return toast;
+    }
+
+    inline lv_obj_t *createToast(
+        const char *title,
+        const char *subtitle,
+        const char *body,
+        std::int32_t width,
+        std::int32_t height)
+    {
+        lv_obj_t *toast =
+            createToast(
+                title,
+                subtitle,
+                width,
+                height);
+
+        createLabel(
+            toast,
+            body,
+            TextTone::Muted,
+            48,
+            18);
+
+        return toast;
+    }
+
     inline void styleMenuItem(
         lv_obj_t *label,
         bool selected)

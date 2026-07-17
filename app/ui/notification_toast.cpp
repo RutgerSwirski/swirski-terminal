@@ -35,18 +35,13 @@ namespace swirski::ui::notification_toast
             displayedSyncPercent.reset();
         }
 
-        std::string titleForNotification(
+        std::string fallbackTitleForNotification(
             const swirski::services::notification_service::
                 Notification &notification)
         {
             if (!notification.title.empty())
             {
                 return notification.title;
-            }
-
-            if (!notification.body.empty())
-            {
-                return notification.body;
             }
 
             return "New notification";
@@ -58,51 +53,24 @@ namespace swirski::ui::notification_toast
         {
             clearToast();
 
-            toastRoot =
-                lv_obj_create(lv_layer_top());
-
-            lv_obj_set_size(
-                toastRoot,
-                300,
-                72);
-
-            lv_obj_align(
-                toastRoot,
-                LV_ALIGN_TOP_MID,
-                0,
-                8);
-
-            lv_obj_add_flag(
-                toastRoot,
-                LV_OBJ_FLAG_FLOATING);
-
-            swirski::ui::swirski_ui::styleCard(toastRoot);
-
-            lv_obj_clear_flag(
-                toastRoot,
-                LV_OBJ_FLAG_SCROLLABLE);
-
             const std::string appName =
                 notification.appName.empty()
                     ? "Notification"
                     : notification.appName;
 
-            swirski::ui::swirski_ui::createLabel(
-                toastRoot,
-                appName.c_str(),
-                swirski::ui::swirski_ui::TextTone::Accent,
-                0,
-                18);
-
             const std::string title =
-                titleForNotification(notification);
+                fallbackTitleForNotification(notification);
 
-            swirski::ui::swirski_ui::createLabel(
-                toastRoot,
-                title.c_str(),
-                swirski::ui::swirski_ui::TextTone::Default,
-                26,
-                22);
+            const std::string body =
+                notification.body;
+
+            toastRoot =
+                swirski::ui::swirski_ui::createToast(
+                    appName.c_str(),
+                    title.c_str(),
+                    body.c_str(),
+                    300,
+                    88);
 
             toastShownAt =
                 lv_tick_get();
@@ -113,46 +81,15 @@ namespace swirski::ui::notification_toast
         {
             clearToast();
 
-            toastRoot =
-                lv_obj_create(lv_layer_top());
-
-            lv_obj_set_size(
-                toastRoot,
-                220,
-                58);
-
-            lv_obj_align(
-                toastRoot,
-                LV_ALIGN_TOP_MID,
-                0,
-                8);
-
-            lv_obj_add_flag(
-                toastRoot,
-                LV_OBJ_FLAG_FLOATING);
-
-            swirski::ui::swirski_ui::styleCard(toastRoot);
-
-            lv_obj_clear_flag(
-                toastRoot,
-                LV_OBJ_FLAG_SCROLLABLE);
-
-            swirski::ui::swirski_ui::createLabel(
-                toastRoot,
-                "Syncing",
-                swirski::ui::swirski_ui::TextTone::Accent,
-                0,
-                18);
-
             const std::string progress =
                 std::to_string(percent) + "%";
 
-            swirski::ui::swirski_ui::createLabel(
-                toastRoot,
-                progress.c_str(),
-                swirski::ui::swirski_ui::TextTone::Default,
-                24,
-                22);
+            toastRoot =
+                swirski::ui::swirski_ui::createToast(
+                    "Syncing",
+                    progress.c_str(),
+                    220,
+                    58);
 
             toastShownAt =
                 lv_tick_get();
