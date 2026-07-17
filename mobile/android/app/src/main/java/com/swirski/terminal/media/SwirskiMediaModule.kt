@@ -23,6 +23,7 @@ class SwirskiMediaModule(
   private val controllerCallbacks =
     mutableMapOf<MediaController, MediaController.Callback>()
   private var lastEmittedMusicState: MusicState? = null
+  private var pendingMusicState: MusicState? = null
   private var pendingMusicStateEmit: Runnable? = null
 
   private val listenerComponent =
@@ -136,9 +137,6 @@ class SwirskiMediaModule(
 
     return mediaSessionManager
       .getActiveSessions(listenerComponent)
-      .sortedByDescending { controller ->
-        if (controller.playbackState?.state == PlaybackState.STATE_PLAYING) 1 else 0
-      }
       .firstOrNull()
   }
 
@@ -198,7 +196,7 @@ class SwirskiMediaModule(
     try {
       val musicState = getCurrentMusicState() ?: return
 
-      if (musicState == lastEmittedMusicState) {
+      if (musicState.hasSamePlaybackAs(lastEmittedMusicState)) {
         return
       }
 
@@ -209,18 +207,22 @@ class SwirskiMediaModule(
   }
 
   private fun scheduleMusicStateEmit(musicState: MusicState) {
-    pendingMusicStateEmit?.let { pendingEmit ->
-      mainHandler.removeCallbacks(pendingEmit)
+    pendingMusicState = musicState
+
+    if (pendingMusicStateEmit != null) {
+      return
     }
 
     val emitMusicState = Runnable {
       pendingMusicStateEmit = null
+      val latestMusicState = pendingMusicState ?: return@Runnable
+      pendingMusicState = null
 
-      if (musicState == lastEmittedMusicState) {
+      if (latestMusicState.hasSamePlaybackAs(lastEmittedMusicState)) {
         return@Runnable
       }
 
-      lastEmittedMusicState = musicState
+      lastEmittedMusicState = latestMusicState
 
       reactApplicationContext
         .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
@@ -228,7 +230,7 @@ class SwirskiMediaModule(
           MUSIC_STATE_CHANGED_EVENT,
           createMusicStateMessageJson(
             messageId = "mobile-music-${System.currentTimeMillis()}",
-            musicState = musicState,
+            musicState = latestMusicState,
           ),
         )
     }
@@ -268,18 +270,21 @@ class SwirskiMediaModule(
     val metadata = controller.metadata ?: return null
 
     val title =
-      metadata.getString(MediaMetadata.METADATA_KEY_TITLE)
-        ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_TITLE)
+      firstMetadataText(
+        metadata,
+        MediaMetadata.METADATA_KEY_TITLE,
+        MediaMetadata.METADATA_KEY_DISPLAY_TITLE,
+      )
         ?: return null
 
-    if (title.isBlank()) {
-      return null
-    }
-
     val artist =
-      metadata.getString(MediaMetadata.METADATA_KEY_ARTIST)
-        ?: metadata.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
-        ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
+      firstMetadataText(
+        metadata,
+        MediaMetadata.METADATA_KEY_ARTIST,
+        MediaMetadata.METADATA_KEY_ALBUM_ARTIST,
+        MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE,
+        MediaMetadata.METADATA_KEY_DISPLAY_DESCRIPTION,
+      )
         ?: ""
 
     val playbackState = controller.playbackState
@@ -294,6 +299,16 @@ class SwirskiMediaModule(
       positionMs = playbackState?.position?.coerceAtLeast(0L) ?: 0L,
       updatedAtMs = currentTimeForPlaybackState(playbackState),
     )
+  }
+
+  private fun firstMetadataText(
+    metadata: MediaMetadata,
+    vararg keys: String,
+  ): String? {
+    return keys
+      .firstNotNullOfOrNull { key ->
+        metadata.getString(key)?.takeIf { value -> value.isNotBlank() }
+      }
   }
 
   private fun currentTimeForPlaybackState(
@@ -344,7 +359,16 @@ class SwirskiMediaModule(
     val durationMs: Long,
     val positionMs: Long,
     val updatedAtMs: Long,
-  )
+  ) {
+    fun hasSamePlaybackAs(other: MusicState?): Boolean {
+      return other != null &&
+        appName == other.appName &&
+        title == other.title &&
+        artist == other.artist &&
+        isPlaying == other.isPlaying &&
+        durationMs == other.durationMs
+    }
+  }
 
   companion object {
     const val MUSIC_STATE_CHANGED_EVENT = "SwirskiMusicStateChanged"
