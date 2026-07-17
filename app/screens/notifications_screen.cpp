@@ -100,6 +100,12 @@ namespace swirski::screens::notifications_screen
 
         for (const auto &notification : notifications)
         {
+            const std::string rowTitle =
+                !notification.title.empty()
+                    ? notification.title
+                : !notification.body.empty()
+                    ? notification.body
+                    : notification.appName;
 
             lv_obj_t *container = lv_obj_create(notificationList);
 
@@ -110,7 +116,7 @@ namespace swirski::screens::notifications_screen
 
             lv_obj_t *titleLabel = lv_label_create(container);
 
-            notificationRows.push_back({container, titleLabel, notification.id, notification.appName, notification.title, notification.body});
+            notificationRows.push_back({container, titleLabel, notification.id, notification.appName, rowTitle, notification.body});
         }
 
         if (notificationRows.empty())

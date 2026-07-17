@@ -16,7 +16,11 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
   override fun onNotificationPosted(sbn: StatusBarNotification) {
     val notification = createTerminalNotification(sbn)
 
-    notifications[notification.id] = notification
+    if (notification.hasVisibleText()) {
+      notifications[notification.id] = notification
+    } else {
+      notifications.remove(notification.id)
+    }
 
     Log.d(TAG, "Stored notification: ${notification.id}")
   }
@@ -33,7 +37,9 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
     activeNotifications.orEmpty().forEach { sbn ->
       val notification = createTerminalNotification(sbn)
 
-      notifications[notification.id] = notification
+      if (notification.hasVisibleText()) {
+        notifications[notification.id] = notification
+      }
     }
 
     Log.d(TAG, "Refreshed notification snapshot: ${notifications.size}")
@@ -110,6 +116,10 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
     val body: String,
     val postedAt: Long,
   ) {
+    fun hasVisibleText(): Boolean {
+      return title.isNotBlank() || body.isNotBlank()
+    }
+
     fun toJson(): JSONObject {
       return JSONObject()
         .put("id", id)
