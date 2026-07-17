@@ -75,7 +75,7 @@ export function createTestNotificationReceivedMessage(): Record<
     packageName: 'com.whatsapp.android',
     appName: 'WhatsApp',
     title: 'Test live notification',
-    body: 'This should appear as a toast on the ESP32.',
+    body: 'This should appear as a toast on the ESP32.'.repeat(10),
     postedAt: Date.now(),
   };
 

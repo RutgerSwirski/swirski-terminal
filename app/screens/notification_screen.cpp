@@ -13,9 +13,16 @@
 
 namespace swirski::screens::notification_screen
 {
+    namespace
+    {
+        lv_obj_t *bodyContainer = nullptr;
+        constexpr int BODY_SCROLL_STEP = 28;
+    }
 
     void render(const std::string &notificationId)
     {
+        bodyContainer = nullptr;
+
         const auto notificationResult =
             swirski::services::notification_service::
                 getNotificationById(notificationId);
@@ -52,7 +59,6 @@ namespace swirski::screens::notification_screen
             5);
 
         swirski::ui::swirski_ui::styleCard(container);
-        swirski::ui::swirski_ui::styleScrollbar(container);
 
         lv_obj_set_style_pad_all(
             container,
@@ -68,13 +74,13 @@ namespace swirski::screens::notification_screen
             container,
             LV_FLEX_FLOW_COLUMN);
 
-        lv_obj_set_scroll_dir(
-            container,
-            LV_DIR_VER);
-
         lv_obj_set_scrollbar_mode(
             container,
-            LV_SCROLLBAR_MODE_AUTO);
+            LV_SCROLLBAR_MODE_OFF);
+
+        lv_obj_clear_flag(
+            container,
+            LV_OBJ_FLAG_SCROLLABLE);
 
         const std::string appName =
             notification.appName.empty()
@@ -138,8 +144,30 @@ namespace swirski::screens::notification_screen
 
         // Notification body
 
+        bodyContainer =
+            lv_obj_create(container);
+
+        lv_obj_remove_style_all(
+            bodyContainer);
+
+        lv_obj_set_size(
+            bodyContainer,
+            LV_PCT(100),
+            88);
+
+        lv_obj_set_scroll_dir(
+            bodyContainer,
+            LV_DIR_VER);
+
+        lv_obj_set_scrollbar_mode(
+            bodyContainer,
+            LV_SCROLLBAR_MODE_AUTO);
+
+        swirski::ui::swirski_ui::styleScrollbar(
+            bodyContainer);
+
         lv_obj_t *bodyLabel =
-            lv_label_create(container);
+            lv_label_create(bodyContainer);
 
         const std::string body =
             notification.body.empty()
@@ -170,9 +198,29 @@ namespace swirski::screens::notification_screen
         {
         case swirski::input::input_action::Previous:
             std::cout << "Previous" << std::endl;
+
+            if (bodyContainer != nullptr)
+            {
+                lv_obj_scroll_by(
+                    bodyContainer,
+                    0,
+                    BODY_SCROLL_STEP,
+                    LV_ANIM_ON);
+            }
+
             break;
         case swirski::input::input_action::Next:
             std::cout << "Next" << std::endl;
+
+            if (bodyContainer != nullptr)
+            {
+                lv_obj_scroll_by(
+                    bodyContainer,
+                    0,
+                    -BODY_SCROLL_STEP,
+                    LV_ANIM_ON);
+            }
+
             break;
 
         case swirski::input::input_action::Confirm:
