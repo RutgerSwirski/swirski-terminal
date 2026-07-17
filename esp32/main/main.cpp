@@ -22,6 +22,7 @@
 #include "ui/status_bar.hpp"
 #include "ui/notification_toast.hpp"
 #include "input.hpp"
+#include "hardware_settings.hpp"
 
 #include "ble_transport.hpp"
 
@@ -171,6 +172,8 @@ extern "C" void app_main()
     vTaskDelay(1);
 
     initialiseDisplay();
+
+    swirski::settings::hardware::initialise();
 
     vTaskDelay(1);
 

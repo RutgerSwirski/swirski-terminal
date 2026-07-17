@@ -79,10 +79,12 @@ add_executable(
     ../app/screens/games_screen.cpp
     ../app/screens/pong_screen.cpp
     ../app/screens/blackjack_screen.cpp
+    ../app/screens/settings_screen.cpp
 
     ../app/services/date_time.cpp
     ../app/services/notification_service.cpp
     ../app/services/music_service.cpp
+    ../app/services/settings_service.cpp
 
     ../app/protocol/protocol.cpp
 

@@ -7,6 +7,8 @@ idf_component_register(
         "inputs/rotary_encoder.cpp"
         "inputs/push_buttons.cpp"
 
+        "settings/hardware_settings.cpp"
+
         "ble_transport/ble_transport.cpp"
 
         "${APP_DIR}/app.cpp"
@@ -24,10 +26,12 @@ idf_component_register(
         "${APP_DIR}/screens/games_screen.cpp"
         "${APP_DIR}/screens/pong_screen.cpp"
         "${APP_DIR}/screens/blackjack_screen.cpp"
+        "${APP_DIR}/screens/settings_screen.cpp"
         
         "${APP_DIR}/services/date_time.cpp"
         "${APP_DIR}/services/notification_service.cpp"
         "${APP_DIR}/services/music_service.cpp"
+        "${APP_DIR}/services/settings_service.cpp"
 
         "${APP_DIR}/protocol/protocol.cpp"
 
@@ -37,6 +41,7 @@ idf_component_register(
     INCLUDE_DIRS
         "."
         "inputs"
+        "settings"
         "ble_transport"
         "${APP_DIR}"
         "${APP_DIR}/screens"
@@ -51,6 +56,7 @@ idf_component_register(
     PRIV_REQUIRES
         esp_driver_gpio
         esp_driver_spi
+        esp_pm
         esp_lcd
         esp_lcd_ili9341
         esp_lvgl_port

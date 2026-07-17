@@ -12,6 +12,7 @@
 #include "games_screen.hpp"
 #include "pong_screen.hpp"
 #include "blackjack_screen.hpp"
+#include "settings_screen.hpp"
 
 #include <iostream>
 
@@ -46,11 +47,11 @@ namespace swirski::input
         case swirski::screens::manager::Screen::Blackjack:
             swirski::screens::blackjack_screen::handleInput(action);
             break;
+        case swirski::screens::manager::Screen::Settings:
+            swirski::screens::settings_screen::handleInput(action);
+            break;
         case swirski::screens::manager::Screen::Studio:
             // handleStudioInput(action);
-            break;
-        case swirski::screens::manager::Screen::Settings:
-            // handleSettingsInput(action);
             break;
         }
     }

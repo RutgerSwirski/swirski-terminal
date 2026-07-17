@@ -302,11 +302,10 @@ namespace swirski::screens::music_screen
                 96,
                 18);
 
-        lv_obj_align(
+        lv_obj_set_style_text_align(
             remainingLabel,
-            LV_ALIGN_TOP_RIGHT,
-            0,
-            96);
+            LV_TEXT_ALIGN_RIGHT,
+            LV_PART_MAIN);
 
         const std::string status =
             playingText(
