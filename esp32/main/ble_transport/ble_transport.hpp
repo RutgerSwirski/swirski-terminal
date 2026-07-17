@@ -2,6 +2,7 @@
 
 #include "transport.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <mutex>
 #include <queue>
@@ -22,6 +23,8 @@ namespace swirski::transport::ble
         void send(const std::string &message) override;
 
     private:
+        void sendNextQueuedFrame();
+
         NimBLEServer *server = nullptr;
 
         NimBLECharacteristic *receiveCharacteristic =
@@ -38,6 +41,17 @@ namespace swirski::transport::ble
 
         std::queue<IncomingMessage> incomingMessages;
         std::mutex incomingMessagesMutex;
+
+        struct OutgoingFrame
+        {
+            std::string frame;
+            std::uint16_t connHandle = 0;
+            std::size_t frameIndex = 0;
+            std::size_t frameCount = 0;
+        };
+
+        std::queue<OutgoingFrame> outgoingFrames;
+        std::mutex outgoingFramesMutex;
 
         enum class ConnectionEvent
         {

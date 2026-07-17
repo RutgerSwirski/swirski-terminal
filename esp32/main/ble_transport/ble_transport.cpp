@@ -799,6 +799,30 @@ namespace swirski::transport::ble
         {
             incomingFrameAssembler.clearConnection(
                 *disconnectedConnHandle);
+
+            std::lock_guard<std::mutex> lock(
+                outgoingFramesMutex);
+
+            std::queue<OutgoingFrame> remainingFrames;
+
+            while (!outgoingFrames.empty())
+            {
+                OutgoingFrame frame =
+                    std::move(outgoingFrames.front());
+
+                outgoingFrames.pop();
+
+                if (
+                    frame.connHandle !=
+                    *disconnectedConnHandle)
+                {
+                    remainingFrames.push(
+                        std::move(frame));
+                }
+            }
+
+            outgoingFrames =
+                std::move(remainingFrames);
         }
 
         if (connectionEvent)
@@ -821,6 +845,8 @@ namespace swirski::transport::ble
                 break;
             }
         }
+
+        sendNextQueuedFrame();
 
         IncomingMessage nextMessage;
 
@@ -897,6 +923,66 @@ namespace swirski::transport::ble
         }
     }
 
+    void BleTransport::sendNextQueuedFrame()
+    {
+        if (transmitCharacteristic == nullptr)
+        {
+            return;
+        }
+
+        OutgoingFrame nextFrame;
+
+        {
+            std::lock_guard<std::mutex> lock(
+                outgoingFramesMutex);
+
+            if (outgoingFrames.empty())
+            {
+                return;
+            }
+
+            nextFrame =
+                outgoingFrames.front();
+        }
+
+        const bool sent =
+            transmitCharacteristic->notify(
+                reinterpret_cast<
+                    const std::uint8_t *>(
+                    nextFrame.frame.data()),
+                nextFrame.frame.size(),
+                nextFrame.connHandle);
+
+        if (!sent)
+        {
+            std::cerr
+                << "Could not send queued BLE frame "
+                << nextFrame.frameIndex
+                << "/"
+                << nextFrame.frameCount
+                << std::endl;
+
+            return;
+        }
+
+        {
+            std::lock_guard<std::mutex> lock(
+                outgoingFramesMutex);
+
+            if (!outgoingFrames.empty())
+            {
+                outgoingFrames.pop();
+            }
+        }
+
+        std::cout
+            << "Sent queued BLE frame "
+            << nextFrame.frameIndex
+            << "/"
+            << nextFrame.frameCount
+            << std::endl;
+    }
+
     void BleTransport::send(
         const std::string &message)
     {
@@ -957,44 +1043,26 @@ namespace swirski::transport::ble
             return;
         }
 
-        for (
-            std::size_t index = 0;
-            index < frames.size();
-            ++index)
         {
-            const std::string &frame =
-                frames[index];
+            std::lock_guard<std::mutex> lock(
+                outgoingFramesMutex);
 
-            const bool sent =
-                transmitCharacteristic->notify(
-                    reinterpret_cast<
-                        const std::uint8_t *>(
-                        frame.data()),
-                    frame.size(),
-                    connHandle);
-
-            if (!sent)
+            for (
+                std::size_t index = 0;
+                index < frames.size();
+                ++index)
             {
-                std::cerr
-                    << "Could not send BLE frame "
-                    << index + 1
-                    << "/"
-                    << frames.size()
-                    << std::endl;
-
-                return;
+                outgoingFrames.push(
+                    OutgoingFrame{
+                        frames[index],
+                        connHandle,
+                        index + 1,
+                        frames.size()});
             }
-
-            std::cout
-                << "Sent BLE frame "
-                << index + 1
-                << "/"
-                << frames.size()
-                << std::endl;
         }
 
         std::cout
-            << "Sent complete BLE message: "
+            << "Queued complete BLE message: "
             << message.size()
             << " bytes"
             << std::endl;
