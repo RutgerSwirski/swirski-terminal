@@ -15,47 +15,172 @@ namespace swirski::screens::notification_screen
 
     void render(const std::string &notificationId)
     {
-        // we need to ask the notifications screen what notification was selected
-
         const auto notificationResult =
             swirski::services::notification_service::
                 getNotificationById(notificationId);
 
         if (!notificationResult)
         {
+            std::cerr
+                << "Notification not found: "
+                << notificationId
+                << std::endl;
+
             return;
         }
 
-        const auto notification =
+        const auto &notification =
             *notificationResult;
 
-        lv_obj_t *pageRoot = swirski::screens::manager::createPageRoot();
+        lv_obj_t *pageRoot =
+            swirski::screens::manager::
+                createPageRoot();
 
-        lv_obj_t *container = lv_obj_create(pageRoot);
+        lv_obj_t *container =
+            lv_obj_create(pageRoot);
 
-        lv_obj_set_size(container, 300, 200);
+        lv_obj_set_size(
+            container,
+            300,
+            200);
 
-        lv_obj_set_style_bg_color(container, lv_color_hex(0x00283d), LV_PART_MAIN);
+        lv_obj_align(
+            container,
+            LV_ALIGN_TOP_MID,
+            0,
+            5);
 
-        lv_obj_align(container, LV_ALIGN_TOP_MID, 0, 5);
+        lv_obj_set_style_bg_color(
+            container,
+            lv_color_hex(0x00283D),
+            LV_PART_MAIN);
 
-        lv_obj_set_flex_flow(container, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_style_pad_all(
+            container,
+            12,
+            LV_PART_MAIN);
 
-        lv_obj_set_scroll_dir(container, LV_DIR_VER);
+        lv_obj_set_style_pad_row(
+            container,
+            8,
+            LV_PART_MAIN);
 
-        lv_obj_set_scrollbar_mode(container, LV_SCROLLBAR_MODE_AUTO);
+        lv_obj_set_flex_flow(
+            container,
+            LV_FLEX_FLOW_COLUMN);
 
-        lv_obj_t *titleLabel = lv_label_create(container);
+        lv_obj_set_scroll_dir(
+            container,
+            LV_DIR_VER);
 
-        lv_label_set_text(titleLabel, notification.title.c_str());
+        lv_obj_set_scrollbar_mode(
+            container,
+            LV_SCROLLBAR_MODE_AUTO);
 
-        lv_obj_set_style_text_color(titleLabel, lv_color_white(), LV_PART_MAIN);
+        // App name
 
-        lv_obj_t *bodyLabel = lv_label_create(container);
+        lv_obj_t *appNameLabel =
+            lv_label_create(container);
 
-        lv_label_set_text(bodyLabel, notification.body.c_str());
+        const std::string appName =
+            notification.appName.empty()
+                ? "Unknown app"
+                : notification.appName;
 
-        lv_obj_set_style_text_color(bodyLabel, lv_color_white(), LV_PART_MAIN);
+        lv_label_set_text(
+            appNameLabel,
+            appName.c_str());
+
+        lv_obj_set_width(
+            appNameLabel,
+            LV_PCT(100));
+
+        lv_label_set_long_mode(
+            appNameLabel,
+            LV_LABEL_LONG_DOT);
+
+        lv_obj_set_style_text_color(
+            appNameLabel,
+            lv_color_hex(0x00CC88),
+            LV_PART_MAIN);
+
+        // Notification title
+
+        lv_obj_t *titleLabel =
+            lv_label_create(container);
+
+        const std::string title =
+            notification.title.empty()
+                ? "New notification"
+                : notification.title;
+
+        lv_label_set_text(
+            titleLabel,
+            title.c_str());
+
+        lv_obj_set_width(
+            titleLabel,
+            LV_PCT(100));
+
+        lv_label_set_long_mode(
+            titleLabel,
+            LV_LABEL_LONG_WRAP);
+
+        lv_obj_set_style_text_color(
+            titleLabel,
+            lv_color_white(),
+            LV_PART_MAIN);
+
+        // Small separator
+
+        lv_obj_t *separator =
+            lv_obj_create(container);
+
+        lv_obj_set_size(
+            separator,
+            LV_PCT(100),
+            1);
+
+        lv_obj_set_style_bg_color(
+            separator,
+            lv_color_hex(0x40606E),
+            LV_PART_MAIN);
+
+        lv_obj_set_style_border_width(
+            separator,
+            0,
+            LV_PART_MAIN);
+
+        lv_obj_clear_flag(
+            separator,
+            LV_OBJ_FLAG_SCROLLABLE);
+
+        // Notification body
+
+        lv_obj_t *bodyLabel =
+            lv_label_create(container);
+
+        const std::string body =
+            notification.body.empty()
+                ? "No notification preview available."
+                : notification.body;
+
+        lv_label_set_text(
+            bodyLabel,
+            body.c_str());
+
+        lv_obj_set_width(
+            bodyLabel,
+            LV_PCT(100));
+
+        lv_label_set_long_mode(
+            bodyLabel,
+            LV_LABEL_LONG_WRAP);
+
+        lv_obj_set_style_text_color(
+            bodyLabel,
+            lv_color_hex(0xD5E1E6),
+            LV_PART_MAIN);
     }
 
     void handleInput(swirski::input::input_action action)
