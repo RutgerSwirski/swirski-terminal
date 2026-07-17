@@ -5,6 +5,7 @@ type PendingMessage = {
   chunks: Array<Buffer | null>;
   receivedChunkCount: number;
   receivedByteCount: number;
+  lastUpdatedAt: number;
 };
 
 const FRAME_MAGIC = 0x53;
@@ -15,6 +16,7 @@ const FRAME_HEADER_BYTES = 8;
 
 const MAX_CHUNK_COUNT = 255;
 const MAX_MESSAGE_BYTES = 4096;
+const TRANSFER_TIMEOUT_MS = 3000;
 
 let nextTransportMessageId = 1;
 
@@ -103,8 +105,19 @@ export function decodeBase64ToBytes(base64: string): Uint8Array {
 
 export class BleFrameAssembler {
   private readonly pendingMessages = new Map<number, PendingMessage>();
+  private readonly cleanupTimer: ReturnType<typeof setInterval>;
+
+  constructor() {
+    this.cleanupTimer = setInterval(() => {
+      this.clearExpiredMessages(Date.now());
+    }, TRANSFER_TIMEOUT_MS);
+  }
 
   acceptFrame(bytes: Uint8Array): string | null {
+    const now = Date.now();
+
+    this.clearExpiredMessages(now);
+
     const frame = Buffer.from(bytes);
 
     if (frame.length < FRAME_HEADER_BYTES) {
@@ -137,10 +150,13 @@ export class BleFrameAssembler {
         chunks: Array<Buffer | null>(chunkCount).fill(null),
         receivedChunkCount: 0,
         receivedByteCount: 0,
+        lastUpdatedAt: now,
       };
 
       this.pendingMessages.set(messageId, pending);
     }
+
+    pending.lastUpdatedAt = now;
 
     if (pending.chunkCount !== chunkCount) {
       this.pendingMessages.delete(messageId);
@@ -188,5 +204,18 @@ export class BleFrameAssembler {
 
   clear(): void {
     this.pendingMessages.clear();
+  }
+
+  stop(): void {
+    clearInterval(this.cleanupTimer);
+    this.clear();
+  }
+
+  private clearExpiredMessages(now: number): void {
+    for (const [messageId, pending] of this.pendingMessages) {
+      if (now - pending.lastUpdatedAt > TRANSFER_TIMEOUT_MS) {
+        this.pendingMessages.delete(messageId);
+      }
+    }
   }
 }

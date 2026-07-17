@@ -295,11 +295,14 @@ The transfer ID is a `uint32` value and wraps back to `1` after `4294967295`.
 
 Incomplete transfers must not remain in memory forever.
 
-Timeout cleanup is planned, but not implemented yet. The current receiver clears partial transfers when the BLE connection closes, when a chunk-count mismatch is rejected, or when an oversized transfer is rejected.
+If no new chunk arrives within three seconds, the receiver discards the partial transfer.
 
 ```text
-BLE connection closes
-→ reset transfers for that connection
+Chunk received
+→ start or refresh timeout
+
+No chunk for 3 seconds
+→ reset transfer
 ```
 
 A partial transfer should also be cleared when:
@@ -319,7 +322,7 @@ Initial framing limits:
 | Header size                   | 8 bytes         |
 | Maximum chunks                | 255             |
 | Maximum complete message      | 4096 bytes      |
-| Incomplete transfer timeout   | Not implemented |
+| Incomplete transfer timeout   | 3 seconds       |
 | Concurrent incoming transfers | By connection and transfer ID |
 
 These values can be changed later if needed.
@@ -359,6 +362,7 @@ The first version supports:
 - Ordered chunks
 - One outgoing transfer at a time
 - UTF-8 JSON messages
+- Transfer timeouts
 - Maximum message size validation
 - Framing in both directions
 
@@ -368,7 +372,6 @@ The first version does not include:
 - Retransmission
 - Checksums
 - Compression
-- Transfer timeouts
 - Multiple simultaneous outgoing messages
 
 These features can be added later if they become necessary.

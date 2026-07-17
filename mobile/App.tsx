@@ -290,6 +290,8 @@ function App() {
     return () => {
       stateSubscription.remove();
       txSubscriptionRef.current?.remove();
+      txFrameAssemblerRef.current?.stop();
+      txFrameAssemblerRef.current = null;
     };
   }, []);
 

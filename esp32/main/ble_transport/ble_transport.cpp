@@ -9,6 +9,7 @@
 #include <utility>
 
 #include <algorithm>
+#include <chrono>
 #include <cstddef>
 #include <map>
 #include <optional>
@@ -39,6 +40,11 @@ namespace
 
     constexpr std::size_t MAX_MESSAGE_BYTES = 4096;
     constexpr std::size_t MAX_CHUNK_COUNT = 255;
+
+    constexpr std::chrono::milliseconds TRANSFER_TIMEOUT{
+        3000};
+
+    using Clock = std::chrono::steady_clock;
 
     std::uint32_t nextOutgoingMessageId = 1;
 
@@ -101,9 +107,11 @@ namespace
     struct PendingMessage
     {
         explicit PendingMessage(
-            std::uint8_t expectedChunkCount)
+            std::uint8_t expectedChunkCount,
+            Clock::time_point now)
             : chunkCount(expectedChunkCount),
-              chunks(expectedChunkCount)
+              chunks(expectedChunkCount),
+              lastUpdatedAt(now)
         {
         }
 
@@ -112,6 +120,8 @@ namespace
 
         std::size_t receivedChunkCount = 0;
         std::size_t receivedByteCount = 0;
+
+        Clock::time_point lastUpdatedAt;
     };
 
     class FrameAssembler
@@ -121,6 +131,11 @@ namespace
             const std::string &frame,
             std::uint16_t connHandle)
         {
+            const Clock::time_point now =
+                Clock::now();
+
+            clearExpiredMessages(now);
+
             if (frame.size() < FRAME_HEADER_BYTES)
             {
                 std::cerr
@@ -188,10 +203,14 @@ namespace
             auto [iterator, inserted] =
                 pendingMessages.try_emplace(
                     key,
-                    chunkCount);
+                    chunkCount,
+                    now);
 
             PendingMessage &pending =
                 iterator->second;
+
+            pending.lastUpdatedAt =
+                now;
 
             if (
                 !inserted &&
@@ -301,7 +320,35 @@ namespace
             }
         }
 
+        void clearExpiredMessages()
+        {
+            clearExpiredMessages(
+                Clock::now());
+        }
+
     private:
+        void clearExpiredMessages(
+            Clock::time_point now)
+        {
+            for (
+                auto iterator =
+                    pendingMessages.begin();
+                iterator != pendingMessages.end();)
+            {
+                if (
+                    now - iterator->second.lastUpdatedAt >
+                    TRANSFER_TIMEOUT)
+                {
+                    iterator =
+                        pendingMessages.erase(iterator);
+                }
+                else
+                {
+                    ++iterator;
+                }
+            }
+        }
+
         std::map<
             PendingMessageKey,
             PendingMessage>
@@ -731,6 +778,8 @@ namespace swirski::transport::ble
 
     void BleTransport::update()
     {
+        incomingFrameAssembler.clearExpiredMessages();
+
         std::optional<ConnectionEvent> connectionEvent;
         std::optional<std::uint16_t> disconnectedConnHandle;
 
