@@ -129,6 +129,25 @@ namespace swirski::ui::notification_toast
             true;
     }
 
+    bool dismiss()
+    {
+        if (
+            toastRoot == nullptr &&
+            !requestedSyncPercent &&
+            !displayedSyncPercent)
+        {
+            return false;
+        }
+
+        requestedSyncPercent.reset();
+        clearSyncRequested =
+            false;
+
+        clearToast();
+
+        return true;
+    }
+
     void update()
     {
         if (clearSyncRequested)

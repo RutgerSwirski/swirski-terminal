@@ -223,8 +223,14 @@ extern "C" void app_main()
 
             if (lvgl_port_lock(20))
             {
-                swirski::input::handleInput(
-                    swirski::input::input_action::Back);
+                const bool toastDismissed =
+                    swirski::ui::notification_toast::dismiss();
+
+                if (!toastDismissed)
+                {
+                    swirski::input::handleInput(
+                        swirski::input::input_action::Back);
+                }
 
                 lvgl_port_unlock();
             }
