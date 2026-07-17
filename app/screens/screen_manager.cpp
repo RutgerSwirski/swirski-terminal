@@ -178,6 +178,9 @@ namespace swirski::screens::manager
         currentScreen =
             Screen::Notification;
 
+        swirski::ui::status_bar::setTitle(
+            "NOTIFICATION");
+
         swirski::screens::notification_screen::render(
             notificationId);
     }
@@ -188,11 +191,15 @@ namespace swirski::screens::manager
         {
         case Screen::Home:
             currentScreen = Screen::Home;
+            swirski::ui::status_bar::setTitle(
+                "SWIRSKI OS");
             swirski::screens::home::render();
             break;
 
         case Screen::Notifications:
             currentScreen = Screen::Notifications;
+            swirski::ui::status_bar::setTitle(
+                "NOTIFICATIONS");
             swirski::screens::notifications_screen::render();
             break;
 

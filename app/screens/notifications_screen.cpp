@@ -156,6 +156,16 @@ namespace swirski::screens::notifications_screen
             0,
             LV_PART_MAIN);
 
+        lv_obj_set_style_pad_top(
+            notificationList,
+            swirski::ui::swirski_ui::space::sm,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_pad_bottom(
+            notificationList,
+            swirski::ui::swirski_ui::space::xl,
+            LV_PART_MAIN);
+
         lv_obj_set_style_pad_row(
             notificationList,
             swirski::ui::swirski_ui::space::md,

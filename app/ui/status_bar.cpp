@@ -160,7 +160,7 @@ namespace swirski::ui::status_bar
 
         lv_obj_t *leftSection = lv_obj_create(parent);
         lv_obj_remove_style_all(leftSection);
-        lv_obj_set_size(leftSection, LV_PCT(33), LV_PCT(100));
+        lv_obj_set_size(leftSection, LV_PCT(28), LV_PCT(100));
         lv_obj_set_layout(leftSection, LV_LAYOUT_FLEX);
         lv_obj_set_flex_flow(leftSection, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(
@@ -171,7 +171,7 @@ namespace swirski::ui::status_bar
 
         lv_obj_t *centerSection = lv_obj_create(parent);
         lv_obj_remove_style_all(centerSection);
-        lv_obj_set_size(centerSection, LV_PCT(34), LV_PCT(100));
+        lv_obj_set_size(centerSection, LV_PCT(54), LV_PCT(100));
         lv_obj_set_layout(centerSection, LV_LAYOUT_FLEX);
         lv_obj_set_flex_flow(centerSection, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(
@@ -182,7 +182,7 @@ namespace swirski::ui::status_bar
 
         lv_obj_t *rightSection = lv_obj_create(parent);
         lv_obj_remove_style_all(rightSection);
-        lv_obj_set_size(rightSection, LV_PCT(33), LV_PCT(100));
+        lv_obj_set_size(rightSection, LV_PCT(18), LV_PCT(100));
         lv_obj_set_layout(rightSection, LV_LAYOUT_FLEX);
         lv_obj_set_flex_flow(rightSection, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(
@@ -308,6 +308,16 @@ namespace swirski::ui::status_bar
             &localTime);
 
         lv_label_set_text(clockLabel, clockSnapshot);
+    }
+
+    void setTitle(const char *title)
+    {
+        if (pagePathLabel == nullptr)
+        {
+            return;
+        }
+
+        lv_label_set_text(pagePathLabel, title);
     }
 
     void updateSystemState()
