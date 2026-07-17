@@ -140,7 +140,7 @@ namespace swirski::screens::notifications_screen
 
         lv_obj_set_style_pad_row(
             notificationList,
-            4,
+            8,
             LV_PART_MAIN);
 
         for (const auto &notification : notifications)

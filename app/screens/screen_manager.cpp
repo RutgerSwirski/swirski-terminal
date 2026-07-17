@@ -6,6 +6,7 @@
 #include "notification_screen.hpp"
 
 #include "status_bar.hpp"
+#include "swirski_ui.hpp"
 
 #include <string>
 
@@ -51,15 +52,8 @@ namespace swirski::screens::manager
                 screenWidth,
                 screenHeight);
 
-            lv_obj_set_style_bg_color(
-                applicationRoot,
-                lv_color_hex(0x00283d),
-                LV_PART_MAIN);
-
-            lv_obj_set_style_bg_opa(
-                applicationRoot,
-                LV_OPA_COVER,
-                LV_PART_MAIN);
+            swirski::ui::swirski_ui::styleAppRoot(
+                applicationRoot);
 
             lv_obj_clear_flag(
                 applicationRoot,

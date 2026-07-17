@@ -1,6 +1,7 @@
 
 #include "home_screen.hpp"
 #include "screen_manager.hpp"
+#include "swirski_ui.hpp"
 #include "../input/input.hpp"
 
 #include "lvgl.h"
@@ -40,19 +41,16 @@ namespace swirski::screens::home
         {
             const bool isSelected = i == selectedItemIndex;
 
-            std::string labelText = isSelected ? std::string("> ") + homeMenuItems[i] : homeMenuItems[i];
+            std::string labelText = isSelected
+                                        ? std::string("> ") +
+                                              homeMenuItems[i]
+                                        : homeMenuItems[i];
 
             lv_label_set_text(menuItemLabels[i], labelText.c_str());
 
-            const lv_color_t textColor =
-                isSelected
-                    ? lv_color_hex(0x00ff00)
-                    : lv_color_white();
-
-            lv_obj_set_style_text_color(
+            swirski::ui::swirski_ui::styleMenuItem(
                 menuItemLabels[i],
-                textColor,
-                LV_PART_MAIN);
+                isSelected);
         }
     }
 
@@ -63,31 +61,45 @@ namespace swirski::screens::home
 
         // create a flex container
 
-        lv_obj_t *flexContainer = lv_obj_create(pageRoot);
+        lv_obj_t *flexContainer =
+            swirski::ui::swirski_ui::createCard(
+                pageRoot,
+                170);
 
         lv_obj_set_layout(flexContainer, LV_LAYOUT_FLEX);
 
         lv_obj_set_flex_flow(flexContainer, LV_FLEX_FLOW_COLUMN);
 
-        lv_obj_set_size(flexContainer, 200, 150);
+        lv_obj_set_width(flexContainer, 230);
 
-        lv_obj_set_style_bg_color(flexContainer, lv_color_hex(0x00283d), LV_PART_MAIN);
+        lv_obj_set_flex_align(
+            flexContainer,
+            LV_FLEX_ALIGN_CENTER,
+            LV_FLEX_ALIGN_CENTER,
+            LV_FLEX_ALIGN_CENTER);
 
-        lv_obj_set_flex_align(flexContainer, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_pad_row(
+            flexContainer,
+            swirski::ui::swirski_ui::space::sm,
+            LV_PART_MAIN);
 
-        lv_obj_set_style_pad_row(flexContainer, 10, LV_PART_MAIN);
-
-        lv_obj_set_style_pad_column(flexContainer, 10, LV_PART_MAIN);
+        lv_obj_set_style_pad_column(
+            flexContainer,
+            swirski::ui::swirski_ui::space::md,
+            LV_PART_MAIN);
 
         lv_obj_align(
             flexContainer,
             LV_ALIGN_TOP_MID,
             0,
-            5);
+            12);
 
         for (std::size_t i = 0; i < homeMenuItems.size(); ++i)
         {
             menuItemLabels[i] = lv_label_create(flexContainer);
+            lv_label_set_long_mode(
+                menuItemLabels[i],
+                LV_LABEL_LONG_DOT);
         }
 
         updateSelection();

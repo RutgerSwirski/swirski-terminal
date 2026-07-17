@@ -7,6 +7,7 @@
 #include "screen_manager.hpp"
 
 #include "notification_service.hpp"
+#include "swirski_ui.hpp"
 
 #include "lvgl.h"
 
@@ -42,7 +43,7 @@ namespace swirski::screens::notification_screen
         lv_obj_set_size(
             container,
             300,
-            200);
+            190);
 
         lv_obj_align(
             container,
@@ -50,14 +51,11 @@ namespace swirski::screens::notification_screen
             0,
             5);
 
-        lv_obj_set_style_bg_color(
-            container,
-            lv_color_hex(0x00283D),
-            LV_PART_MAIN);
+        swirski::ui::swirski_ui::styleCard(container);
 
         lv_obj_set_style_pad_all(
             container,
-            12,
+            swirski::ui::swirski_ui::space::lg,
             LV_PART_MAIN);
 
         lv_obj_set_style_pad_row(
@@ -101,7 +99,7 @@ namespace swirski::screens::notification_screen
 
         lv_obj_set_style_text_color(
             appNameLabel,
-            lv_color_hex(0x00CC88),
+            swirski::ui::swirski_ui::color::accent(),
             LV_PART_MAIN);
 
         // Notification title
@@ -128,7 +126,7 @@ namespace swirski::screens::notification_screen
 
         lv_obj_set_style_text_color(
             titleLabel,
-            lv_color_white(),
+            swirski::ui::swirski_ui::color::text(),
             LV_PART_MAIN);
 
         // Small separator
@@ -143,7 +141,7 @@ namespace swirski::screens::notification_screen
 
         lv_obj_set_style_bg_color(
             separator,
-            lv_color_hex(0x40606E),
+            swirski::ui::swirski_ui::color::accentWarm(),
             LV_PART_MAIN);
 
         lv_obj_set_style_border_width(
@@ -179,7 +177,7 @@ namespace swirski::screens::notification_screen
 
         lv_obj_set_style_text_color(
             bodyLabel,
-            lv_color_hex(0xD5E1E6),
+            swirski::ui::swirski_ui::color::textMuted(),
             LV_PART_MAIN);
     }
 

@@ -70,6 +70,10 @@ namespace swirski::ui::notification_toast
 
             swirski::ui::swirski_ui::styleCard(toastRoot);
 
+            lv_obj_clear_flag(
+                toastRoot,
+                LV_OBJ_FLAG_SCROLLABLE);
+
             const std::string appName =
                 notification.appName.empty()
                     ? "Notification"

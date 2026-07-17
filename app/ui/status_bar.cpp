@@ -4,6 +4,7 @@
 #include "lvgl.h"
 
 #include "services/date_time.hpp"
+#include "swirski_ui.hpp"
 
 #include <ctime>
 
@@ -85,7 +86,7 @@ namespace swirski::ui::status_bar
 
                 lv_obj_set_style_bg_color(
                     connectionDot,
-                    lv_color_hex(0xFF0000),
+                    swirski::ui::swirski_ui::color::accentBright(),
                     LV_PART_MAIN);
             }
             else if (connected)
@@ -97,7 +98,7 @@ namespace swirski::ui::status_bar
 
                 lv_obj_set_style_bg_color(
                     connectionDot,
-                    lv_color_hex(0x00FF00),
+                    swirski::ui::swirski_ui::color::accent(),
                     LV_PART_MAIN);
             }
             else
@@ -109,7 +110,7 @@ namespace swirski::ui::status_bar
 
                 lv_obj_set_style_bg_color(
                     connectionDot,
-                    lv_color_hex(0x808080),
+                    swirski::ui::swirski_ui::color::surface(),
                     LV_PART_MAIN);
             }
         }
@@ -118,7 +119,83 @@ namespace swirski::ui::status_bar
 
     void create(lv_obj_t *parent)
     {
-        clockLabel = lv_label_create(parent);
+        lv_obj_set_layout(
+            parent,
+            LV_LAYOUT_FLEX);
+
+        lv_obj_set_flex_flow(
+            parent,
+            LV_FLEX_FLOW_ROW);
+
+        lv_obj_set_flex_align(
+            parent,
+            LV_FLEX_ALIGN_SPACE_BETWEEN,
+            LV_FLEX_ALIGN_CENTER,
+            LV_FLEX_ALIGN_CENTER);
+
+        lv_obj_set_style_pad_left(
+            parent,
+            10,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_pad_right(
+            parent,
+            10,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_border_width(
+            parent,
+            3,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_border_side(
+            parent,
+            LV_BORDER_SIDE_BOTTOM,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_border_color(
+            parent,
+            swirski::ui::swirski_ui::color::ink(),
+            LV_PART_MAIN);
+
+        lv_obj_t *leftSection = lv_obj_create(parent);
+        lv_obj_remove_style_all(leftSection);
+        lv_obj_set_size(leftSection, LV_PCT(33), LV_PCT(100));
+        lv_obj_set_layout(leftSection, LV_LAYOUT_FLEX);
+        lv_obj_set_flex_flow(leftSection, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(
+            leftSection,
+            LV_FLEX_ALIGN_START,
+            LV_FLEX_ALIGN_CENTER,
+            LV_FLEX_ALIGN_CENTER);
+
+        lv_obj_t *centerSection = lv_obj_create(parent);
+        lv_obj_remove_style_all(centerSection);
+        lv_obj_set_size(centerSection, LV_PCT(34), LV_PCT(100));
+        lv_obj_set_layout(centerSection, LV_LAYOUT_FLEX);
+        lv_obj_set_flex_flow(centerSection, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(
+            centerSection,
+            LV_FLEX_ALIGN_CENTER,
+            LV_FLEX_ALIGN_CENTER,
+            LV_FLEX_ALIGN_CENTER);
+
+        lv_obj_t *rightSection = lv_obj_create(parent);
+        lv_obj_remove_style_all(rightSection);
+        lv_obj_set_size(rightSection, LV_PCT(33), LV_PCT(100));
+        lv_obj_set_layout(rightSection, LV_LAYOUT_FLEX);
+        lv_obj_set_flex_flow(rightSection, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(
+            rightSection,
+            LV_FLEX_ALIGN_END,
+            LV_FLEX_ALIGN_CENTER,
+            LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_pad_column(
+            rightSection,
+            6,
+            LV_PART_MAIN);
+
+        clockLabel = lv_label_create(leftSection);
 
         const std::time_t timestamp = swirski::service::date_time::getTimestamp();
 
@@ -135,13 +212,11 @@ namespace swirski::ui::status_bar
                 &localTime);
         }
 
-        // TODO: create a flex container here
-
         lv_label_set_text(clockLabel, clockSnapshot);
 
         lv_obj_set_style_text_color(
             clockLabel,
-            lv_color_white(),
+            swirski::ui::swirski_ui::color::ink(),
             LV_PART_MAIN);
 
         lv_obj_set_style_text_font(
@@ -149,30 +224,17 @@ namespace swirski::ui::status_bar
             &lv_font_montserrat_12,
             LV_PART_MAIN);
 
-        lv_obj_align(
-            clockLabel,
-            LV_ALIGN_TOP_LEFT,
-            10,
-            10);
-
-        // TODO: page indicator component goes here - show what page path is active
-
-        pagePathLabel = lv_label_create(parent);
+        pagePathLabel = lv_label_create(centerSection);
 
         lv_label_set_text(pagePathLabel, "SWIRSKI OS");
 
         lv_obj_set_style_text_color(
             pagePathLabel,
-            lv_color_white(),
+            swirski::ui::swirski_ui::color::ink(),
             LV_PART_MAIN);
 
-        lv_obj_align(
-            pagePathLabel,
-            LV_ALIGN_TOP_MID,
-            10, 10);
-
         connectionLabel =
-            lv_label_create(parent);
+            lv_label_create(rightSection);
 
         lv_label_set_text(
             connectionLabel,
@@ -180,17 +242,11 @@ namespace swirski::ui::status_bar
 
         lv_obj_set_style_text_color(
             connectionLabel,
-            lv_color_white(),
+            swirski::ui::swirski_ui::color::ink(),
             LV_PART_MAIN);
 
-        lv_obj_align(
-            connectionLabel,
-            LV_ALIGN_TOP_RIGHT,
-            -25,
-            5);
-
         connectionDot =
-            lv_obj_create(parent);
+            lv_obj_create(rightSection);
 
         lv_obj_set_size(
             connectionDot,
@@ -201,12 +257,6 @@ namespace swirski::ui::status_bar
             connectionDot,
             LV_RADIUS_CIRCLE,
             0);
-
-        lv_obj_align(
-            connectionDot,
-            LV_ALIGN_TOP_RIGHT,
-            -10,
-            10);
 
         lv_obj_set_style_border_width(
             connectionDot,
