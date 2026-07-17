@@ -68,9 +68,7 @@ namespace swirski::screens::notifications_screen
                     : swirski::ui::swirski_ui::color::text();
 
             const lv_color_t appNameColor =
-                isSelected
-                    ? swirski::ui::swirski_ui::color::surface()
-                    : swirski::ui::swirski_ui::color::textMuted();
+                swirski::ui::swirski_ui::color::ink();
 
             const lv_color_t bodyColor =
                 isSelected
@@ -99,6 +97,11 @@ namespace swirski::screens::notifications_screen
             lv_obj_set_style_text_color(
                 row.appNameLabel,
                 appNameColor,
+                LV_PART_MAIN);
+
+            lv_obj_set_style_bg_color(
+                row.appNameLabel,
+                swirski::ui::swirski_ui::color::accentWarm(),
                 LV_PART_MAIN);
 
             lv_obj_set_style_text_color(
@@ -182,17 +185,18 @@ namespace swirski::screens::notifications_screen
             lv_obj_t *container =
                 swirski::ui::swirski_ui::createCard(
                     notificationList,
-                    72);
+                    80);
+
+            swirski::ui::swirski_ui::removeShadow(container);
 
             // App name
 
             lv_obj_t *appNameLabel =
-                swirski::ui::swirski_ui::createLabel(
+                swirski::ui::swirski_ui::createBadge(
                     container,
-                    notification.appName.c_str(),
-                    swirski::ui::swirski_ui::TextTone::Accent,
-                    0,
-                    16);
+                    notification.appName.empty()
+                        ? "APP"
+                        : notification.appName.c_str());
 
             // Title
 
@@ -201,7 +205,7 @@ namespace swirski::screens::notifications_screen
                     container,
                     rowTitle.c_str(),
                     swirski::ui::swirski_ui::TextTone::Default,
-                    18,
+                    24,
                     18);
 
             // Body
@@ -211,7 +215,7 @@ namespace swirski::screens::notifications_screen
                     container,
                     bodyPreview.c_str(),
                     swirski::ui::swirski_ui::TextTone::Muted,
-                    38,
+                    44,
                     18);
 
             notificationRows.push_back({

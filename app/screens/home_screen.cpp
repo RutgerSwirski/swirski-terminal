@@ -61,7 +61,7 @@ namespace swirski::screens::home
         lv_obj_t *flexContainer =
             swirski::ui::swirski_ui::createCard(
                 pageRoot,
-                170);
+                150);
 
         lv_obj_set_layout(flexContainer, LV_LAYOUT_FLEX);
 
@@ -77,7 +77,7 @@ namespace swirski::screens::home
 
         lv_obj_set_style_pad_row(
             flexContainer,
-            swirski::ui::swirski_ui::space::sm,
+            swirski::ui::swirski_ui::space::xs,
             LV_PART_MAIN);
 
         lv_obj_set_style_pad_column(
@@ -89,7 +89,7 @@ namespace swirski::screens::home
             flexContainer,
             LV_ALIGN_TOP_MID,
             0,
-            12);
+            22);
 
         for (std::size_t i = 0; i < homeMenuItems.size(); ++i)
         {

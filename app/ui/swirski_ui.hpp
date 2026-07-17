@@ -256,6 +256,112 @@ namespace swirski::ui::swirski_ui
         return label;
     }
 
+    inline lv_obj_t *createBadge(
+        lv_obj_t *parent,
+        const char *text)
+    {
+        lv_obj_t *badge = lv_label_create(parent);
+
+        lv_label_set_text(
+            badge,
+            text);
+
+        lv_label_set_long_mode(
+            badge,
+            LV_LABEL_LONG_DOT);
+
+        lv_obj_set_width(
+            badge,
+            LV_SIZE_CONTENT);
+
+        lv_obj_set_height(
+            badge,
+            18);
+
+        lv_obj_set_style_max_width(
+            badge,
+            LV_PCT(64),
+            LV_PART_MAIN);
+
+        lv_obj_set_style_bg_color(
+            badge,
+            color::accentWarm(),
+            LV_PART_MAIN);
+
+        lv_obj_set_style_bg_opa(
+            badge,
+            LV_OPA_COVER,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_border_width(
+            badge,
+            2,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_border_color(
+            badge,
+            color::ink(),
+            LV_PART_MAIN);
+
+        lv_obj_set_style_radius(
+            badge,
+            0,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_pad_left(
+            badge,
+            space::sm,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_pad_right(
+            badge,
+            space::sm,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_shadow_width(
+            badge,
+            2,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_shadow_offset_x(
+            badge,
+            2,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_shadow_offset_y(
+            badge,
+            2,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_shadow_color(
+            badge,
+            color::ink(),
+            LV_PART_MAIN);
+
+        lv_obj_set_style_shadow_opa(
+            badge,
+            LV_OPA_COVER,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_text_color(
+            badge,
+            color::ink(),
+            LV_PART_MAIN);
+
+        lv_obj_set_style_text_font(
+            badge,
+            &lv_font_montserrat_12,
+            LV_PART_MAIN);
+
+        lv_obj_align(
+            badge,
+            LV_ALIGN_TOP_LEFT,
+            0,
+            0);
+
+        return badge;
+    }
+
     inline void styleMenuItem(
         lv_obj_t *label,
         bool selected)
@@ -266,12 +372,12 @@ namespace swirski::ui::swirski_ui
 
         lv_obj_set_style_pad_top(
             label,
-            space::sm,
+            space::xs,
             LV_PART_MAIN);
 
         lv_obj_set_style_pad_bottom(
             label,
-            space::sm,
+            space::xs,
             LV_PART_MAIN);
 
         lv_obj_set_style_pad_left(
@@ -312,6 +418,19 @@ namespace swirski::ui::swirski_ui
         lv_obj_set_style_border_color(
             label,
             color::ink(),
+            LV_PART_MAIN);
+    }
+
+    inline void removeShadow(lv_obj_t *object)
+    {
+        lv_obj_set_style_shadow_width(
+            object,
+            0,
+            LV_PART_MAIN);
+
+        lv_obj_set_style_shadow_opa(
+            object,
+            LV_OPA_TRANSP,
             LV_PART_MAIN);
     }
 }
