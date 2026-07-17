@@ -5,6 +5,7 @@
 #include "esp_lcd_ili9341.h"
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
+#include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lvgl.h"
@@ -143,6 +144,22 @@ void initialiseDisplay()
 extern "C" void app_main()
 {
     ESP_LOGI(swirski::TAG, "Starting Swirski OS");
+
+    esp_err_t nvsResult =
+        nvs_flash_init();
+
+    if (
+        nvsResult == ESP_ERR_NVS_NO_FREE_PAGES ||
+        nvsResult == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(
+            nvs_flash_erase());
+
+        nvsResult =
+            nvs_flash_init();
+    }
+
+    ESP_ERROR_CHECK(nvsResult);
 
     const lvgl_port_cfg_t lvglConfig =
         ESP_LVGL_PORT_INIT_CONFIG();

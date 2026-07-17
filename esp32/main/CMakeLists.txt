@@ -50,4 +50,5 @@ idf_component_register(
         esp_lcd_ili9341
         esp_lvgl_port
         lvgl
+        nvs_flash
 )
