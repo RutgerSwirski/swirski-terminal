@@ -7,6 +7,7 @@
 #include "music_screen.hpp"
 #include "games_screen.hpp"
 #include "pong_screen.hpp"
+#include "blackjack_screen.hpp"
 
 #include "status_bar.hpp"
 #include "swirski_ui.hpp"
@@ -225,6 +226,13 @@ namespace swirski::screens::manager
             swirski::ui::status_bar::setTitle(
                 "PONG");
             swirski::screens::pong_screen::render();
+            break;
+
+        case Screen::Blackjack:
+            currentScreen = Screen::Blackjack;
+            swirski::ui::status_bar::setTitle(
+                "BLACKJACK");
+            swirski::screens::blackjack_screen::render();
             break;
 
         case Screen::Studio:

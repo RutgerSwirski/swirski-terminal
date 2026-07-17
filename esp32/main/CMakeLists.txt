@@ -23,6 +23,7 @@ idf_component_register(
         "${APP_DIR}/screens/music_screen.cpp"
         "${APP_DIR}/screens/games_screen.cpp"
         "${APP_DIR}/screens/pong_screen.cpp"
+        "${APP_DIR}/screens/blackjack_screen.cpp"
         
         "${APP_DIR}/services/date_time.cpp"
         "${APP_DIR}/services/notification_service.cpp"

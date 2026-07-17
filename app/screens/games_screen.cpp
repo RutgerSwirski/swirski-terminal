@@ -15,12 +15,13 @@ namespace swirski::screens::games_screen
     {
         std::size_t selectedGameIndex = 0;
 
-        std::array<std::string, 3> gameItems{
+        std::array<std::string, 4> gameItems{
             "Pong",
+            "Blackjack",
             "Snake",
             "Tetris"};
 
-        std::array<lv_obj_t *, 3> gameItemLabels{};
+        std::array<lv_obj_t *, 4> gameItemLabels{};
 
         void updateSelection()
         {
@@ -34,6 +35,10 @@ namespace swirski::screens::games_screen
                     gameItemLabels[i],
                     i == selectedGameIndex);
             }
+
+            lv_obj_scroll_to_view(
+                gameItemLabels[selectedGameIndex],
+                LV_ANIM_OFF);
         }
     }
 
@@ -63,7 +68,7 @@ namespace swirski::screens::games_screen
 
         swirski::ui::swirski_ui::createLabel(
             container,
-            "Coming soon",
+            "Choose a game",
             swirski::ui::swirski_ui::TextTone::Muted,
             24,
             18);
@@ -82,7 +87,15 @@ namespace swirski::screens::games_screen
         lv_obj_set_size(
             gameList,
             190,
-            78);
+            82);
+
+        lv_obj_set_scroll_dir(
+            gameList,
+            LV_DIR_VER);
+
+        lv_obj_set_scrollbar_mode(
+            gameList,
+            LV_SCROLLBAR_MODE_OFF);
 
         lv_obj_set_layout(
             gameList,
@@ -159,6 +172,11 @@ namespace swirski::screens::games_screen
             {
                 swirski::screens::manager::showScreen(
                     swirski::screens::manager::Screen::Pong);
+            }
+            else if (selectedGameIndex == 1)
+            {
+                swirski::screens::manager::showScreen(
+                    swirski::screens::manager::Screen::Blackjack);
             }
             break;
         }

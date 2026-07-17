@@ -13,6 +13,7 @@ namespace swirski::screens::manager
         Music,
         Games,
         Pong,
+        Blackjack,
         Studio,
         Settings,
         Notification
