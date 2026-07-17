@@ -40,6 +40,8 @@ namespace swirski::screens::notifications_screen
 
         int renderedNotificationRevision = -1;
 
+        constexpr std::size_t MAX_RENDERED_NOTIFICATIONS = 20;
+
     }
 
     void update()
@@ -148,6 +150,13 @@ namespace swirski::screens::notifications_screen
 
         for (const auto &notification : notifications)
         {
+            if (
+                notificationRows.size() >=
+                MAX_RENDERED_NOTIFICATIONS)
+            {
+                break;
+            }
+
             const std::string rowTitle =
                 !notification.title.empty()
                     ? notification.title
