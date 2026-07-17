@@ -594,7 +594,7 @@ namespace swirski::transport::ble
             return;
         }
 
-        const bool mtuConfigured = NimBLEDevice::setMTU(128);
+        const bool mtuConfigured = NimBLEDevice::setMTU(247);
 
         if (!mtuConfigured)
         {
