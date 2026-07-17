@@ -75,9 +75,11 @@ add_executable(
     ../app/screens/home_screen.cpp
     ../app/screens/notifications_screen.cpp
     ../app/screens/notification_screen.cpp
+    ../app/screens/music_screen.cpp
 
     ../app/services/date_time.cpp
     ../app/services/notification_service.cpp
+    ../app/services/music_service.cpp
 
     ../app/protocol/protocol.cpp
 

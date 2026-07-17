@@ -88,3 +88,17 @@ export function createTestNotificationReceivedMessage(): Record<
     },
   };
 }
+
+export function createTestMusicStateMessage(): Record<string, unknown> {
+  return {
+    version: 1,
+    type: 'music.state',
+    id: `mobile-music-${Date.now()}`,
+    payload: {
+      appName: 'Spotify',
+      title: 'Once in a Lifetime',
+      artist: 'Talking Heads',
+      isPlaying: true,
+    },
+  };
+}

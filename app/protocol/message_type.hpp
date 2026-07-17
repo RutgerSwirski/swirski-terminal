@@ -8,6 +8,7 @@ namespace swirski::protocol
         Pong,
         TimeSync,
         NotificationReceived,
+        MusicState,
         DisconnectRequested,
         NotificationsSnapshot,
         // MediaStateChanged,

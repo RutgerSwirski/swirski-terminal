@@ -8,6 +8,7 @@
 #include <ArduinoJson.h>
 
 #include "date_time.hpp"
+#include "music_service.hpp"
 #include "notification_service.hpp"
 
 namespace
@@ -38,6 +39,11 @@ namespace
         if (rawType == "notifications.snapshot")
         {
             return swirski::protocol::MessageType::NotificationsSnapshot;
+        }
+
+        if (rawType == "music.state")
+        {
+            return swirski::protocol::MessageType::MusicState;
         }
 
         if (rawType == "disconnect.requested")
@@ -232,6 +238,13 @@ namespace swirski::protocol
         case MessageType::NotificationsSnapshot:
             swirski::services::notification_service::
                 handleNotificationsSnapshot(
+                    document["payload"].as<JsonObjectConst>());
+
+            return std::nullopt;
+
+        case MessageType::MusicState:
+            swirski::services::music_service::
+                handleMusicState(
                     document["payload"].as<JsonObjectConst>());
 
             return std::nullopt;

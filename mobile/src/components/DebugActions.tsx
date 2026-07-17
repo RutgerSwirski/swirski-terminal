@@ -11,6 +11,7 @@ type DebugActionsProps = {
   onPing(): void;
   onSendTestNotificationSnapshot(device: Device): void;
   onSendTestNotificationReceived(device: Device): void;
+  onSendTestMusicState(device: Device): void;
 };
 
 export function DebugActions({
@@ -19,6 +20,7 @@ export function DebugActions({
   onPing,
   onSendTestNotificationSnapshot,
   onSendTestNotificationReceived,
+  onSendTestMusicState,
 }: DebugActionsProps) {
   if (!connectedDevice) {
     return null;
@@ -52,6 +54,14 @@ export function DebugActions({
             disabled={disabled}
           >
             Send test notification received
+          </Button>
+
+          <Button
+            variant="outline"
+            onPress={() => onSendTestMusicState(connectedDevice)}
+            disabled={disabled}
+          >
+            Send test music state
           </Button>
         </View>
       </CardContent>

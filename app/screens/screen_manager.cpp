@@ -4,6 +4,7 @@
 
 #include "notifications_screen.hpp"
 #include "notification_screen.hpp"
+#include "music_screen.hpp"
 
 #include "status_bar.hpp"
 #include "swirski_ui.hpp"
@@ -204,6 +205,12 @@ namespace swirski::screens::manager
             break;
 
         case Screen::Music:
+            currentScreen = Screen::Music;
+            swirski::ui::status_bar::setTitle(
+                "MUSIC");
+            swirski::screens::music_screen::render();
+            break;
+
         case Screen::Studio:
         case Screen::Settings:
         case Screen::Notification:

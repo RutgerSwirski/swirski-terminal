@@ -8,6 +8,8 @@
 
 #include "notification_screen.hpp"
 
+#include "music_screen.hpp"
+
 #include <iostream>
 
 namespace swirski::input
@@ -30,7 +32,7 @@ namespace swirski::input
             swirski::screens::notification_screen::handleInput(action);
             break;
         case swirski::screens::manager::Screen::Music:
-            // handleMusicInput(action);
+            swirski::screens::music_screen::handleInput(action);
             break;
         case swirski::screens::manager::Screen::Studio:
             // handleStudioInput(action);

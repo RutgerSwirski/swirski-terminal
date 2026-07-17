@@ -20,9 +20,11 @@ idf_component_register(
         "${APP_DIR}/screens/notifications_screen.cpp"
         "${APP_DIR}/screens/screen_manager.cpp"
         "${APP_DIR}/screens/notification_screen.cpp"
+        "${APP_DIR}/screens/music_screen.cpp"
         
         "${APP_DIR}/services/date_time.cpp"
         "${APP_DIR}/services/notification_service.cpp"
+        "${APP_DIR}/services/music_service.cpp"
 
         "${APP_DIR}/protocol/protocol.cpp"
 

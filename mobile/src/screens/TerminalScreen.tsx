@@ -10,6 +10,7 @@ import { DebugActions } from '../components/DebugActions';
 import { DeviceList } from '../components/DeviceList';
 import { useNotificationBridge } from '../notifications/useNotificationBridge';
 import {
+  createTestMusicStateMessage,
   createTestNotificationReceivedMessage,
   createTestNotificationSnapshotMessage,
   createTimeSyncMessage,
@@ -41,6 +42,16 @@ export function TerminalScreen() {
       await terminalBle.sendBleMessage(
         device,
         createTestNotificationReceivedMessage(),
+      );
+    },
+    [terminalBle],
+  );
+
+  const sendTestMusicState = useCallback(
+    async (device: Device) => {
+      await terminalBle.sendBleMessage(
+        device,
+        createTestMusicStateMessage(),
       );
     },
     [terminalBle],
@@ -129,6 +140,7 @@ export function TerminalScreen() {
           onPing={terminalBle.sendPing}
           onSendTestNotificationSnapshot={sendTestNotificationSnapshot}
           onSendTestNotificationReceived={sendTestNotificationReceived}
+          onSendTestMusicState={sendTestMusicState}
         />
       </View>
     </ScrollView>
