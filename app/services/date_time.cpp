@@ -5,8 +5,11 @@
 
 #include "date_time.hpp"
 
-#include "nvs.h"
 #include "lvgl.h"
+
+#ifdef ESP_PLATFORM
+#include "nvs.h"
+#endif
 
 namespace swirski::service::date_time
 {
@@ -20,12 +23,17 @@ namespace swirski::service::date_time
 
         uint32_t lastUpdateTick = 0;
 
+#ifdef ESP_PLATFORM
         constexpr char NVS_NAMESPACE[] = "datetime";
         constexpr char NVS_TIMESTAMP_KEY[] = "timestamp";
+#endif
 
         std::time_t loadCachedTimestamp(
             std::time_t fallbackTimestamp)
         {
+#ifndef ESP_PLATFORM
+            return fallbackTimestamp;
+#else
             nvs_handle_t handle;
 
             if (
@@ -54,11 +62,15 @@ namespace swirski::service::date_time
 
             return static_cast<std::time_t>(
                 cachedTimestamp);
+#endif
         }
 
         void saveCachedTimestamp(
             std::time_t timestamp)
         {
+#ifndef ESP_PLATFORM
+            (void)timestamp;
+#else
             nvs_handle_t handle;
 
             if (
@@ -78,6 +90,7 @@ namespace swirski::service::date_time
 
             nvs_commit(handle);
             nvs_close(handle);
+#endif
         }
 
     }
