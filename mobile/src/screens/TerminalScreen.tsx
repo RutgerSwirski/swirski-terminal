@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import type { Device } from 'react-native-ble-plx';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTerminalBle } from '../ble/useTerminalBle';
 import { ConnectionPanel } from '../components/ConnectionPanel';
@@ -15,6 +16,7 @@ import {
 
 export function TerminalScreen() {
   const terminalBle = useTerminalBle();
+  const insets = useSafeAreaInsets();
   const lastSyncedDeviceIdRef = useRef<string | null>(null);
 
   const notificationBridge = useNotificationBridge({
@@ -79,7 +81,15 @@ export function TerminalScreen() {
   }, [notificationBridge, terminalBle]);
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView
+      contentContainerStyle={[
+        styles.container,
+        {
+          paddingTop: insets.top + 20,
+          paddingBottom: insets.bottom + 20,
+        },
+      ]}
+    >
       <View style={styles.content}>
         <ConnectionPanel
           bleState={terminalBle.bleState}
@@ -119,7 +129,7 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
     backgroundColor: '#f6f2e8',
-    padding: 20,
+    paddingHorizontal: 20,
     alignItems: 'center',
     justifyContent: 'flex-start',
   },
