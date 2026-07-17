@@ -16,8 +16,8 @@ namespace swirski::screens::games_screen
         std::size_t selectedGameIndex = 0;
 
         std::array<std::string, 3> gameItems{
-            "Snake",
             "Pong",
+            "Snake",
             "Tetris"};
 
         std::array<lv_obj_t *, 3> gameItemLabels{};
@@ -155,6 +155,11 @@ namespace swirski::screens::games_screen
             break;
 
         case swirski::input::input_action::Confirm:
+            if (selectedGameIndex == 0)
+            {
+                swirski::screens::manager::showScreen(
+                    swirski::screens::manager::Screen::Pong);
+            }
             break;
         }
     }

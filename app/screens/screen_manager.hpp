@@ -12,6 +12,7 @@ namespace swirski::screens::manager
         Notifications,
         Music,
         Games,
+        Pong,
         Studio,
         Settings,
         Notification

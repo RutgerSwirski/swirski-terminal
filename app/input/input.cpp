@@ -10,6 +10,7 @@
 
 #include "music_screen.hpp"
 #include "games_screen.hpp"
+#include "pong_screen.hpp"
 
 #include <iostream>
 
@@ -37,6 +38,9 @@ namespace swirski::input
             break;
         case swirski::screens::manager::Screen::Games:
             swirski::screens::games_screen::handleInput(action);
+            break;
+        case swirski::screens::manager::Screen::Pong:
+            swirski::screens::pong_screen::handleInput(action);
             break;
         case swirski::screens::manager::Screen::Studio:
             // handleStudioInput(action);
