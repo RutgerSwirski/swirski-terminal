@@ -7,6 +7,7 @@ import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -84,15 +85,60 @@ class SwirskiMediaModule(
     }
   }
 
+  @ReactMethod
+  fun handleMusicCommand(
+    action: String,
+    promise: Promise,
+  ) {
+    try {
+      val controller = getCurrentMediaController()
+
+      if (controller == null) {
+        promise.resolve(false)
+        return
+      }
+
+      when (action) {
+        "playPause" -> {
+          if (controller.playbackState?.state == PlaybackState.STATE_PLAYING) {
+            controller.transportControls.pause()
+          } else {
+            controller.transportControls.play()
+          }
+        }
+        "next" -> controller.transportControls.skipToNext()
+        "previous" -> controller.transportControls.skipToPrevious()
+        else -> {
+          promise.resolve(false)
+          return
+        }
+      }
+
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject(
+        "MEDIA_COMMAND_FAILED",
+        "Could not run media command",
+        error,
+      )
+    }
+  }
+
   private fun getCurrentMusicState(): MusicState? {
+    return getCurrentMediaController()
+      ?.let { controller -> musicStateFromController(controller) }
+  }
+
+  private fun getCurrentMediaController(): MediaController? {
     val mediaSessionManager =
       reactApplicationContext.getSystemService(MediaSessionManager::class.java)
         ?: return null
 
     return mediaSessionManager
       .getActiveSessions(listenerComponent)
-      .mapNotNull { controller -> musicStateFromController(controller) }
-      .sortedByDescending { state -> state.isPlaying }
+      .sortedByDescending { controller ->
+        if (controller.playbackState?.state == PlaybackState.STATE_PLAYING) 1 else 0
+      }
       .firstOrNull()
   }
 
@@ -208,7 +254,10 @@ class SwirskiMediaModule(
           .put("appName", musicState.appName)
           .put("title", musicState.title)
           .put("artist", musicState.artist)
-          .put("isPlaying", musicState.isPlaying),
+          .put("isPlaying", musicState.isPlaying)
+          .put("durationMs", musicState.durationMs)
+          .put("positionMs", musicState.positionMs)
+          .put("updatedAtMs", musicState.updatedAtMs),
       )
       .toString()
   }
@@ -233,12 +282,29 @@ class SwirskiMediaModule(
         ?: metadata.getString(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE)
         ?: ""
 
+    val playbackState = controller.playbackState
+
     return MusicState(
       appName = getAppName(controller.packageName),
       title = title,
       artist = artist,
-      isPlaying = controller.playbackState?.state == PlaybackState.STATE_PLAYING,
+      isPlaying = playbackState?.state == PlaybackState.STATE_PLAYING,
+      durationMs = metadata.getLong(MediaMetadata.METADATA_KEY_DURATION)
+        .coerceAtLeast(0L),
+      positionMs = playbackState?.position?.coerceAtLeast(0L) ?: 0L,
+      updatedAtMs = currentTimeForPlaybackState(playbackState),
     )
+  }
+
+  private fun currentTimeForPlaybackState(
+    playbackState: PlaybackState?,
+  ): Long {
+    if (playbackState == null || playbackState.lastPositionUpdateTime == 0L) {
+      return System.currentTimeMillis()
+    }
+
+    return System.currentTimeMillis() -
+      (SystemClock.elapsedRealtime() - playbackState.lastPositionUpdateTime)
   }
 
   private fun getAppName(packageName: String): String {
@@ -275,6 +341,9 @@ class SwirskiMediaModule(
     val title: String,
     val artist: String,
     val isPlaying: Boolean,
+    val durationMs: Long,
+    val positionMs: Long,
+    val updatedAtMs: Long,
   )
 
   companion object {

@@ -1,5 +1,6 @@
 #include "music_service.hpp"
 
+#include <chrono>
 #include <iostream>
 #include <utility>
 
@@ -9,16 +10,51 @@ namespace swirski::services::music_service
 
     namespace
     {
+        std::uint64_t nowMs()
+        {
+            const auto now =
+                std::chrono::steady_clock::now()
+                    .time_since_epoch();
+
+            return static_cast<std::uint64_t>(
+                std::chrono::duration_cast<
+                    std::chrono::milliseconds>(
+                    now)
+                    .count());
+        }
+
         MusicState currentState{
             "Music",
             "Nothing playing",
             "Connect your phone",
-            false};
+            false,
+            0,
+            0,
+            nowMs()};
     }
 
     MusicState getState()
     {
-        return currentState;
+        MusicState state =
+            currentState;
+
+        if (
+            state.isPlaying &&
+            state.durationMs > 0)
+        {
+            const std::uint64_t elapsedMs =
+                nowMs() - state.receivedAtMs;
+
+            state.positionMs += elapsedMs;
+
+            if (state.positionMs > state.durationMs)
+            {
+                state.positionMs =
+                    state.durationMs;
+            }
+        }
+
+        return state;
     }
 
     void setState(
@@ -50,6 +86,17 @@ namespace swirski::services::music_service
         state.isPlaying =
             payload["isPlaying"] |
             false;
+
+        state.durationMs =
+            payload["durationMs"] |
+            0;
+
+        state.positionMs =
+            payload["positionMs"] |
+            0;
+
+        state.receivedAtMs =
+            nowMs();
 
         setState(
             std::move(state));

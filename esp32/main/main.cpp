@@ -181,6 +181,8 @@ extern "C" void app_main()
     swirski::transport::ble::BleTransport bleTransport;
 
     bleTransport.initialise();
+    swirski::screens::music_screen::setTransport(
+        &bleTransport);
 
     vTaskDelay(1);
 

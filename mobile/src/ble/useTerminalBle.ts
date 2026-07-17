@@ -16,6 +16,7 @@ import {
 } from './framing';
 import { requestBlePermissions } from './requestBlePermissions';
 import { createDisconnectMessage, createPingMessage } from '../protocol/messages';
+import { handleMusicCommandMessage } from '../music/handleMusicCommand';
 
 export type ConnectionStatus =
   | 'disconnected'
@@ -158,7 +159,15 @@ export function useTerminalBle() {
           }
 
           console.log('Received complete TX message:', completeMessage);
-          console.log('Parsed TX message:', JSON.parse(completeMessage));
+
+          const parsedMessage = JSON.parse(completeMessage) as Record<
+            string,
+            unknown
+          >;
+
+          console.log('Parsed TX message:', parsedMessage);
+
+          void handleMusicCommandMessage(parsedMessage);
         } catch (frameError) {
           console.error('Could not process BLE frame:', frameError);
         }

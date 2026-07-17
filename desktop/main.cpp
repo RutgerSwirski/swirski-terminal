@@ -18,6 +18,7 @@
 #include <ctime>
 
 #include "websocket_transport.hpp"
+#include "music_screen.hpp"
 
 int main()
 
@@ -59,6 +60,8 @@ int main()
 
     // initialise transport websocket
     websocketTransport.initialise();
+    swirski::screens::music_screen::setTransport(
+        &websocketTransport);
 
     while (running)
     {

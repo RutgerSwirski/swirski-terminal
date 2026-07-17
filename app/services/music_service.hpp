@@ -2,6 +2,7 @@
 
 #include <ArduinoJson.h>
 
+#include <cstdint>
 #include <string>
 
 namespace swirski::services::music_service
@@ -12,6 +13,9 @@ namespace swirski::services::music_service
         std::string title;
         std::string artist;
         bool isPlaying = false;
+        std::uint64_t durationMs = 0;
+        std::uint64_t positionMs = 0;
+        std::uint64_t receivedAtMs = 0;
     };
 
     extern int revision;
