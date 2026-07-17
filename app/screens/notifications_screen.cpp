@@ -58,29 +58,38 @@ namespace swirski::screens::notifications_screen
             const bool isSelected =
                 i == selectedNotificationIndex;
 
-            const std::string titleText =
-                isSelected
-                    ? std::string("> ") + row.title
-                    : row.title;
-
             lv_label_set_text(
                 row.titleLabel,
-                titleText.c_str());
+                row.title.c_str());
 
             const lv_color_t titleColor =
                 isSelected
-                    ? swirski::ui::swirski_ui::color::accentBright()
+                    ? swirski::ui::swirski_ui::color::surface()
                     : swirski::ui::swirski_ui::color::text();
 
             const lv_color_t appNameColor =
                 isSelected
-                    ? swirski::ui::swirski_ui::color::accent()
+                    ? swirski::ui::swirski_ui::color::surface()
                     : swirski::ui::swirski_ui::color::textMuted();
 
             const lv_color_t bodyColor =
                 isSelected
-                    ? swirski::ui::swirski_ui::color::text()
+                    ? swirski::ui::swirski_ui::color::surface()
                     : swirski::ui::swirski_ui::color::textMuted();
+
+            lv_obj_set_style_bg_color(
+                row.container,
+                isSelected
+                    ? swirski::ui::swirski_ui::color::accent()
+                    : swirski::ui::swirski_ui::color::surface(),
+                LV_PART_MAIN);
+
+            lv_obj_set_style_shadow_color(
+                row.container,
+                isSelected
+                    ? swirski::ui::swirski_ui::color::accentBright()
+                    : swirski::ui::swirski_ui::color::accent(),
+                LV_PART_MAIN);
 
             lv_obj_set_style_text_color(
                 row.titleLabel,

@@ -41,12 +41,9 @@ namespace swirski::screens::home
         {
             const bool isSelected = i == selectedItemIndex;
 
-            std::string labelText = isSelected
-                                        ? std::string("> ") +
-                                              homeMenuItems[i]
-                                        : homeMenuItems[i];
-
-            lv_label_set_text(menuItemLabels[i], labelText.c_str());
+            lv_label_set_text(
+                menuItemLabels[i],
+                homeMenuItems[i].c_str());
 
             swirski::ui::swirski_ui::styleMenuItem(
                 menuItemLabels[i],
