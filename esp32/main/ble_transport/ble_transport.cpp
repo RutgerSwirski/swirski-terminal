@@ -38,7 +38,7 @@ namespace
     constexpr std::size_t ATT_HEADER_BYTES = 3;
     constexpr std::size_t FRAME_HEADER_BYTES = 8;
 
-    constexpr std::size_t MAX_MESSAGE_BYTES = 4096;
+    constexpr std::size_t MAX_MESSAGE_BYTES = 64 * 1024;
     constexpr std::size_t MAX_CHUNK_COUNT = 255;
 
     constexpr std::chrono::milliseconds TRANSFER_TIMEOUT{

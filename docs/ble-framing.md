@@ -321,11 +321,12 @@ Initial framing limits:
 | ----------------------------- | --------------- |
 | Header size                   | 8 bytes         |
 | Maximum chunks                | 255             |
-| Maximum complete message      | 4096 bytes      |
+| Maximum complete message      | 64 KiB          |
 | Incomplete transfer timeout   | 3 seconds       |
 | Concurrent incoming transfers | By connection and transfer ID |
 
-These values can be changed later if needed.
+The practical maximum is also limited by the negotiated MTU because a complete
+message may use at most 255 chunks.
 
 ---
 

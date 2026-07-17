@@ -1,5 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Button, StyleSheet, Text, View } from 'react-native';
+import {
+  AppState,
+  Button,
+  NativeModules,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { State, BleErrorCode } from 'react-native-ble-plx';
 import type { Device, Subscription } from 'react-native-ble-plx';
 import { bleManager } from './src/ble/bleManager';
@@ -19,6 +26,16 @@ import {
 } from './src/ble/framing';
 import { TerminalNotification } from './src/ble/types';
 
+type SwirskiNotificationsModule = {
+  isNotificationAccessEnabled(): Promise<boolean>;
+  openNotificationAccessSettings(): Promise<void>;
+  createSnapshotMessageJson(messageId: string): Promise<string>;
+};
+
+const SwirskiNotifications = NativeModules.SwirskiNotifications as
+  | SwirskiNotificationsModule
+  | undefined;
+
 type ConnectionStatus =
   | 'disconnected'
   | 'connecting'
@@ -34,6 +51,9 @@ function App() {
 
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>('disconnected');
+
+  const [notificationAccessEnabled, setNotificationAccessEnabled] =
+    useState<boolean>(false);
 
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
 
@@ -67,6 +87,61 @@ function App() {
       );
 
       console.log(`Sent BLE frame ${index + 1}/${frames.length}`);
+    }
+  }
+
+  async function sendCurrentNotificationSnapshot(device: Device) {
+    if (!SwirskiNotifications) {
+      console.log('Native notification module is not available');
+      return;
+    }
+
+    const hasNotificationAccess =
+      await SwirskiNotifications.isNotificationAccessEnabled();
+
+    setNotificationAccessEnabled(hasNotificationAccess);
+
+    if (!hasNotificationAccess) {
+      console.log('Notification access is not enabled');
+      return;
+    }
+
+    const messageId = `mobile-snapshot-${Date.now()}`;
+    const snapshotJson = await SwirskiNotifications.createSnapshotMessageJson(
+      messageId,
+    );
+
+    const snapshotMessage = JSON.parse(snapshotJson) as Record<string, unknown>;
+
+    await sendBleMessage(device, snapshotMessage);
+
+    console.log('Notification snapshot sent');
+  }
+
+  async function refreshNotificationAccess() {
+    if (!SwirskiNotifications) {
+      return;
+    }
+
+    try {
+      const isEnabled =
+        await SwirskiNotifications.isNotificationAccessEnabled();
+
+      setNotificationAccessEnabled(isEnabled);
+    } catch (error) {
+      console.error('Could not check notification access:', error);
+    }
+  }
+
+  async function openNotificationAccessSettings() {
+    if (!SwirskiNotifications) {
+      return;
+    }
+
+    try {
+      await SwirskiNotifications.openNotificationAccessSettings();
+    } catch (error) {
+      console.error('Could not open notification access settings:', error);
     }
   }
 
@@ -183,7 +258,7 @@ function App() {
 
       console.log('Connected to device:', connected.name, connected.id);
 
-      const mtuDevice = await connected.requestMTU(128);
+      const mtuDevice = await connected.requestMTU(247);
 
       console.log('Negotiated MTU:', mtuDevice.mtu);
 
@@ -211,6 +286,12 @@ function App() {
 
       setConnectedDevice(discovered);
       setConnectionStatus('ready');
+
+      try {
+        await sendCurrentNotificationSnapshot(discovered);
+      } catch (error) {
+        console.error('Could not send notification snapshot:', error);
+      }
     } catch (error) {
       console.error('BLE connection error:', error);
 
@@ -288,8 +369,20 @@ function App() {
       setBleState(nextState);
     }, true);
 
+    refreshNotificationAccess();
+
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      nextAppState => {
+        if (nextAppState === 'active') {
+          refreshNotificationAccess();
+        }
+      },
+    );
+
     return () => {
       stateSubscription.remove();
+      appStateSubscription.remove();
       txSubscriptionRef.current?.remove();
       txFrameAssemblerRef.current?.stop();
       txFrameAssemblerRef.current = null;
@@ -368,6 +461,19 @@ function App() {
 
       <Text>Status: {connectionStatus}</Text>
 
+      {!notificationAccessEnabled && (
+        <View style={styles.notice}>
+          <Text style={styles.noticeText}>
+            Enable notification access to sync phone notifications.
+          </Text>
+
+          <Button
+            title="Open notification settings"
+            onPress={openNotificationAccessSettings}
+          />
+        </View>
+      )}
+
       {connectedDevice && <Text>Connected: {connectedDevice.name}</Text>}
 
       <Button
@@ -430,6 +536,17 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  notice: {
+    width: '90%',
+    padding: 12,
+    marginVertical: 12,
+    borderWidth: 1,
+    borderColor: '#cccccc',
+  },
+  noticeText: {
+    marginBottom: 8,
+    textAlign: 'center',
   },
 });
 export default App;

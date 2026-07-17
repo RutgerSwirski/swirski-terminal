@@ -15,7 +15,7 @@ const ATT_HEADER_BYTES = 3;
 const FRAME_HEADER_BYTES = 8;
 
 const MAX_CHUNK_COUNT = 255;
-const MAX_MESSAGE_BYTES = 4096;
+const MAX_MESSAGE_BYTES = 64 * 1024;
 const TRANSFER_TIMEOUT_MS = 3000;
 
 let nextTransportMessageId = 1;
