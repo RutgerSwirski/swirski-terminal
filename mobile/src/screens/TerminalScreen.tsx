@@ -8,6 +8,7 @@ import { useTerminalBle } from '../ble/useTerminalBle';
 import { ConnectionPanel } from '../components/ConnectionPanel';
 import { DebugActions } from '../components/DebugActions';
 import { DeviceList } from '../components/DeviceList';
+import { useMusicBridge } from '../music/useMusicBridge';
 import { useNotificationBridge } from '../notifications/useNotificationBridge';
 import {
   createTestMusicStateMessage,
@@ -24,6 +25,10 @@ export function TerminalScreen() {
   const notificationBridge = useNotificationBridge({
     connectedDevice: terminalBle.connectedDevice,
     connectionStatus: terminalBle.connectionStatus,
+    sendBleMessage: terminalBle.sendBleMessage,
+  });
+
+  const musicBridge = useMusicBridge({
     sendBleMessage: terminalBle.sendBleMessage,
   });
 
@@ -87,10 +92,16 @@ export function TerminalScreen() {
       } catch (error) {
         console.error('Could not send notification snapshot:', error);
       }
+
+      try {
+        await musicBridge.sendCurrentMusicState(device);
+      } catch (error) {
+        console.error('Could not send current music state:', error);
+      }
     }
 
     sendInitialState();
-  }, [notificationBridge, terminalBle]);
+  }, [musicBridge, notificationBridge, terminalBle]);
 
   return (
     <ScrollView
