@@ -48,6 +48,9 @@ namespace swirski::transport::ble
         std::optional<ConnectionEvent>
             pendingConnectionEvent;
 
+        std::optional<std::uint16_t>
+            pendingDisconnectedConnHandle;
+
         std::mutex connectionEventMutex;
     };
 

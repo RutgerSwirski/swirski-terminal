@@ -59,14 +59,16 @@ The process of sending one complete message using one or more frames.
 
 ## Frame format
 
-Each BLE frame begins with a four-byte header.
+Each BLE frame begins with an eight-byte header.
 
-| Bytes | Field       | Type      | Description                             |
-| ----- | ----------- | --------- | --------------------------------------- |
-| 0–1   | Transfer ID | `uint16`  | Identifies the current transfer         |
-| 2     | Chunk index | `uint8`   | Position of this chunk, starting at `0` |
-| 3     | Chunk count | `uint8`   | Total number of chunks in the transfer  |
-| 4+    | Payload     | Raw bytes | Part of the UTF-8 JSON message          |
+| Bytes | Field         | Type      | Description                             |
+| ----- | ------------- | --------- | --------------------------------------- |
+| 0     | Magic         | `uint8`   | Constant `0x53`                         |
+| 1     | Frame version | `uint8`   | Current value is `1`                    |
+| 2–5   | Transfer ID   | `uint32`  | Identifies the current transfer         |
+| 6     | Chunk index   | `uint8`   | Position of this chunk, starting at `0` |
+| 7     | Chunk count   | `uint8`   | Total number of chunks in the transfer  |
+| 8+    | Payload       | Raw bytes | Part of the UTF-8 JSON message          |
 
 Multi-byte integers use little-endian byte order.
 
@@ -74,8 +76,8 @@ Example transfer ID:
 
 ```text
 Transfer ID: 42
-Hex value:   0x002A
-Wire bytes:  2A 00
+Hex value:   0x0000002A
+Wire bytes:  2A 00 00 00
 ```
 
 ---
@@ -89,21 +91,25 @@ The transfer ID is `42`.
 ### First frame
 
 ```text
-2A 00 00 02 [first section of JSON]
-│     │  │
-│     │  └── total chunks: 2
-│     └───── chunk index: 0
-└─────────── transfer ID: 42
+53 01 2A 00 00 00 00 02 [first section of JSON]
+│  │  │           │  │
+│  │  │           │  └── total chunks: 2
+│  │  │           └───── chunk index: 0
+│  │  └───────────────── transfer ID: 42
+│  └──────────────────── frame version: 1
+└─────────────────────── magic byte: 0x53
 ```
 
 ### Second frame
 
 ```text
-2A 00 01 02 [remaining section of JSON]
-│     │  │
-│     │  └── total chunks: 2
-│     └───── chunk index: 1
-└─────────── transfer ID: 42
+53 01 2A 00 00 00 01 02 [remaining section of JSON]
+│  │  │           │  │
+│  │  │           │  └── total chunks: 2
+│  │  │           └───── chunk index: 1
+│  │  └───────────────── transfer ID: 42
+│  └──────────────────── frame version: 1
+└─────────────────────── magic byte: 0x53
 ```
 
 After both frames arrive, the receiver joins the payload bytes:
@@ -161,43 +167,40 @@ Message B chunk 1
 
 ## Receiving rules
 
-A transfer must begin with chunk index `0`.
+A received frame is grouped by BLE connection and transfer ID.
 
-When the first chunk arrives, the receiver stores:
+When a chunk arrives, the receiver stores:
 
 - Transfer ID
 - Expected chunk count
-- Next expected chunk index
-- Received payload bytes
-- Time of the most recent chunk
+- Received payload bytes by chunk index
+- Received payload byte count
 
-Each following chunk must have:
+Each chunk in the same transfer must have:
 
-- The same transfer ID
 - The same chunk count
-- The expected chunk index
+- A chunk index lower than the chunk count
 
 Example:
 
 ```text
-Expected chunk: 1
 Received chunk: 1
-→ append payload
+→ store payload at index 1
 ```
 
-If the wrong chunk arrives:
+If the chunk count changes:
 
 ```text
-Expected chunk: 1
-Received chunk: 2
+Expected chunks: 2
+Received chunks: 3
 → reject and reset transfer
 ```
 
-The message is complete when all chunks have arrived.
+The message is complete when all chunk indexes from `0` to `chunk count - 1` have arrived.
 
 Only then should the receiver:
 
-1. Join all payload bytes
+1. Join all payload bytes in chunk-index order
 2. Convert the bytes into a UTF-8 string
 3. Pass the string to the shared protocol parser
 
@@ -217,12 +220,12 @@ The maximum characteristic value size is approximately:
 negotiated MTU - 3
 ```
 
-The Swirski framing header uses four bytes.
+The Swirski framing header uses eight bytes.
 
 Therefore:
 
 ```text
-maximum chunk payload = negotiated MTU - 3 - 4
+maximum chunk payload = negotiated MTU - 3 - 8
 ```
 
 Example with an MTU of `128`:
@@ -230,8 +233,8 @@ Example with an MTU of `128`:
 ```text
 128 byte MTU
 - 3 byte ATT overhead
-- 4 byte Swirski frame header
-= 121 message bytes per chunk
+- 8 byte Swirski frame header
+= 117 message bytes per chunk
 ```
 
 The exact negotiated MTU should be used when creating frames.
@@ -284,7 +287,7 @@ Protocol message ID:
 
 The protocol ID cannot be used for framing because it is inside the JSON and is not available until the complete message has been reconstructed.
 
-The transfer ID is a `uint16` value and may wrap back to `0` after `65535`.
+The transfer ID is a `uint32` value and wraps back to `1` after `4294967295`.
 
 ---
 
@@ -292,22 +295,17 @@ The transfer ID is a `uint16` value and may wrap back to `0` after `65535`.
 
 Incomplete transfers must not remain in memory forever.
 
-If no new chunk arrives within three seconds, the receiver should discard the partial transfer.
+Timeout cleanup is planned, but not implemented yet. The current receiver clears partial transfers when the BLE connection closes, when a chunk-count mismatch is rejected, or when an oversized transfer is rejected.
 
 ```text
-Chunk received
-→ start or refresh timeout
-
-No chunk for 3 seconds
-→ reset transfer
+BLE connection closes
+→ reset transfers for that connection
 ```
 
 A partial transfer should also be cleared when:
 
 - The BLE connection closes
-- A malformed frame arrives
-- A chunk arrives out of order
-- The transfer ID changes unexpectedly
+- The chunk count changes within an existing transfer
 - The message exceeds the maximum allowed size
 
 ---
@@ -318,11 +316,11 @@ Initial framing limits:
 
 | Limit                         | Value           |
 | ----------------------------- | --------------- |
-| Header size                   | 4 bytes         |
+| Header size                   | 8 bytes         |
 | Maximum chunks                | 255             |
-| Maximum complete message      | 8 KB            |
-| Incomplete transfer timeout   | 3 seconds       |
-| Concurrent incoming transfers | 1 per direction |
+| Maximum complete message      | 4096 bytes      |
+| Incomplete transfer timeout   | Not implemented |
+| Concurrent incoming transfers | By connection and transfer ID |
 
 These values can be changed later if needed.
 
@@ -359,19 +357,18 @@ Each direction maintains its own transfer state.
 The first version supports:
 
 - Ordered chunks
-- One transfer at a time
+- One outgoing transfer at a time
 - UTF-8 JSON messages
-- Transfer timeouts
 - Maximum message size validation
 - Framing in both directions
 
 The first version does not include:
 
-- Interleaved transfers
+- Interleaved outgoing transfers
 - Retransmission
 - Checksums
 - Compression
-- Out-of-order chunk recovery
-- Multiple simultaneous messages
+- Transfer timeouts
+- Multiple simultaneous outgoing messages
 
 These features can be added later if they become necessary.

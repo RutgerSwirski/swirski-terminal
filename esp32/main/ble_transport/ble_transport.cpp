@@ -8,6 +8,13 @@
 #include <string>
 #include <utility>
 
+#include <algorithm>
+#include <cstddef>
+#include <map>
+#include <optional>
+#include <tuple>
+#include <vector>
+
 #include <NimBLEDevice.h>
 
 #include "protocol.hpp"
@@ -24,11 +31,416 @@ namespace
     constexpr char TRANSMIT_CHARACTERISTIC_UUID[] =
         "0c83378b-52ed-4500-bc9e-5bb153bbd4d6";
 
+    constexpr std::uint8_t FRAME_MAGIC = 0x53;
+    constexpr std::uint8_t FRAME_VERSION = 1;
+
+    constexpr std::size_t ATT_HEADER_BYTES = 3;
+    constexpr std::size_t FRAME_HEADER_BYTES = 8;
+
+    constexpr std::size_t MAX_MESSAGE_BYTES = 4096;
+    constexpr std::size_t MAX_CHUNK_COUNT = 255;
+
+    std::uint32_t nextOutgoingMessageId = 1;
+
+    std::uint32_t readUint32LittleEndian(
+        const std::string &bytes,
+        std::size_t offset)
+    {
+        return static_cast<std::uint32_t>(
+                   static_cast<std::uint8_t>(
+                       bytes[offset])) |
+               (static_cast<std::uint32_t>(
+                    static_cast<std::uint8_t>(
+                        bytes[offset + 1]))
+                << 8) |
+               (static_cast<std::uint32_t>(
+                    static_cast<std::uint8_t>(
+                        bytes[offset + 2]))
+                << 16) |
+               (static_cast<std::uint32_t>(
+                    static_cast<std::uint8_t>(
+                        bytes[offset + 3]))
+                << 24);
+    }
+
+    void writeUint32LittleEndian(
+        std::string &bytes,
+        std::size_t offset,
+        std::uint32_t value)
+    {
+        bytes[offset] =
+            static_cast<char>(value & 0xff);
+
+        bytes[offset + 1] =
+            static_cast<char>((value >> 8) & 0xff);
+
+        bytes[offset + 2] =
+            static_cast<char>((value >> 16) & 0xff);
+
+        bytes[offset + 3] =
+            static_cast<char>((value >> 24) & 0xff);
+    }
+
+    struct PendingMessageKey
+    {
+        std::uint16_t connHandle;
+        std::uint32_t messageId;
+
+        bool operator<(
+            const PendingMessageKey &other) const
+        {
+            return std::tie(
+                       connHandle,
+                       messageId) <
+                   std::tie(
+                       other.connHandle,
+                       other.messageId);
+        }
+    };
+
+    struct PendingMessage
+    {
+        explicit PendingMessage(
+            std::uint8_t expectedChunkCount)
+            : chunkCount(expectedChunkCount),
+              chunks(expectedChunkCount)
+        {
+        }
+
+        std::uint8_t chunkCount;
+        std::vector<std::optional<std::string>> chunks;
+
+        std::size_t receivedChunkCount = 0;
+        std::size_t receivedByteCount = 0;
+    };
+
+    class FrameAssembler
+    {
+    public:
+        std::optional<std::string> acceptFrame(
+            const std::string &frame,
+            std::uint16_t connHandle)
+        {
+            if (frame.size() < FRAME_HEADER_BYTES)
+            {
+                std::cerr
+                    << "Rejected BLE frame: header is incomplete"
+                    << std::endl;
+
+                return std::nullopt;
+            }
+
+            const auto magic =
+                static_cast<std::uint8_t>(
+                    frame[0]);
+
+            const auto version =
+                static_cast<std::uint8_t>(
+                    frame[1]);
+
+            const std::uint32_t messageId =
+                readUint32LittleEndian(
+                    frame,
+                    2);
+
+            const auto chunkIndex =
+                static_cast<std::uint8_t>(
+                    frame[6]);
+
+            const auto chunkCount =
+                static_cast<std::uint8_t>(
+                    frame[7]);
+
+            if (magic != FRAME_MAGIC)
+            {
+                std::cerr
+                    << "Rejected BLE frame: invalid magic byte"
+                    << std::endl;
+
+                return std::nullopt;
+            }
+
+            if (version != FRAME_VERSION)
+            {
+                std::cerr
+                    << "Rejected BLE frame: unsupported version "
+                    << static_cast<int>(version)
+                    << std::endl;
+
+                return std::nullopt;
+            }
+
+            if (
+                chunkCount == 0 ||
+                chunkIndex >= chunkCount)
+            {
+                std::cerr
+                    << "Rejected BLE frame: invalid chunk information"
+                    << std::endl;
+
+                return std::nullopt;
+            }
+
+            const PendingMessageKey key{
+                connHandle,
+                messageId};
+
+            auto [iterator, inserted] =
+                pendingMessages.try_emplace(
+                    key,
+                    chunkCount);
+
+            PendingMessage &pending =
+                iterator->second;
+
+            if (
+                !inserted &&
+                pending.chunkCount != chunkCount)
+            {
+                std::cerr
+                    << "Rejected BLE frame: chunk count changed"
+                    << std::endl;
+
+                pendingMessages.erase(iterator);
+
+                return std::nullopt;
+            }
+
+            const std::string payload =
+                frame.substr(FRAME_HEADER_BYTES);
+
+            if (
+                !pending.chunks[chunkIndex]
+                     .has_value())
+            {
+                if (
+                    pending.receivedByteCount +
+                        payload.size() >
+                    MAX_MESSAGE_BYTES)
+                {
+                    std::cerr
+                        << "Rejected BLE message: message is too large"
+                        << std::endl;
+
+                    pendingMessages.erase(key);
+
+                    return std::nullopt;
+                }
+
+                pending.chunks[chunkIndex] =
+                    payload;
+
+                pending.receivedChunkCount += 1;
+                pending.receivedByteCount +=
+                    payload.size();
+            }
+
+            std::cout
+                << "Received BLE frame "
+                << static_cast<int>(chunkIndex) + 1
+                << "/"
+                << static_cast<int>(chunkCount)
+                << " for message "
+                << messageId
+                << std::endl;
+
+            if (
+                pending.receivedChunkCount !=
+                pending.chunkCount)
+            {
+                return std::nullopt;
+            }
+
+            std::string completeMessage;
+
+            completeMessage.reserve(
+                pending.receivedByteCount);
+
+            for (const auto &chunk : pending.chunks)
+            {
+                if (!chunk)
+                {
+                    return std::nullopt;
+                }
+
+                completeMessage += *chunk;
+            }
+
+            pendingMessages.erase(key);
+
+            std::cout
+                << "Reassembled BLE message "
+                << messageId
+                << ": "
+                << completeMessage.size()
+                << " bytes"
+                << std::endl;
+
+            return completeMessage;
+        }
+
+        void clearConnection(
+            std::uint16_t connHandle)
+        {
+            for (
+                auto iterator =
+                    pendingMessages.begin();
+                iterator != pendingMessages.end();)
+            {
+                if (
+                    iterator->first.connHandle ==
+                    connHandle)
+                {
+                    iterator =
+                        pendingMessages.erase(iterator);
+                }
+                else
+                {
+                    ++iterator;
+                }
+            }
+        }
+
+    private:
+        std::map<
+            PendingMessageKey,
+            PendingMessage>
+            pendingMessages;
+    };
+
+    FrameAssembler incomingFrameAssembler;
+
+    std::vector<std::string>
+    encodeMessageIntoFrames(
+        const std::string &message,
+        std::uint16_t mtu)
+    {
+        if (message.size() > MAX_MESSAGE_BYTES)
+        {
+            std::cerr
+                << "Cannot frame BLE message: message is too large"
+                << std::endl;
+
+            return {};
+        }
+
+        if (
+            mtu <=
+            ATT_HEADER_BYTES +
+                FRAME_HEADER_BYTES)
+        {
+            std::cerr
+                << "Cannot frame BLE message: MTU is too small"
+                << std::endl;
+
+            return {};
+        }
+
+        const std::size_t maximumFrameBytes =
+            mtu - ATT_HEADER_BYTES;
+
+        const std::size_t maximumPayloadBytes =
+            maximumFrameBytes -
+            FRAME_HEADER_BYTES;
+
+        const std::size_t chunkCountValue =
+            std::max<std::size_t>(
+                1,
+                (
+                    message.size() +
+                    maximumPayloadBytes -
+                    1) /
+                    maximumPayloadBytes);
+
+        if (chunkCountValue > MAX_CHUNK_COUNT)
+        {
+            std::cerr
+                << "Cannot frame BLE message: too many chunks"
+                << std::endl;
+
+            return {};
+        }
+
+        const auto chunkCount =
+            static_cast<std::uint8_t>(
+                chunkCountValue);
+
+        const std::uint32_t messageId =
+            nextOutgoingMessageId;
+
+        nextOutgoingMessageId += 1;
+
+        if (nextOutgoingMessageId == 0)
+        {
+            nextOutgoingMessageId = 1;
+        }
+
+        std::vector<std::string> frames;
+
+        frames.reserve(chunkCount);
+
+        for (
+            std::size_t chunkIndex = 0;
+            chunkIndex < chunkCount;
+            ++chunkIndex)
+        {
+            const std::size_t payloadStart =
+                chunkIndex *
+                maximumPayloadBytes;
+
+            const std::size_t payloadSize =
+                std::min(
+                    maximumPayloadBytes,
+                    message.size() -
+                        payloadStart);
+
+            std::string frame(
+                FRAME_HEADER_BYTES +
+                    payloadSize,
+                '\0');
+
+            frame[0] =
+                static_cast<char>(
+                    FRAME_MAGIC);
+
+            frame[1] =
+                static_cast<char>(
+                    FRAME_VERSION);
+
+            writeUint32LittleEndian(
+                frame,
+                2,
+                messageId);
+
+            frame[6] =
+                static_cast<char>(
+                    chunkIndex);
+
+            frame[7] =
+                static_cast<char>(
+                    chunkCount);
+
+            std::copy(
+                message.begin() +
+                    payloadStart,
+                message.begin() +
+                    payloadStart +
+                    payloadSize,
+                frame.begin() +
+                    FRAME_HEADER_BYTES);
+
+            frames.push_back(
+                std::move(frame));
+        }
+
+        return frames;
+    }
+
     class ServerCallbacks : public NimBLEServerCallbacks
     {
     public:
         void setConnectionHandler(
-            std::function<void(bool)> handler)
+            std::function<void(bool, std::uint16_t)> handler)
         {
             connectionHandler =
                 std::move(handler);
@@ -36,27 +448,31 @@ namespace
 
         void onConnect(
             NimBLEServer *,
-            NimBLEConnInfo &) override
+            NimBLEConnInfo &connInfo) override
         {
             if (connectionHandler)
             {
-                connectionHandler(true);
+                connectionHandler(
+                    true,
+                    connInfo.getConnHandle());
             }
         }
 
         void onDisconnect(
             NimBLEServer *,
-            NimBLEConnInfo &,
+            NimBLEConnInfo &connInfo,
             int) override
         {
             if (connectionHandler)
             {
-                connectionHandler(false);
+                connectionHandler(
+                    false,
+                    connInfo.getConnHandle());
             }
         }
 
     private:
-        std::function<void(bool)> connectionHandler;
+        std::function<void(bool, std::uint16_t)> connectionHandler;
     };
 
     class ReceiveCallbacks : public NimBLECharacteristicCallbacks
@@ -67,17 +483,28 @@ namespace
         {
             messageHandler = std::move(handler);
         }
-        void onWrite(NimBLECharacteristic *characteristic, NimBLEConnInfo &connInfo) override
+        void onWrite(
+            NimBLECharacteristic *characteristic,
+            NimBLEConnInfo &connInfo) override
         {
-            const std::string message = characteristic->getValue();
-            const std::uint16_t connHandle = connInfo.getConnHandle();
+            const std::string frameBytes =
+                characteristic->getValue();
+
+            const std::uint16_t connHandle =
+                connInfo.getConnHandle();
 
             if (messageHandler)
             {
-                messageHandler(message, connHandle);
+                messageHandler(
+                    frameBytes,
+                    connHandle);
             }
 
-            std::cout << "Received BLE message: " << message << std::endl;
+            std::cout
+                << "Queued BLE frame: "
+                << frameBytes.size()
+                << " bytes"
+                << std::endl;
         }
 
     private:
@@ -147,7 +574,9 @@ namespace swirski::transport::ble
         }
 
         serverCallbacks.setConnectionHandler(
-            [this](bool connected)
+            [this](
+                bool connected,
+                std::uint16_t connHandle)
             {
                 std::lock_guard<std::mutex> lock(
                     connectionEventMutex);
@@ -156,6 +585,12 @@ namespace swirski::transport::ble
                     connected
                         ? ConnectionEvent::Connected
                         : ConnectionEvent::Disconnected;
+
+                if (!connected)
+                {
+                    pendingDisconnectedConnHandle =
+                        connHandle;
+                }
             });
 
         server->setCallbacks(
@@ -297,14 +732,24 @@ namespace swirski::transport::ble
     void BleTransport::update()
     {
         std::optional<ConnectionEvent> connectionEvent;
+        std::optional<std::uint16_t> disconnectedConnHandle;
 
         {
             std::lock_guard<std::mutex> lock(
                 connectionEventMutex);
 
             connectionEvent = pendingConnectionEvent;
+            disconnectedConnHandle =
+                pendingDisconnectedConnHandle;
 
             pendingConnectionEvent.reset();
+            pendingDisconnectedConnHandle.reset();
+        }
+
+        if (disconnectedConnHandle)
+        {
+            incomingFrameAssembler.clearConnection(
+                *disconnectedConnHandle);
         }
 
         if (connectionEvent)
@@ -345,14 +790,25 @@ namespace swirski::transport::ble
             incomingMessages.pop();
         }
 
+        const auto completeMessage =
+            incomingFrameAssembler.acceptFrame(
+                nextMessage.message,
+                nextMessage.connHandle);
+
+        if (!completeMessage)
+        {
+            // The message needs more frames.
+            return;
+        }
+
         std::cout
-            << "Processing BLE message in app task: "
-            << nextMessage.message
+            << "Processing complete BLE message: "
+            << *completeMessage
             << std::endl;
 
         const auto parsedMessage =
             swirski::protocol::parseMessage(
-                nextMessage.message);
+                *completeMessage);
 
         if (
             parsedMessage &&
@@ -382,8 +838,9 @@ namespace swirski::transport::ble
             return;
         }
 
-        const auto response = swirski::protocol::handleIncomingMessage(
-            nextMessage.message);
+        const auto response =
+            swirski::protocol::handleIncomingMessage(
+                *completeMessage);
 
         if (response)
         {
@@ -403,9 +860,19 @@ namespace swirski::transport::ble
             return;
         }
 
-        if (
-            server == nullptr ||
-            server->getConnectedCount() == 0)
+        if (server == nullptr)
+        {
+            std::cerr
+                << "BLE server is not initialised"
+                << std::endl;
+
+            return;
+        }
+
+        const auto peerHandles =
+            server->getPeerDevices();
+
+        if (peerHandles.empty())
         {
             std::cout
                 << "No BLE client connected"
@@ -414,23 +881,73 @@ namespace swirski::transport::ble
             return;
         }
 
-        transmitCharacteristic->setValue(message);
+        // Your MVP currently supports one phone.
+        const std::uint16_t connHandle =
+            peerHandles.front();
 
-        const bool sent =
-            transmitCharacteristic->notify();
+        const std::uint16_t peerMtu =
+            server->getPeerMTU(
+                connHandle);
 
-        if (!sent)
+        if (peerMtu == 0)
         {
             std::cerr
-                << "Could not send BLE notification"
+                << "Could not determine peer MTU"
                 << std::endl;
 
             return;
         }
 
+        const auto frames =
+            encodeMessageIntoFrames(
+                message,
+                peerMtu);
+
+        if (frames.empty())
+        {
+            return;
+        }
+
+        for (
+            std::size_t index = 0;
+            index < frames.size();
+            ++index)
+        {
+            const std::string &frame =
+                frames[index];
+
+            const bool sent =
+                transmitCharacteristic->notify(
+                    reinterpret_cast<
+                        const std::uint8_t *>(
+                        frame.data()),
+                    frame.size(),
+                    connHandle);
+
+            if (!sent)
+            {
+                std::cerr
+                    << "Could not send BLE frame "
+                    << index + 1
+                    << "/"
+                    << frames.size()
+                    << std::endl;
+
+                return;
+            }
+
+            std::cout
+                << "Sent BLE frame "
+                << index + 1
+                << "/"
+                << frames.size()
+                << std::endl;
+        }
+
         std::cout
-            << "Sent BLE message: "
-            << message
+            << "Sent complete BLE message: "
+            << message.size()
+            << " bytes"
             << std::endl;
     }
 }

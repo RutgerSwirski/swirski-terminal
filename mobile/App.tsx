@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Button, StyleSheet, Text, View } from 'react-native';
-import { State } from 'react-native-ble-plx';
+import { State, BleErrorCode } from 'react-native-ble-plx';
 import type { Device, Subscription } from 'react-native-ble-plx';
 import { bleManager } from './src/ble/bleManager';
 import { requestBlePermissions } from './src/ble/requestBlePermissions';
@@ -11,7 +11,12 @@ import {
   RX_CHARACTERISTIC_UUID,
 } from './src/ble/constants';
 
-import { decodeBase64ToUtf8, encodeUtf8ToBase64 } from './src/ble/encoding';
+import {
+  BleFrameAssembler,
+  decodeBase64ToBytes,
+  encodeBytesToBase64,
+  encodeMessageIntoFrames,
+} from './src/ble/framing';
 
 type ConnectionStatus =
   | 'disconnected'
@@ -34,6 +39,36 @@ function App() {
   const txSubscriptionRef = useRef<Subscription | null>(null);
   const disconnectSubscriptionRef = useRef<Subscription | null>(null);
 
+  const txFrameAssemblerRef = useRef<BleFrameAssembler | null>(null);
+
+  if (txFrameAssemblerRef.current === null) {
+    txFrameAssemblerRef.current = new BleFrameAssembler();
+  }
+
+  async function sendBleMessage(
+    device: Device,
+    message: Record<string, unknown>,
+  ) {
+    const json = JSON.stringify(message);
+
+    const frames = encodeMessageIntoFrames(json, device.mtu);
+
+    console.log(`Sending BLE message in ${frames.length} frame(s)`);
+
+    for (let index = 0; index < frames.length; index += 1) {
+      const frame = frames[index];
+
+      await bleManager.writeCharacteristicWithResponseForDevice(
+        device.id,
+        SERVICE_UUID,
+        RX_CHARACTERISTIC_UUID,
+        encodeBytesToBase64(frame),
+      );
+
+      console.log(`Sent BLE frame ${index + 1}/${frames.length}`);
+    }
+  }
+
   async function sendPing() {
     if (!connectedDevice || connectionStatus !== 'ready') {
       console.log('Not connected');
@@ -44,29 +79,25 @@ function App() {
       version: 1,
       type: 'ping',
       id: `mobile-${Date.now()}`,
+
+      // Temporary large payload for testing chunking.
+      payload: {
+        debugText: 'A'.repeat(300),
+      },
     };
-    const json = JSON.stringify(pingMessage);
-
-    const encoded = encodeUtf8ToBase64(json);
-
-    console.log('Sending ping:', encoded);
 
     try {
-      await bleManager.writeCharacteristicWithResponseForDevice(
-        connectedDevice.id,
-        SERVICE_UUID,
-        RX_CHARACTERISTIC_UUID,
-        encoded,
-      );
+      await sendBleMessage(connectedDevice, pingMessage);
 
       console.log('Ping sent');
     } catch (error) {
-      console.log('Error sending ping:', error);
+      console.error('Error sending ping:', error);
     }
   }
-
   function subscribeToTx(device: Device) {
     txSubscriptionRef.current?.remove();
+
+    txFrameAssemblerRef.current?.clear();
 
     txSubscriptionRef.current = bleManager.monitorCharacteristicForDevice(
       device.id,
@@ -74,7 +105,20 @@ function App() {
       TX_CHARACTERISTIC_UUID,
       (error, characteristic) => {
         if (error) {
-          console.log(error);
+          if (
+            error.errorCode === BleErrorCode.DeviceDisconnected ||
+            error.errorCode === BleErrorCode.OperationCancelled
+          ) {
+            console.log('TX monitor stopped');
+            return;
+          }
+
+          console.error('Unexpected TX monitor error:', {
+            errorCode: error.errorCode,
+            reason: error.reason,
+            androidErrorCode: error.androidErrorCode,
+          });
+
           return;
         }
 
@@ -82,9 +126,24 @@ function App() {
           return;
         }
 
-        const message = decodeBase64ToUtf8(characteristic.value);
+        try {
+          const frameBytes = decodeBase64ToBytes(characteristic.value);
 
-        console.log('Received TX message:', message);
+          const completeMessage =
+            txFrameAssemblerRef.current?.acceptFrame(frameBytes);
+
+          if (!completeMessage) {
+            return;
+          }
+
+          console.log('Received complete TX message:', completeMessage);
+
+          const parsedMessage = JSON.parse(completeMessage);
+
+          console.log('Parsed TX message:', parsedMessage);
+        } catch (frameError) {
+          console.error('Could not process BLE frame:', frameError);
+        }
       },
     );
 
@@ -145,11 +204,7 @@ function App() {
             console.log('BLE disconnected:', error);
           }
 
-          txSubscriptionRef.current?.remove();
-          txSubscriptionRef.current = null;
-
-          setConnectedDevice(null);
-          setConnectionStatus('disconnected');
+          cleanUpConnection();
         },
       );
 
@@ -158,12 +213,21 @@ function App() {
     } catch (error) {
       console.error('BLE connection error:', error);
 
-      txSubscriptionRef.current?.remove();
-      txSubscriptionRef.current = null;
-
-      setConnectedDevice(null);
-      setConnectionStatus('error');
+      cleanUpConnection();
     }
+  }
+
+  function cleanUpConnection() {
+    txFrameAssemblerRef.current?.clear();
+
+    txSubscriptionRef.current?.remove();
+    txSubscriptionRef.current = null;
+
+    disconnectSubscriptionRef.current?.remove();
+    disconnectSubscriptionRef.current = null;
+
+    setConnectedDevice(null);
+    setConnectionStatus('disconnected');
   }
 
   const startScan = async () => {
@@ -234,34 +298,24 @@ function App() {
       return;
     }
 
-    const deviceId = connectedDevice.id;
-
     setConnectionStatus('disconnecting');
 
-    try {
-      const disconnectMessage = {
-        version: 1,
-        type: 'disconnect.requested',
-        id: `mobile-disconnect-${Date.now()}`,
-      };
+    const disconnectMessage = {
+      version: 1,
+      type: 'disconnect.requested',
+      id: `mobile-disconnect-${Date.now()}`,
+    };
 
-      await bleManager.writeCharacteristicWithResponseForDevice(
-        deviceId,
-        SERVICE_UUID,
-        RX_CHARACTERISTIC_UUID,
-        encodeUtf8ToBase64(JSON.stringify(disconnectMessage)),
-      );
+    try {
+      await sendBleMessage(connectedDevice, disconnectMessage);
+
+      console.log('Disconnect request sent; waiting for terminal');
     } catch (error) {
       console.error('BLE disconnect request error:', error);
-    }
 
-    try {
-      await bleManager.cancelDeviceConnection(deviceId);
-    } catch (error) {
-      console.error('BLE disconnect error:', error);
-
-      setConnectedDevice(null);
-      setConnectionStatus('disconnected');
+      // The request was not delivered, so the connection
+      // should still be usable.
+      setConnectionStatus('ready');
     }
   }
 
