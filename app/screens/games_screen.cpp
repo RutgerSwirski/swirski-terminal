@@ -178,6 +178,16 @@ namespace swirski::screens::games_screen
                 swirski::screens::manager::showScreen(
                     swirski::screens::manager::Screen::Blackjack);
             }
+            else if (selectedGameIndex == 2)
+            {
+                swirski::screens::manager::showScreen(
+                    swirski::screens::manager::Screen::Snake);
+            }
+            else if (selectedGameIndex == 3)
+            {
+                swirski::screens::manager::showScreen(
+                    swirski::screens::manager::Screen::Tetris);
+            }
             break;
         }
     }

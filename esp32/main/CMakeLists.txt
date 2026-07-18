@@ -29,6 +29,8 @@ idf_component_register(
         "${APP_DIR}/screens/games_screen.cpp"
         "${APP_DIR}/screens/pong_screen.cpp"
         "${APP_DIR}/screens/blackjack_screen.cpp"
+        "${APP_DIR}/screens/snake_screen.cpp"
+        "${APP_DIR}/screens/tetris_screen.cpp"
         "${APP_DIR}/screens/settings_screen.cpp"
         "${APP_DIR}/screens/wifi_screen.cpp"
         

@@ -82,6 +82,8 @@ add_executable(
     ../app/screens/games_screen.cpp
     ../app/screens/pong_screen.cpp
     ../app/screens/blackjack_screen.cpp
+    ../app/screens/snake_screen.cpp
+    ../app/screens/tetris_screen.cpp
     ../app/screens/settings_screen.cpp
     ../app/screens/wifi_screen.cpp
 

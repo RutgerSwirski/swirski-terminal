@@ -17,6 +17,8 @@ namespace swirski::screens::manager
         Games,
         Pong,
         Blackjack,
+        Snake,
+        Tetris,
         Studio,
         Settings,
         Wifi,

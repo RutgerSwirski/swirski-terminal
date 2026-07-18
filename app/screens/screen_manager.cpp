@@ -8,6 +8,8 @@
 #include "games_screen.hpp"
 #include "pong_screen.hpp"
 #include "blackjack_screen.hpp"
+#include "snake_screen.hpp"
+#include "tetris_screen.hpp"
 #include "settings_screen.hpp"
 #include "wifi_screen.hpp"
 #include "ui/keyboard.hpp"
@@ -60,6 +62,8 @@ namespace swirski::screens::manager
             {Screen::Games, "GAMES", games_screen::render, games_screen::handleInput},
             {Screen::Pong, "PONG", pong_screen::render, pong_screen::handleInput},
             {Screen::Blackjack, "BLACKJACK", blackjack_screen::render, blackjack_screen::handleInput},
+            {Screen::Snake, "SNAKE", snake_screen::render, snake_screen::handleInput},
+            {Screen::Tetris, "TETRIS", tetris_screen::render, tetris_screen::handleInput},
             {Screen::Settings, "SETTINGS", settings_screen::render, settings_screen::handleInput},
             {Screen::Wifi, "WI-FI", wifi_screen::render, wifi_screen::handleInput},
             {Screen::Keyboard, "KEYBOARD", swirski::ui::keyboard::render, swirski::ui::keyboard::handleInput}};
