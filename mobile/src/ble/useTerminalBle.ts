@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { NativeModules } from 'react-native';
 import { BleErrorCode, State } from 'react-native-ble-plx';
 import type { Device, Subscription } from 'react-native-ble-plx';
 
@@ -17,6 +18,19 @@ import {
 import { requestBlePermissions } from './requestBlePermissions';
 import { createDisconnectMessage, createPingMessage } from '../protocol/messages';
 import { handleMusicCommandMessage } from '../music/handleMusicCommand';
+
+type SwirskiBackgroundModule = {
+  requestEnableBluetooth(): Promise<void>;
+  start(deviceId: string): Promise<void>;
+  stop(): Promise<void>;
+  getSavedDeviceId(): Promise<string | null>;
+};
+
+const SwirskiBackground = NativeModules.SwirskiBackground as
+  | SwirskiBackgroundModule
+  | undefined;
+
+const RECONNECT_DELAY_MS = 3000;
 
 export type ConnectionStatus =
   | 'disconnected'
@@ -54,6 +68,11 @@ export function useTerminalBle() {
   const txSubscriptionRef = useRef<Subscription | null>(null);
   const disconnectSubscriptionRef = useRef<Subscription | null>(null);
   const txFrameAssemblerRef = useRef<BleFrameAssembler | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectRef = useRef<(deviceId: string) => void>(() => {});
+  const manualDisconnectRef = useRef<boolean>(false);
+  const isConnectingRef = useRef<boolean>(false);
+  const restoredConnectionRef = useRef<boolean>(false);
 
   if (txFrameAssemblerRef.current === null) {
     txFrameAssemblerRef.current = new BleFrameAssembler();
@@ -118,6 +137,25 @@ export function useTerminalBle() {
     setConnectionStatus('disconnected');
   }, []);
 
+  const clearReconnectTimer = useCallback(() => {
+    if (reconnectTimerRef.current !== null) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleReconnect = useCallback(
+    (deviceId: string) => {
+      clearReconnectTimer();
+
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null;
+        reconnectRef.current(deviceId);
+      }, RECONNECT_DELAY_MS);
+    },
+    [clearReconnectTimer],
+  );
+
   const subscribeToTx = useCallback((device: Device) => {
     txSubscriptionRef.current?.remove();
     txFrameAssemblerRef.current?.clear();
@@ -167,7 +205,9 @@ export function useTerminalBle() {
 
           console.log('Parsed TX message:', parsedMessage);
 
-          void handleMusicCommandMessage(parsedMessage);
+          handleMusicCommandMessage(parsedMessage).catch(commandError => {
+            console.error('Could not handle music command:', commandError);
+          });
         } catch (frameError) {
           console.error('Could not process BLE frame:', frameError);
         }
@@ -199,8 +239,93 @@ export function useTerminalBle() {
     }
   }, []);
 
+  const prepareConnectedDevice = useCallback(
+    async (connected: Device) => {
+      const mtuDevice = await connected.requestMTU(247);
+
+      console.log('Negotiated MTU:', mtuDevice.mtu);
+
+      setConnectionStatus('discovering');
+
+      const discovered =
+        await mtuDevice.discoverAllServicesAndCharacteristics();
+
+      await inspectGatt(discovered);
+      subscribeToTx(discovered);
+
+      disconnectSubscriptionRef.current?.remove();
+
+      disconnectSubscriptionRef.current = bleManager.onDeviceDisconnected(
+        discovered.id,
+        error => {
+          if (error) {
+            console.log('BLE disconnected:', error);
+          }
+
+          const shouldReconnect = !manualDisconnectRef.current;
+          cleanUpConnection();
+
+          if (shouldReconnect) {
+            scheduleReconnect(discovered.id);
+          }
+        },
+      );
+
+      manualDisconnectRef.current = false;
+      setConnectedDevice(discovered);
+      setConnectionStatus('ready');
+
+      try {
+        await SwirskiBackground?.start(discovered.id);
+      } catch (error) {
+        console.error('Could not start background connection service:', error);
+      }
+    },
+    [cleanUpConnection, inspectGatt, scheduleReconnect, subscribeToTx],
+  );
+
+  const reconnectToDevice = useCallback(
+    async (deviceId: string) => {
+      if (isConnectingRef.current || manualDisconnectRef.current) {
+        return;
+      }
+
+      isConnectingRef.current = true;
+
+      try {
+        setConnectionStatus('connecting');
+
+        const connected = await bleManager.connectToDevice(deviceId);
+
+        console.log('Reconnected to device:', connected.name, connected.id);
+        await prepareConnectedDevice(connected);
+      } catch (error) {
+        console.log('BLE reconnect failed; retrying:', error);
+        cleanUpConnection();
+        scheduleReconnect(deviceId);
+      } finally {
+        isConnectingRef.current = false;
+      }
+    },
+    [cleanUpConnection, prepareConnectedDevice, scheduleReconnect],
+  );
+
+  reconnectRef.current = deviceId => {
+    reconnectToDevice(deviceId).catch(error => {
+      console.error('Could not reconnect to terminal:', error);
+    });
+  };
+
   const connectToDevice = useCallback(
     async (device: Device) => {
+      if (isConnectingRef.current) {
+        return;
+      }
+
+      isConnectingRef.current = true;
+      manualDisconnectRef.current = false;
+      clearReconnectTimer();
+
       try {
         bleManager.stopDeviceScan();
         setIsScanning(false);
@@ -209,40 +334,15 @@ export function useTerminalBle() {
         const connected = await device.connect();
 
         console.log('Connected to device:', connected.name, connected.id);
-
-        const mtuDevice = await connected.requestMTU(247);
-
-        console.log('Negotiated MTU:', mtuDevice.mtu);
-
-        setConnectionStatus('discovering');
-
-        const discovered =
-          await mtuDevice.discoverAllServicesAndCharacteristics();
-
-        await inspectGatt(discovered);
-        subscribeToTx(discovered);
-
-        disconnectSubscriptionRef.current?.remove();
-
-        disconnectSubscriptionRef.current = bleManager.onDeviceDisconnected(
-          discovered.id,
-          error => {
-            if (error) {
-              console.log('BLE disconnected:', error);
-            }
-
-            cleanUpConnection();
-          },
-        );
-
-        setConnectedDevice(discovered);
-        setConnectionStatus('ready');
+        await prepareConnectedDevice(connected);
       } catch (error) {
         console.error('BLE connection error:', error);
         cleanUpConnection();
+      } finally {
+        isConnectingRef.current = false;
       }
     },
-    [cleanUpConnection, inspectGatt, subscribeToTx],
+    [clearReconnectTimer, cleanUpConnection, prepareConnectedDevice],
   );
 
   const startScan = useCallback(async () => {
@@ -261,7 +361,7 @@ export function useTerminalBle() {
     setDevices([]);
     setIsScanning(true);
 
-    bleManager.startDeviceScan(null, null, (error, device) => {
+    bleManager.startDeviceScan([SERVICE_UUID], null, (error, device) => {
       if (error) {
         console.error('BLE scan error:', error);
         setIsScanning(false);
@@ -275,10 +375,20 @@ export function useTerminalBle() {
       console.log('Discovered device:', device);
 
       setDevices(currentDevices => {
-        const alreadyExists = currentDevices.some(d => d.id === device.id);
+        const deviceName = device.name ?? device.localName;
+        const existingIndex = currentDevices.findIndex(currentDevice => {
+          const currentName = currentDevice.name ?? currentDevice.localName;
 
-        if (alreadyExists) {
-          return currentDevices;
+          return (
+            currentDevice.id === device.id ||
+            (deviceName !== null && deviceName === currentName)
+          );
+        });
+
+        if (existingIndex >= 0) {
+          const updatedDevices = [...currentDevices];
+          updatedDevices[existingIndex] = device;
+          return updatedDevices;
         }
 
         return [...currentDevices, device];
@@ -297,15 +407,24 @@ export function useTerminalBle() {
     }
 
     setConnectionStatus('disconnecting');
+    manualDisconnectRef.current = true;
+    clearReconnectTimer();
 
     try {
       await sendBleMessage(connectedDevice, createDisconnectMessage());
+      await SwirskiBackground?.stop();
       console.log('Disconnect request sent; waiting for terminal');
     } catch (error) {
       console.error('BLE disconnect request error:', error);
+      manualDisconnectRef.current = false;
       setConnectionStatus('ready');
     }
-  }, [connectedDevice, connectionStatus, sendBleMessage]);
+  }, [
+    clearReconnectTimer,
+    connectedDevice,
+    connectionStatus,
+    sendBleMessage,
+  ]);
 
   const sendPing = useCallback(async () => {
     if (!connectedDevice || connectionStatus !== 'ready') {
@@ -321,19 +440,61 @@ export function useTerminalBle() {
     }
   }, [connectedDevice, connectionStatus, sendBleMessage]);
 
+  const enableBluetooth = useCallback(async () => {
+    try {
+      await SwirskiBackground?.requestEnableBluetooth();
+    } catch (error) {
+      console.error('Could not enable Bluetooth:', error);
+    }
+  }, []);
+
   useEffect(() => {
     const stateSubscription = bleManager.onStateChange(nextState => {
       console.log('BLE state:', nextState);
       setBleState(nextState);
+
+      if (nextState !== State.PoweredOn) {
+        bleManager.stopDeviceScan();
+        setDevices([]);
+        setIsScanning(false);
+      }
     }, true);
 
     return () => {
       stateSubscription.remove();
+      clearReconnectTimer();
       txSubscriptionRef.current?.remove();
       txFrameAssemblerRef.current?.stop();
       txFrameAssemblerRef.current = null;
     };
-  }, []);
+  }, [clearReconnectTimer]);
+
+  useEffect(() => {
+    if (
+      bleState !== State.PoweredOn ||
+      restoredConnectionRef.current
+    ) {
+      return;
+    }
+
+    restoredConnectionRef.current = true;
+
+    async function restoreConnection() {
+      try {
+        const deviceId = await SwirskiBackground?.getSavedDeviceId();
+
+        if (deviceId) {
+          reconnectRef.current(deviceId);
+        }
+      } catch (error) {
+        console.error('Could not restore terminal connection:', error);
+      }
+    }
+
+    restoreConnection().catch(error => {
+      console.error('Could not restore terminal connection:', error);
+    });
+  }, [bleState]);
 
   return {
     bleState,
@@ -342,6 +503,7 @@ export function useTerminalBle() {
     connectionStatus,
     connectedDevice,
     transferProgress,
+    enableBluetooth,
     startScan,
     connectToDevice,
     disconnectFromDevice,
