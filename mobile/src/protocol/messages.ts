@@ -33,6 +33,45 @@ export function createTimeSyncMessage(): Record<string, unknown> {
   };
 }
 
+export function createWifiScanRequestMessage(): Record<string, unknown> {
+  return {
+    version: 1,
+    type: 'wifi.scan.request',
+    id: `mobile-wifi-scan-${Date.now()}`,
+  };
+}
+
+export function createWifiConfigureMessage(
+  ssid: string,
+  password: string,
+): Record<string, unknown> {
+  return {
+    version: 1,
+    type: 'wifi.configure',
+    id: `mobile-wifi-configure-${Date.now()}`,
+    payload: {
+      ssid,
+      password,
+    },
+  };
+}
+
+export function createWifiInternetTestMessage(): Record<string, unknown> {
+  return {
+    version: 1,
+    type: 'wifi.internet.test',
+    id: `mobile-wifi-internet-test-${Date.now()}`,
+  };
+}
+
+export function createWifiDisconnectMessage(): Record<string, unknown> {
+  return {
+    version: 1,
+    type: 'wifi.disconnect',
+    id: `mobile-wifi-disconnect-${Date.now()}`,
+  };
+}
+
 export function createTestNotificationSnapshotMessage(): Record<
   string,
   unknown

@@ -9,6 +9,7 @@ import { useTerminalBle } from '../ble/useTerminalBle';
 import { ConnectionPanel } from '../components/ConnectionPanel';
 import { DebugActions } from '../components/DebugActions';
 import { DeviceList } from '../components/DeviceList';
+import { WifiPanel } from '../components/WifiPanel';
 import { useMusicBridge } from '../music/useMusicBridge';
 import { useNotificationBridge } from '../notifications/useNotificationBridge';
 import {
@@ -17,6 +18,7 @@ import {
   createTestNotificationSnapshotMessage,
   createTimeSyncMessage,
 } from '../protocol/messages';
+import { useTerminalWifi } from '../wifi/useTerminalWifi';
 
 export function TerminalScreen() {
   const terminalBle = useTerminalBle();
@@ -37,36 +39,34 @@ export function TerminalScreen() {
     connectionStatus: terminalBle.connectionStatus,
     sendBleMessage: terminalBle.sendBleMessage,
   });
+  const terminalWifi = useTerminalWifi({
+    connectedDevice,
+    connectionStatus,
+    addMessageHandler: terminalBle.addMessageHandler,
+    sendBleMessage,
+  });
   const sendCurrentNotificationSnapshot =
     notificationBridge.sendCurrentNotificationSnapshot;
   const sendCurrentMusicState = musicBridge.sendCurrentMusicState;
+  const scanTerminalWifi = terminalWifi.scan;
 
   const sendTestNotificationSnapshot = useCallback(
     async (device: Device) => {
-      await sendBleMessage(
-        device,
-        createTestNotificationSnapshotMessage(),
-      );
+      await sendBleMessage(device, createTestNotificationSnapshotMessage());
     },
     [sendBleMessage],
   );
 
   const sendTestNotificationReceived = useCallback(
     async (device: Device) => {
-      await sendBleMessage(
-        device,
-        createTestNotificationReceivedMessage(),
-      );
+      await sendBleMessage(device, createTestNotificationReceivedMessage());
     },
     [sendBleMessage],
   );
 
   const sendTestMusicState = useCallback(
     async (device: Device) => {
-      await sendBleMessage(
-        device,
-        createTestMusicStateMessage(),
-      );
+      await sendBleMessage(device, createTestMusicStateMessage());
     },
     [sendBleMessage],
   );
@@ -97,6 +97,12 @@ export function TerminalScreen() {
       }
 
       try {
+        await scanTerminalWifi();
+      } catch (error) {
+        console.error('Could not request terminal Wi-Fi status:', error);
+      }
+
+      try {
         await sendCurrentNotificationSnapshot(device);
       } catch (error) {
         console.error('Could not send notification snapshot:', error);
@@ -116,6 +122,7 @@ export function TerminalScreen() {
     sendBleMessage,
     sendCurrentMusicState,
     sendCurrentNotificationSnapshot,
+    scanTerminalWifi,
   ]);
 
   useEffect(() => {
@@ -126,10 +133,9 @@ export function TerminalScreen() {
     }
 
     const timeSyncInterval = setInterval(() => {
-      sendBleMessage(device, createTimeSyncMessage())
-        .catch(error => {
-          console.error('Could not refresh date/time sync:', error);
-        });
+      sendBleMessage(device, createTimeSyncMessage()).catch(error => {
+        console.error('Could not refresh date/time sync:', error);
+      });
     }, 30 * 60 * 1000);
 
     return () => clearInterval(timeSyncInterval);
@@ -179,6 +185,18 @@ export function TerminalScreen() {
             onDisconnect={terminalBle.disconnectFromDevice}
           />
         )}
+
+        {terminalBle.connectedDevice &&
+          terminalBle.connectionStatus === 'ready' && (
+            <WifiPanel
+              networks={terminalWifi.networks}
+              status={terminalWifi.status}
+              onScan={terminalWifi.scan}
+              onConnect={terminalWifi.connect}
+              onTestInternet={terminalWifi.testInternet}
+              onDisconnect={terminalWifi.disconnect}
+            />
+          )}
 
         <DebugActions
           connectedDevice={terminalBle.connectedDevice}

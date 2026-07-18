@@ -49,6 +49,8 @@ export type TransferProgress = {
   percent: number;
 } | null;
 
+export type MessageHandler = (message: Record<string, unknown>) => void;
+
 function shouldLogFrameProgress(
   frameIndex: number,
   frameCount: number,
@@ -79,6 +81,7 @@ export function useTerminalBle() {
   const manualDisconnectRef = useRef<boolean>(false);
   const isConnectingRef = useRef<boolean>(false);
   const restoredConnectionRef = useRef<boolean>(false);
+  const messageHandlersRef = useRef<Set<MessageHandler>>(new Set());
 
   if (txFrameAssemblerRef.current === null) {
     txFrameAssemblerRef.current = new BleFrameAssembler();
@@ -210,6 +213,10 @@ export function useTerminalBle() {
           >;
 
           console.log('Parsed TX message:', parsedMessage);
+
+          messageHandlersRef.current.forEach(handler => {
+            handler(parsedMessage);
+          });
 
           handleMusicCommandMessage(parsedMessage).catch(commandError => {
             console.error('Could not handle music command:', commandError);
@@ -455,6 +462,14 @@ export function useTerminalBle() {
     }
   }, []);
 
+  const addMessageHandler = useCallback((handler: MessageHandler) => {
+    messageHandlersRef.current.add(handler);
+
+    return () => {
+      messageHandlersRef.current.delete(handler);
+    };
+  }, []);
+
   useEffect(() => {
     const stateSubscription = bleManager.onStateChange(nextState => {
       console.log('BLE state:', nextState);
@@ -507,6 +522,7 @@ export function useTerminalBle() {
     connectionStatus,
     connectedDevice,
     transferProgress,
+    addMessageHandler,
     enableBluetooth,
     startScan,
     connectToDevice,
