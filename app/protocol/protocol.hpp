@@ -6,7 +6,13 @@
 
 namespace swirski::protocol
 {
-    std::optional<std::string> handleIncomingMessage(
+    struct MessageResult
+    {
+        std::optional<std::string> response;
+        bool disconnectRequested = false;
+    };
+
+    MessageResult handleIncomingMessage(
         const std::string &rawMessage);
 
     std::optional<Message> parseMessage(const std::string &rawMessage);

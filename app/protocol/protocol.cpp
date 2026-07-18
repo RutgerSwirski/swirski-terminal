@@ -54,6 +54,60 @@ namespace
         return swirski::protocol::MessageType::Unknown;
     }
 
+    std::optional<swirski::protocol::Message> parseMessage(
+        JsonObjectConst document)
+    {
+        if (!document["version"].is<int>())
+        {
+            std::cerr
+                << "Protocol message has no valid version"
+                << std::endl;
+
+            return std::nullopt;
+        }
+
+        if (!document["type"].is<const char *>())
+        {
+            std::cerr
+                << "Protocol message has no valid type"
+                << std::endl;
+
+            return std::nullopt;
+        }
+
+        if (!document["id"].is<const char *>())
+        {
+            std::cerr
+                << "Protocol message has no valid ID"
+                << std::endl;
+
+            return std::nullopt;
+        }
+
+        swirski::protocol::Message message;
+
+        message.version =
+            document["version"].as<int>();
+
+        if (message.version != 1)
+        {
+            std::cerr
+                << "Unsupported protocol version: "
+                << message.version
+                << std::endl;
+
+            return std::nullopt;
+        }
+
+        message.type =
+            parseMessageType(
+                document["type"].as<std::string>());
+
+        message.id =
+            document["id"].as<std::string>();
+
+        return message;
+    }
 }
 
 namespace swirski::protocol
@@ -100,66 +154,13 @@ namespace swirski::protocol
             return std::nullopt;
         }
 
-        if (!document["version"].is<int>())
-        {
-            std::cerr
-                << "Protocol message has no valid version"
-                << std::endl;
-
-            return std::nullopt;
-        }
-
-        if (!document["type"].is<const char *>())
-        {
-            std::cerr
-                << "Protocol message has no valid type"
-                << std::endl;
-
-            return std::nullopt;
-        }
-
-        if (!document["id"].is<const char *>())
-        {
-            std::cerr
-                << "Protocol message has no valid ID"
-                << std::endl;
-
-            return std::nullopt;
-        }
-
-        Message message;
-
-        message.version =
-            document["version"].as<int>();
-
-        if (message.version != 1)
-        {
-            std::cerr
-                << "Unsupported protocol version: "
-                << message.version
-                << std::endl;
-
-            return std::nullopt;
-        }
-
-        const std::string rawType =
-            document["type"].as<std::string>();
-
-        message.type =
-            parseMessageType(rawType);
-
-        message.id =
-            document["id"].as<std::string>();
-
-        return message;
+        return ::parseMessage(
+            document.as<JsonObjectConst>());
     }
 
-    std::optional<std::string> handleIncomingMessage(
+    MessageResult handleIncomingMessage(
         const std::string &rawMessage)
     {
-
-        std::cout << "1. Message parsed" << std::endl;
-
         JsonDocument document;
 
         const DeserializationError error =
@@ -172,28 +173,33 @@ namespace swirski::protocol
                 << error.c_str()
                 << std::endl;
 
-            return std::nullopt;
+            return {};
         }
 
         const auto message =
-            parseMessage(rawMessage);
+            ::parseMessage(
+                document.as<JsonObjectConst>());
 
         if (!message)
         {
-            return std::nullopt;
+            return {};
         }
+
+        std::cout << "Message parsed" << std::endl;
 
         switch (message->type)
         {
         case MessageType::Ping:
-            return createPongMessage(message->id);
+            return {
+                createPongMessage(message->id),
+                false};
 
         case MessageType::Pong:
             std::cout
                 << "Received pong"
                 << std::endl;
 
-            return std::nullopt;
+            return {};
 
         case MessageType::TimeSync:
         {
@@ -206,7 +212,7 @@ namespace swirski::protocol
                     << "Invalid time.sync payload"
                     << std::endl;
 
-                return std::nullopt;
+                return {};
             }
 
             const long unixTimeSeconds =
@@ -223,7 +229,7 @@ namespace swirski::protocol
                 << "Applied date/time sync"
                 << std::endl;
 
-            return std::nullopt;
+            return {};
         }
 
         case MessageType::NotificationReceived:
@@ -232,7 +238,7 @@ namespace swirski::protocol
                 handleNotificationReceived(
                     document["payload"].as<JsonObjectConst>());
 
-            return std::nullopt;
+            return {};
         }
 
         case MessageType::NotificationsSnapshot:
@@ -240,26 +246,28 @@ namespace swirski::protocol
                 handleNotificationsSnapshot(
                     document["payload"].as<JsonObjectConst>());
 
-            return std::nullopt;
+            return {};
 
         case MessageType::MusicState:
             swirski::services::music_service::
                 handleMusicState(
                     document["payload"].as<JsonObjectConst>());
 
-            return std::nullopt;
+            return {};
 
         case MessageType::DisconnectRequested:
-            return std::nullopt;
+            return {
+                std::nullopt,
+                true};
 
         case MessageType::Unknown:
             std::cerr
                 << "Unknown protocol message type"
                 << std::endl;
 
-            return std::nullopt;
+            return {};
         }
 
-        return std::nullopt;
+        return {};
     }
 }

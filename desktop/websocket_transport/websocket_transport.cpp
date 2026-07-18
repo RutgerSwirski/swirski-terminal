@@ -194,13 +194,13 @@ namespace swirski::transport::websocket
             << nextMessage
             << std::endl;
 
-        const auto response =
+        const auto result =
             swirski::protocol::handleIncomingMessage(
                 nextMessage);
 
-        if (response)
+        if (result.response)
         {
-            send(*response);
+            send(*result.response);
         }
     }
 

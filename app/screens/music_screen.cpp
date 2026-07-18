@@ -1,6 +1,7 @@
 #include "music_screen.hpp"
 
 #include <ArduinoJson.h>
+#include <algorithm>
 #include <cstdint>
 #include <iostream>
 #include <sstream>
@@ -21,6 +22,9 @@ namespace swirski::screens::music_screen
         int selectedControlIndex = 1;
         int nextCommandId = 1;
         swirski::transport::Transport *musicTransport = nullptr;
+        lv_obj_t *progressBar = nullptr;
+        lv_obj_t *elapsedLabel = nullptr;
+        lv_obj_t *remainingLabel = nullptr;
 
         std::string playingText(
             bool isPlaying)
@@ -54,6 +58,50 @@ namespace swirski::screens::music_screen
             output << seconds;
 
             return output.str();
+        }
+
+        void updateProgress(
+            const swirski::services::music_service::MusicState &music)
+        {
+            const std::uint64_t durationMs =
+                music.durationMs;
+
+            const std::uint64_t positionMs =
+                std::min(
+                    music.positionMs,
+                    durationMs);
+
+            lv_bar_set_range(
+                progressBar,
+                0,
+                durationMs > 0
+                    ? static_cast<int>(durationMs)
+                    : 100);
+
+            lv_bar_set_value(
+                progressBar,
+                durationMs > 0
+                    ? static_cast<int>(positionMs)
+                    : 0,
+                LV_ANIM_OFF);
+
+            const std::string elapsedText =
+                durationMs > 0
+                    ? formatTime(positionMs)
+                    : "--:--";
+
+            const std::string remainingText =
+                durationMs > 0
+                    ? "-" + formatTime(durationMs - positionMs)
+                    : "--:--";
+
+            lv_label_set_text(
+                elapsedLabel,
+                elapsedText.c_str());
+
+            lv_label_set_text(
+                remainingLabel,
+                remainingText.c_str());
         }
 
         void styleControl(
@@ -233,71 +281,42 @@ namespace swirski::screens::music_screen
             58,
             22);
 
-        const std::uint64_t durationMs =
-            music.durationMs;
-
-        const std::uint64_t positionMs =
-            music.positionMs;
-
-        lv_obj_t *progress =
+        progressBar =
             lv_bar_create(container);
 
         lv_obj_set_size(
-            progress,
+            progressBar,
             LV_PCT(100),
             10);
 
         lv_obj_align(
-            progress,
+            progressBar,
             LV_ALIGN_TOP_LEFT,
             0,
             82);
 
-        lv_bar_set_range(
-            progress,
-            0,
-            durationMs > 0
-                ? static_cast<int>(durationMs)
-                : 100);
-
-        lv_bar_set_value(
-            progress,
-            durationMs > 0
-                ? static_cast<int>(positionMs)
-                : 0,
-            LV_ANIM_OFF);
-
         lv_obj_set_style_bg_color(
-            progress,
+            progressBar,
             swirski::ui::swirski_ui::color::surfaceSoft(),
             LV_PART_MAIN);
 
         lv_obj_set_style_bg_color(
-            progress,
+            progressBar,
             swirski::ui::swirski_ui::color::accentWarm(),
             LV_PART_INDICATOR);
 
-        const std::string elapsedText =
-            durationMs > 0
-                ? formatTime(positionMs)
-                : "--:--";
-
-        const std::string remainingText =
-            durationMs > 0
-                ? "-" + formatTime(durationMs - positionMs)
-                : "--:--";
-
-        swirski::ui::swirski_ui::createLabel(
-            container,
-            elapsedText.c_str(),
-            swirski::ui::swirski_ui::TextTone::Muted,
-            96,
-            18);
-
-        lv_obj_t *remainingLabel =
+        elapsedLabel =
             swirski::ui::swirski_ui::createLabel(
                 container,
-                remainingText.c_str(),
+                "",
+                swirski::ui::swirski_ui::TextTone::Muted,
+                96,
+                18);
+
+        remainingLabel =
+            swirski::ui::swirski_ui::createLabel(
+                container,
+                "",
                 swirski::ui::swirski_ui::TextTone::Muted,
                 96,
                 18);
@@ -306,6 +325,8 @@ namespace swirski::screens::music_screen
             remainingLabel,
             LV_TEXT_ALIGN_RIGHT,
             LV_PART_MAIN);
+
+        updateProgress(music);
 
         const std::string status =
             playingText(
@@ -353,16 +374,23 @@ namespace swirski::screens::music_screen
                 getState();
 
         if (
-            renderedMusicRevision ==
-                swirski::services::music_service::
-                    revision &&
-            (!music.isPlaying ||
-             lv_tick_elaps(lastProgressRenderAt) < 1000))
+            renderedMusicRevision !=
+            swirski::services::music_service::revision)
+        {
+            render();
+            return;
+        }
+
+        if (
+            !music.isPlaying ||
+            lv_tick_elaps(lastProgressRenderAt) < 1000)
         {
             return;
         }
 
-        render();
+        updateProgress(music);
+        lastProgressRenderAt =
+            lv_tick_get();
     }
 
     void handleInput(

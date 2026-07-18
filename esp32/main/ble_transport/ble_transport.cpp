@@ -914,14 +914,12 @@ namespace swirski::transport::ble
             << *completeMessage
             << std::endl;
 
-        const auto parsedMessage =
-            swirski::protocol::parseMessage(
+        const auto result =
+            swirski::protocol::handleIncomingMessage(
                 *completeMessage);
 
         if (
-            parsedMessage &&
-            parsedMessage->type ==
-                swirski::protocol::MessageType::DisconnectRequested)
+            result.disconnectRequested)
         {
             if (server == nullptr)
             {
@@ -946,13 +944,9 @@ namespace swirski::transport::ble
             return;
         }
 
-        const auto response =
-            swirski::protocol::handleIncomingMessage(
-                *completeMessage);
-
-        if (response)
+        if (result.response)
         {
-            send(*response);
+            send(*result.response);
         }
     }
 
