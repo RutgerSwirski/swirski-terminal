@@ -72,6 +72,16 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def releaseSigningVariables = [
+    'SWIRSKI_UPLOAD_STORE_FILE',
+    'SWIRSKI_UPLOAD_STORE_PASSWORD',
+    'SWIRSKI_UPLOAD_KEY_ALIAS',
+    'SWIRSKI_UPLOAD_KEY_PASSWORD',
+]
+def hasReleaseSigning = releaseSigningVariables.every {
+    System.getenv(it)
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -86,21 +96,20 @@ android {
         versionName "1.0"
     }
     signingConfigs {
-        debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(System.getenv('SWIRSKI_UPLOAD_STORE_FILE'))
+                storePassword System.getenv('SWIRSKI_UPLOAD_STORE_PASSWORD')
+                keyAlias System.getenv('SWIRSKI_UPLOAD_KEY_ALIAS')
+                keyPassword System.getenv('SWIRSKI_UPLOAD_KEY_PASSWORD')
+            }
         }
     }
     buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
