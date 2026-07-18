@@ -24,6 +24,8 @@
 #include "ui/notification_toast.hpp"
 #include "input.hpp"
 #include "hardware_settings.hpp"
+#include "wifi_service.hpp"
+#include "wifi_screen.hpp"
 
 #include "ble_transport.hpp"
 
@@ -188,6 +190,7 @@ extern "C" void app_main()
 
     swirski::service::settings::initialise();
     swirski::settings::hardware::initialise();
+    swirski::services::wifi_service::initialise();
 
     vTaskDelay(1);
 
@@ -218,6 +221,7 @@ extern "C" void app_main()
     {
 
         bleTransport.update();
+        swirski::services::wifi_service::update();
 
         if (lvgl_port_lock(0))
         {
@@ -239,6 +243,13 @@ extern "C" void app_main()
             {
                 swirski::screens::music_screen::
                     refreshIfNeeded();
+            }
+
+            if (
+                swirski::screens::manager::getCurrentScreen() ==
+                swirski::screens::manager::Screen::Wifi)
+            {
+                swirski::screens::wifi_screen::refreshIfNeeded();
             }
 
             lvgl_port_unlock();

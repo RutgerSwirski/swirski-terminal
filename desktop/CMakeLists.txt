@@ -81,12 +81,14 @@ add_executable(
     ../app/screens/pong_screen.cpp
     ../app/screens/blackjack_screen.cpp
     ../app/screens/settings_screen.cpp
+    ../app/screens/wifi_screen.cpp
 
     ../app/services/date_time.cpp
     ../app/services/notification_service.cpp
     ../app/services/music_service.cpp
     ../app/services/settings_service.cpp
     ../app/services/keyboard_service.cpp
+    ../app/services/wifi_service.cpp
 
     ../app/protocol/protocol.cpp
 

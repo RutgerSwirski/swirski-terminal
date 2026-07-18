@@ -28,12 +28,14 @@ idf_component_register(
         "${APP_DIR}/screens/pong_screen.cpp"
         "${APP_DIR}/screens/blackjack_screen.cpp"
         "${APP_DIR}/screens/settings_screen.cpp"
+        "${APP_DIR}/screens/wifi_screen.cpp"
         
         "${APP_DIR}/services/date_time.cpp"
         "${APP_DIR}/services/notification_service.cpp"
         "${APP_DIR}/services/music_service.cpp"
         "${APP_DIR}/services/settings_service.cpp"
         "${APP_DIR}/services/keyboard_service.cpp"
+        "${APP_DIR}/services/wifi_service.cpp"
 
         "${APP_DIR}/protocol/protocol.cpp"
 
@@ -64,4 +66,7 @@ idf_component_register(
         esp_lvgl_port
         lvgl
         nvs_flash
+        esp_wifi
+        esp_event
+        esp_netif
 )
