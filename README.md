@@ -71,6 +71,11 @@ idf.py -p /dev/ttyACM0 -b 115200 flash monitor
 
 Change the serial port when your device appears under a different path.
 
+Pushes to `main` that change `app/` or `esp32/` automatically build the
+firmware and update the `firmware-latest` GitHub Release. The release asset is
+published as `swirski_os_esp32.bin` for the terminal's OTA updater. The same
+workflow can also be started manually from the GitHub Actions page.
+
 ## Android Companion
 
 Requirements:

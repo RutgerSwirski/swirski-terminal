@@ -1,0 +1,56 @@
+name: Firmware Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "esp32/**"
+      - ".github/workflows/firmware-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: firmware-release
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Build ESP32 firmware
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0.2
+          target: esp32s3
+          path: esp32
+
+      - name: Publish latest firmware
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="firmware-latest"
+          asset="esp32/build/swirski_os_esp32.bin"
+          notes="Automated firmware build from commit ${GITHUB_SHA}."
+
+          test -s "$asset"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" "$asset" --clobber
+            gh api --method PATCH \
+              "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}" \
+              -f sha="$GITHUB_SHA" \
+              -F force=true
+            gh release edit "$tag" --title "Latest firmware" --notes "$notes"
+          else
+            gh release create "$tag" "$asset" \
+              --target "$GITHUB_SHA" \
+              --title "Latest firmware" \
+              --notes "$notes"
+          fi

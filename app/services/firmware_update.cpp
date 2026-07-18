@@ -19,7 +19,7 @@ namespace swirski::services::firmware_update
 #ifdef ESP_PLATFORM
         constexpr char firmwareUrl[] =
             "https://github.com/RutgerSwirski/swirski-terminal/"
-            "releases/latest/download/swirski_os_esp32.bin";
+            "releases/download/firmware-latest/swirski_os_esp32.bin";
 
         std::atomic<State> state{State::Idle};
 #else
