@@ -221,9 +221,11 @@ namespace swirski::protocol
             const long timezoneOffsetMinutes =
                 payload["timezoneOffsetMinutes"] | 0;
 
-            swirski::service::date_time::setFromTimestamp(
-                unixTimeSeconds +
-                timezoneOffsetMinutes * 60);
+            swirski::service::date_time::setFromPhoneTime(
+                unixTimeSeconds,
+                timezoneOffsetMinutes);
+
+            swirski::service::date_time::save();
 
             std::cout
                 << "Applied date/time sync"

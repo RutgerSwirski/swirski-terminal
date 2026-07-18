@@ -16,6 +16,7 @@
 #include "./inputs/push_buttons.hpp"
 #include "app_constants.hpp"
 #include "services/date_time.hpp"
+#include "services/settings_service.hpp"
 #include "screen_manager.hpp"
 #include "notifications_screen.hpp"
 #include "music_screen.hpp"
@@ -173,6 +174,7 @@ extern "C" void app_main()
 
     initialiseDisplay();
 
+    swirski::service::settings::initialise();
     swirski::settings::hardware::initialise();
 
     vTaskDelay(1);

@@ -197,13 +197,13 @@ namespace swirski::ui::status_bar
 
         clockLabel = lv_label_create(leftSection);
 
-        const std::time_t timestamp = swirski::service::date_time::getTimestamp();
+        const std::time_t timestamp = swirski::service::date_time::getLocalTimestamp();
 
         std::tm localTime{};
 
         char clockSnapshot[13] = "-- --- --:--";
 
-        if (localtime_r(&timestamp, &localTime) != nullptr)
+        if (gmtime_r(&timestamp, &localTime) != nullptr)
         {
             std::strftime(
                 clockSnapshot,
@@ -290,11 +290,11 @@ namespace swirski::ui::status_bar
         }
 
         const std::time_t timestamp =
-            swirski::service::date_time::getTimestamp();
+            swirski::service::date_time::getLocalTimestamp();
 
         std::tm localTime{};
 
-        if (localtime_r(&timestamp, &localTime) == nullptr)
+        if (gmtime_r(&timestamp, &localTime) == nullptr)
         {
             return;
         }

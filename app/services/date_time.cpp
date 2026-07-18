@@ -18,6 +18,7 @@ namespace swirski::service::date_time
     {
 
         time_t timestamp = 0;
+        int timezoneOffsetMinutes = 0;
 
         // SyncState syncState = SyncState::NotSynced;
 
@@ -26,6 +27,7 @@ namespace swirski::service::date_time
 #ifdef ESP_PLATFORM
         constexpr char NVS_NAMESPACE[] = "datetime";
         constexpr char NVS_TIMESTAMP_KEY[] = "timestamp";
+        constexpr char NVS_TIMEZONE_KEY[] = "timezone";
 #endif
 
         std::time_t loadCachedTimestamp(
@@ -65,8 +67,35 @@ namespace swirski::service::date_time
 #endif
         }
 
-        void saveCachedTimestamp(
-            std::time_t timestamp)
+        int loadCachedTimezoneOffset()
+        {
+#ifndef ESP_PLATFORM
+            return 0;
+#else
+            nvs_handle_t handle;
+
+            if (
+                nvs_open(
+                    NVS_NAMESPACE,
+                    NVS_READONLY,
+                    &handle) != ESP_OK)
+            {
+                return 0;
+            }
+
+            std::int32_t cachedOffset = 0;
+
+            nvs_get_i32(
+                handle,
+                NVS_TIMEZONE_KEY,
+                &cachedOffset);
+
+            nvs_close(handle);
+            return static_cast<int>(cachedOffset);
+#endif
+        }
+
+        void saveCachedTime()
         {
 #ifndef ESP_PLATFORM
             (void)timestamp;
@@ -88,6 +117,12 @@ namespace swirski::service::date_time
                 static_cast<std::int64_t>(
                     timestamp));
 
+            nvs_set_i32(
+                handle,
+                NVS_TIMEZONE_KEY,
+                static_cast<std::int32_t>(
+                    timezoneOffsetMinutes));
+
             nvs_commit(handle);
             nvs_close(handle);
 #endif
@@ -100,10 +135,19 @@ namespace swirski::service::date_time
         return timestamp;
     }
 
+    time_t getLocalTimestamp()
+    {
+        return timestamp +
+               static_cast<std::time_t>(timezoneOffsetMinutes) * 60;
+    }
+
     void initialise(time_t initialTimestamp)
     {
         timestamp =
             loadCachedTimestamp(initialTimestamp);
+
+        timezoneOffsetMinutes =
+            loadCachedTimezoneOffset();
 
         lastUpdateTick = lv_tick_get();
     }
@@ -130,7 +174,10 @@ namespace swirski::service::date_time
 
     std::string getDateText()
     {
-        std::tm *utc_time = std::gmtime(&timestamp);
+        const std::time_t localTimestamp =
+            getLocalTimestamp();
+
+        std::tm *utc_time = std::gmtime(&localTimestamp);
 
         char buffer[80];
 
@@ -142,7 +189,10 @@ namespace swirski::service::date_time
     std::string getTimeText()
     {
 
-        std::tm *utc_time = std::gmtime(&timestamp);
+        const std::time_t localTimestamp =
+            getLocalTimestamp();
+
+        std::tm *utc_time = std::gmtime(&localTimestamp);
 
         char buffer[80];
 
@@ -157,8 +207,21 @@ namespace swirski::service::date_time
     {
         timestamp = incomingTimestamp;
         lastUpdateTick = lv_tick_get();
+    }
 
-        saveCachedTimestamp(incomingTimestamp);
+    void setFromPhoneTime(
+        std::time_t utcTimestamp,
+        int incomingTimezoneOffsetMinutes)
+    {
+        timestamp = utcTimestamp;
+        timezoneOffsetMinutes =
+            incomingTimezoneOffsetMinutes;
+        lastUpdateTick = lv_tick_get();
+    }
+
+    void save()
+    {
+        saveCachedTime();
     }
 
 }

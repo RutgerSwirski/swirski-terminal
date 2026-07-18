@@ -1,4 +1,6 @@
 
+#pragma once
+
 #include <ctime>
 
 #include <string>
@@ -23,7 +25,12 @@ namespace swirski::service::date_time
     std::string getDateText();
 
     void setFromTimestamp(std::time_t timestamp);
+    void setFromPhoneTime(
+        std::time_t utcTimestamp,
+        int timezoneOffsetMinutes);
+    void save();
 
     std::time_t getTimestamp();
+    std::time_t getLocalTimestamp();
 
 }

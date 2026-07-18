@@ -42,10 +42,10 @@ namespace swirski::screens::settings_screen
         std::tm currentLocalTime()
         {
             const std::time_t timestamp =
-                swirski::service::date_time::getTimestamp();
+                swirski::service::date_time::getLocalTimestamp();
 
             std::tm localTime{};
-            localtime_r(&timestamp, &localTime);
+            gmtime_r(&timestamp, &localTime);
 
             return localTime;
         }
@@ -164,6 +164,17 @@ namespace swirski::screens::settings_screen
 
             updateScreen();
         }
+
+        void finishEditing()
+        {
+            if (selectedSettingIndex != powerModeIndex)
+            {
+                swirski::service::date_time::save();
+            }
+
+            editing = false;
+            updateScreen();
+        }
     }
 
     void render()
@@ -248,15 +259,21 @@ namespace swirski::screens::settings_screen
             break;
 
         case swirski::input::input_action::Confirm:
-            editing = !editing;
-            updateScreen();
+            if (editing)
+            {
+                finishEditing();
+            }
+            else
+            {
+                editing = true;
+                updateScreen();
+            }
             break;
 
         case swirski::input::input_action::Back:
             if (editing)
             {
-                editing = false;
-                updateScreen();
+                finishEditing();
             }
             else
             {
@@ -266,6 +283,11 @@ namespace swirski::screens::settings_screen
             break;
 
         case swirski::input::input_action::Home:
+            if (editing)
+            {
+                finishEditing();
+            }
+
             swirski::screens::manager::showScreen(
                 swirski::screens::manager::Screen::Home);
             break;

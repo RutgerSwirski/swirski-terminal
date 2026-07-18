@@ -1,6 +1,7 @@
 #include "music_service.hpp"
 #include "notification_service.hpp"
 #include "protocol.hpp"
+#include "date_time.hpp"
 
 #include <ArduinoJson.h>
 
@@ -172,6 +173,15 @@ namespace
         CHECK(music.positionMs == 30000);
     }
 
+    void timeSyncKeepsUtcAndOffsetSeparate()
+    {
+        swirski::protocol::handleIncomingMessage(
+            R"({"version":1,"type":"time.sync","id":"time-1","payload":{"unixTimeSeconds":1000,"timezoneOffsetMinutes":60}})");
+
+        CHECK(swirski::service::date_time::getTimestamp() == 1000);
+        CHECK(swirski::service::date_time::getLocalTimestamp() == 4600);
+    }
+
     void pausedMusicPositionStaysStill()
     {
         swirski::services::music_service::setState(
@@ -208,6 +218,7 @@ int main()
         {"notification lookup and removal work", notificationLookupAndRemovalWork},
         {"package name gets readable fallback", packageNameGetsReadableFallback},
         {"music message updates state", musicMessageUpdatesState},
+        {"time sync keeps UTC and offset separate", timeSyncKeepsUtcAndOffsetSeparate},
         {"paused music position stays still", pausedMusicPositionStaysStill},
         {"playing music position stops at duration", playingMusicPositionStopsAtDuration}};
 

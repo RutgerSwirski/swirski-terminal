@@ -11,6 +11,7 @@ namespace swirski::service::settings
 
     using PowerModeHandler = void (*)(PowerMode mode);
 
+    void initialise();
     void setPowerModeHandler(PowerModeHandler handler);
 
     PowerMode getPowerMode();
