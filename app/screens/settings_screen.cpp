@@ -7,6 +7,7 @@
 #include "lvgl.h"
 
 #include "date_time.hpp"
+#include "ui/keyboard.hpp"
 #include "screen_manager.hpp"
 #include "settings_service.hpp"
 #include "status_bar.hpp"
@@ -18,10 +19,17 @@ namespace swirski::screens::settings_screen
     {
         constexpr std::size_t powerModeIndex = 0;
         constexpr std::size_t dateIndex = 1;
+        constexpr std::size_t keyboardIndex = 3;
 
-        std::array<lv_obj_t *, 3> settingLabels{};
+        std::array<lv_obj_t *, 4> settingLabels{};
         std::size_t selectedSettingIndex = 0;
         bool editing = false;
+        std::string keyboardText;
+
+        void saveKeyboardText(const std::string &text)
+        {
+            keyboardText = text;
+        }
 
         const char *powerModeName(
             swirski::service::settings::PowerMode mode)
@@ -80,13 +88,15 @@ namespace swirski::screens::settings_screen
 
         void updateScreen()
         {
-            const std::array<std::string, 3> settingTexts{
+            const std::array<std::string, 4> settingTexts{
                 "Power: " +
                     std::string(
                         powerModeName(
                             swirski::service::settings::getPowerMode())),
                 "Date: " + dateText(),
-                "Time: " + timeText()};
+                "Time: " + timeText(),
+                "Keyboard: " +
+                    (keyboardText.empty() ? "Test" : keyboardText)};
 
             for (std::size_t i = 0; i < settingLabels.size(); ++i)
             {
@@ -259,6 +269,14 @@ namespace swirski::screens::settings_screen
             break;
 
         case swirski::input::input_action::Confirm:
+            if (!editing && selectedSettingIndex == keyboardIndex)
+            {
+                swirski::ui::keyboard::open(
+                    keyboardText,
+                    saveKeyboardText);
+                break;
+            }
+
             if (editing)
             {
                 finishEditing();

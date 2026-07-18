@@ -9,6 +9,7 @@
 #include "pong_screen.hpp"
 #include "blackjack_screen.hpp"
 #include "settings_screen.hpp"
+#include "ui/keyboard.hpp"
 
 #include "status_bar.hpp"
 #include "swirski_ui.hpp"
@@ -58,7 +59,8 @@ namespace swirski::screens::manager
             {Screen::Games, "GAMES", games_screen::render, games_screen::handleInput},
             {Screen::Pong, "PONG", pong_screen::render, pong_screen::handleInput},
             {Screen::Blackjack, "BLACKJACK", blackjack_screen::render, blackjack_screen::handleInput},
-            {Screen::Settings, "SETTINGS", settings_screen::render, settings_screen::handleInput}};
+            {Screen::Settings, "SETTINGS", settings_screen::render, settings_screen::handleInput},
+            {Screen::Keyboard, "KEYBOARD", swirski::ui::keyboard::render, swirski::ui::keyboard::handleInput}};
 
         const ScreenDefinition *findScreen(Screen screen)
         {

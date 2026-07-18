@@ -2,6 +2,7 @@
 #include "notification_service.hpp"
 #include "protocol.hpp"
 #include "date_time.hpp"
+#include "keyboard_service.hpp"
 
 #include <ArduinoJson.h>
 
@@ -238,6 +239,30 @@ namespace
         CHECK(swirski::services::music_service::getState().positionMs == 1000);
     }
 
+    void keyboardTextCanBeEdited()
+    {
+        using namespace swirski::services::keyboard_service;
+
+        begin("HI");
+        addSpace();
+        addCharacter('A');
+        CHECK(getText() == "HI A");
+
+        removeLastCharacter();
+        CHECK(getText() == "HI ");
+    }
+
+    void keyboardTextIsLimited()
+    {
+        using namespace swirski::services::keyboard_service;
+
+        begin(std::string(40, 'A'));
+        CHECK(getText().size() == 32);
+
+        addCharacter('B');
+        CHECK(getText().size() == 32);
+    }
+
     struct Test
     {
         const char *name;
@@ -262,7 +287,9 @@ int main()
         {"music message updates state", musicMessageUpdatesState},
         {"time sync keeps UTC and offset separate", timeSyncKeepsUtcAndOffsetSeparate},
         {"paused music position stays still", pausedMusicPositionStaysStill},
-        {"playing music position stops at duration", playingMusicPositionStopsAtDuration}};
+        {"playing music position stops at duration", playingMusicPositionStopsAtDuration},
+        {"keyboard text can be edited", keyboardTextCanBeEdited},
+        {"keyboard text is limited", keyboardTextIsLimited}};
 
     int failures = 0;
 

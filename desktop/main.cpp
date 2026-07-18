@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include "keyboard.hpp"
+#include "inputs/keyboard.hpp"
 
 #include "services/date_time.hpp"
 

@@ -17,6 +17,7 @@ idf_component_register(
 
         "${APP_DIR}/ui/status_bar.cpp"
         "${APP_DIR}/ui/notification_toast.cpp"
+        "${APP_DIR}/ui/keyboard.cpp"
 
         "${APP_DIR}/screens/home_screen.cpp"
         "${APP_DIR}/screens/notifications_screen.cpp"
@@ -32,6 +33,7 @@ idf_component_register(
         "${APP_DIR}/services/notification_service.cpp"
         "${APP_DIR}/services/music_service.cpp"
         "${APP_DIR}/services/settings_service.cpp"
+        "${APP_DIR}/services/keyboard_service.cpp"
 
         "${APP_DIR}/protocol/protocol.cpp"
 

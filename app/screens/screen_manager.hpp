@@ -19,6 +19,7 @@ namespace swirski::screens::manager
         Blackjack,
         Studio,
         Settings,
+        Keyboard,
         Notification
     };
 

@@ -70,6 +70,7 @@ add_executable(
     ../app/input/input.cpp
 
     ../app/ui/status_bar.cpp
+    ../app/ui/keyboard.cpp
 
     ../app/screens/screen_manager.cpp
     ../app/screens/home_screen.cpp
@@ -85,6 +86,7 @@ add_executable(
     ../app/services/notification_service.cpp
     ../app/services/music_service.cpp
     ../app/services/settings_service.cpp
+    ../app/services/keyboard_service.cpp
 
     ../app/protocol/protocol.cpp
 
@@ -131,6 +133,7 @@ if(BUILD_TESTING)
         ../app/services/date_time.cpp
         ../app/services/music_service.cpp
         ../app/services/notification_service.cpp
+        ../app/services/keyboard_service.cpp
     )
 
     target_include_directories(
