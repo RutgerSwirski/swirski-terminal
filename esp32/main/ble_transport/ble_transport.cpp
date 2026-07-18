@@ -47,10 +47,14 @@ namespace
 
     constexpr std::chrono::milliseconds TRANSFER_TIMEOUT{
         3000};
+    constexpr std::chrono::milliseconds SEND_RETRY_DELAY{
+        1000};
 
     using Clock = std::chrono::steady_clock;
 
     std::uint32_t nextOutgoingMessageId = 1;
+    Clock::time_point nextSendAttemptAt =
+        Clock::time_point::min();
 
     bool shouldLogFrameProgress(
         std::size_t frameIndex,
@@ -1012,6 +1016,13 @@ namespace swirski::transport::ble
 
     void BleTransport::sendNextQueuedFrame()
     {
+        const auto now = Clock::now();
+
+        if (now < nextSendAttemptAt)
+        {
+            return;
+        }
+
         if (transmitCharacteristic == nullptr)
         {
             return;
@@ -1042,6 +1053,9 @@ namespace swirski::transport::ble
 
         if (!sent)
         {
+            nextSendAttemptAt =
+                now + SEND_RETRY_DELAY;
+
             std::cerr
                 << "Could not send queued BLE frame "
                 << nextFrame.frameIndex
@@ -1051,6 +1065,9 @@ namespace swirski::transport::ble
 
             return;
         }
+
+        nextSendAttemptAt =
+            Clock::time_point::min();
 
         {
             std::lock_guard<std::mutex> lock(
