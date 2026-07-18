@@ -17,7 +17,9 @@
 #include "app_constants.hpp"
 #include "services/date_time.hpp"
 #include "services/settings_service.hpp"
+#include "services/firmware_update.hpp"
 #include "screen_manager.hpp"
+#include "settings_screen.hpp"
 #include "notifications_screen.hpp"
 #include "music_screen.hpp"
 #include "ui/status_bar.hpp"
@@ -216,6 +218,8 @@ extern "C" void app_main()
         lvgl_port_unlock();
     }
 
+    swirski::services::firmware_update::confirmRunningFirmware();
+
     vTaskDelay(1);
 
     bool wifiScanInProgress = false;
@@ -305,6 +309,13 @@ extern "C" void app_main()
                 swirski::screens::manager::Screen::Wifi)
             {
                 swirski::screens::wifi_screen::refreshIfNeeded();
+            }
+
+            if (
+                swirski::screens::manager::getCurrentScreen() ==
+                swirski::screens::manager::Screen::Settings)
+            {
+                swirski::screens::settings_screen::refreshIfNeeded();
             }
 
             lvgl_port_unlock();

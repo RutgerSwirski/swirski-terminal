@@ -91,6 +91,7 @@ add_executable(
     ../app/services/settings_service.cpp
     ../app/services/keyboard_service.cpp
     ../app/services/wifi_service.cpp
+    ../app/services/firmware_update.cpp
 
     ../app/protocol/protocol.cpp
 

@@ -38,6 +38,7 @@ idf_component_register(
         "${APP_DIR}/services/settings_service.cpp"
         "${APP_DIR}/services/keyboard_service.cpp"
         "${APP_DIR}/services/wifi_service.cpp"
+        "${APP_DIR}/services/firmware_update.cpp"
 
         "${APP_DIR}/protocol/protocol.cpp"
 
@@ -72,4 +73,8 @@ idf_component_register(
         esp_event
         esp_netif
         lwip
+        esp_https_ota
+        mbedtls
+        app_update
+        bootloader_support
 )

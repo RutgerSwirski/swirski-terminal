@@ -7,6 +7,7 @@
 #include "lvgl.h"
 
 #include "date_time.hpp"
+#include "firmware_update.hpp"
 #include "ui/keyboard.hpp"
 #include "screen_manager.hpp"
 #include "settings_service.hpp"
@@ -22,11 +23,13 @@ namespace swirski::screens::settings_screen
         constexpr std::size_t dateIndex = 1;
         constexpr std::size_t keyboardIndex = 3;
         constexpr std::size_t wifiIndex = 4;
+        constexpr std::size_t updateIndex = 5;
 
-        std::array<lv_obj_t *, 5> settingLabels{};
+        std::array<lv_obj_t *, 6> settingLabels{};
         std::size_t selectedSettingIndex = 0;
         bool editing = false;
         std::string keyboardText;
+        std::uint32_t renderedUpdateRevision = 0;
 
         void saveKeyboardText(const std::string &text)
         {
@@ -88,9 +91,39 @@ namespace swirski::screens::settings_screen
             return text;
         }
 
+        std::string firmwareUpdateText()
+        {
+            using State =
+                swirski::services::firmware_update::State;
+
+            switch (
+                swirski::services::firmware_update::getState())
+            {
+            case State::Downloading:
+                return "Updating: " +
+                    std::to_string(
+                        swirski::services::firmware_update::getProgress()) +
+                    "%";
+            case State::Restarting:
+                return "Restarting...";
+            case State::Failed:
+                return "Update failed - retry";
+            case State::Unavailable:
+                return "Update: ESP32 only";
+            case State::Idle:
+                break;
+            }
+
+            return
+                swirski::services::wifi_service::getConnectionState() ==
+                        swirski::services::wifi_service::ConnectionState::Connected
+                    ? "Update firmware"
+                    : "Update: connect Wi-Fi";
+        }
+
         void updateScreen()
         {
-            const std::array<std::string, 5> settingTexts{
+            const std::array<std::string, 6> settingTexts{
                 "Power: " +
                     std::string(
                         powerModeName(
@@ -103,7 +136,8 @@ namespace swirski::screens::settings_screen
                     (swirski::services::wifi_service::getConnectionState() ==
                             swirski::services::wifi_service::ConnectionState::Connected
                         ? swirski::services::wifi_service::getConnectedSsid()
-                        : "Setup")};
+                        : "Setup"),
+                firmwareUpdateText()};
 
             for (std::size_t i = 0; i < settingLabels.size(); ++i)
             {
@@ -130,6 +164,9 @@ namespace swirski::screens::settings_screen
             lv_obj_scroll_to_view(
                 settingLabels[selectedSettingIndex],
                 LV_ANIM_OFF);
+
+            renderedUpdateRevision =
+                swirski::services::firmware_update::getRevision();
         }
 
         void changePowerMode(int direction)
@@ -240,6 +277,16 @@ namespace swirski::screens::settings_screen
         updateScreen();
     }
 
+    void refreshIfNeeded()
+    {
+        if (
+            renderedUpdateRevision !=
+            swirski::services::firmware_update::getRevision())
+        {
+            updateScreen();
+        }
+    }
+
     void handleInput(
         swirski::input::input_action action)
     {
@@ -276,6 +323,19 @@ namespace swirski::screens::settings_screen
             break;
 
         case swirski::input::input_action::Confirm:
+            if (!editing && selectedSettingIndex == updateIndex)
+            {
+                if (
+                    swirski::services::wifi_service::getConnectionState() ==
+                    swirski::services::wifi_service::ConnectionState::Connected)
+                {
+                    swirski::services::firmware_update::start();
+                }
+
+                updateScreen();
+                break;
+            }
+
             if (!editing && selectedSettingIndex == wifiIndex)
             {
                 swirski::screens::manager::showScreen(
