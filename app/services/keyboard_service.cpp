@@ -5,7 +5,7 @@ namespace swirski::services::keyboard_service
 {
     namespace
     {
-        constexpr std::size_t maxTextLength = 32;
+        constexpr std::size_t maxTextLength = 63;
         std::string text;
     }
 

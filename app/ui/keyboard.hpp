@@ -10,7 +10,8 @@ namespace swirski::ui::keyboard
 
     void open(
         const std::string &initialText,
-        SubmitHandler onSubmit);
+        SubmitHandler onSubmit,
+        bool obscureText = false);
     void render();
     void handleInput(swirski::input::input_action action);
 }

@@ -12,21 +12,45 @@ namespace swirski::ui::keyboard
 {
     namespace
     {
-        constexpr std::array<const char *, 29> keys{
+        constexpr std::array<std::array<const char *, 26>, 4> characterPages{{
+            {{
             "A", "B", "C", "D", "E", "F",
             "G", "H", "I", "J", "K", "L",
             "M", "N", "O", "P", "Q", "R",
             "S", "T", "U", "V", "W", "X",
-            "Y", "Z", "Space", "Del", "Done"};
+            "Y", "Z"}},
+            {{
+            "a", "b", "c", "d", "e", "f",
+            "g", "h", "i", "j", "k", "l",
+            "m", "n", "o", "p", "q", "r",
+            "s", "t", "u", "v", "w", "x",
+            "y", "z"}},
+            {{
+            "0", "1", "2", "3", "4", "5",
+            "6", "7", "8", "9", "!", "@",
+            "#", "$", "%", "^", "&", "*",
+            "(", ")", "-", "_", "=", "+",
+            "[", "]"}},
+            {{
+            "0", "1", "2", "3", "4", "5",
+            "6", "7", "8", "9", "{", "}",
+            "\\", "|", ";", ":", "'", "\"",
+            ",", ".", "<", ">", "/", "?",
+            "`", "~"}}
+        }};
 
-        constexpr std::size_t spaceKeyIndex = 26;
-        constexpr std::size_t deleteKeyIndex = 27;
-        constexpr std::size_t doneKeyIndex = 28;
+        constexpr std::size_t modeKeyIndex = 26;
+        constexpr std::size_t spaceKeyIndex = 27;
+        constexpr std::size_t deleteKeyIndex = 28;
+        constexpr std::size_t doneKeyIndex = 29;
+        constexpr std::size_t keyCount = 30;
 
-        std::array<lv_obj_t *, keys.size()> keyLabels{};
+        std::array<lv_obj_t *, keyCount> keyLabels{};
         lv_obj_t *textLabel = nullptr;
         std::size_t selectedKeyIndex = 0;
+        std::size_t characterPageIndex = 0;
         SubmitHandler submitHandler = nullptr;
+        bool textIsObscured = false;
         swirski::screens::manager::Screen returnScreen =
             swirski::screens::manager::Screen::Home;
 
@@ -35,9 +59,16 @@ namespace swirski::ui::keyboard
             const std::string &text =
                 swirski::services::keyboard_service::getText();
 
+            const std::string visibleText =
+                textIsObscured
+                    ? std::string(text.size(), '*')
+                    : text;
+
             lv_label_set_text(
                 textLabel,
-                text.empty() ? "Type something..." : text.c_str());
+                text.empty()
+                    ? "Type something..."
+                    : visibleText.c_str());
 
             lv_obj_set_style_text_color(
                 textLabel,
@@ -49,6 +80,26 @@ namespace swirski::ui::keyboard
 
         void updateSelection()
         {
+            for (std::size_t i = 0; i < modeKeyIndex; ++i)
+            {
+                lv_label_set_text(
+                    keyLabels[i],
+                    characterPages[characterPageIndex][i]);
+            }
+
+            lv_label_set_text(
+                keyLabels[modeKeyIndex],
+                characterPageIndex == 0
+                    ? "abc"
+                : characterPageIndex == 1
+                    ? "123"
+                : characterPageIndex == 2
+                    ? "+=?"
+                    : "ABC");
+            lv_label_set_text(keyLabels[spaceKeyIndex], "Space");
+            lv_label_set_text(keyLabels[deleteKeyIndex], "Del");
+            lv_label_set_text(keyLabels[doneKeyIndex], "Done");
+
             for (std::size_t i = 0; i < keyLabels.size(); ++i)
             {
                 const bool selected = i == selectedKeyIndex;
@@ -82,10 +133,17 @@ namespace swirski::ui::keyboard
 
         void activateSelectedKey()
         {
-            if (selectedKeyIndex < spaceKeyIndex)
+            if (selectedKeyIndex < modeKeyIndex)
             {
                 swirski::services::keyboard_service::addCharacter(
-                    keys[selectedKeyIndex][0]);
+                    characterPages[characterPageIndex]
+                                  [selectedKeyIndex][0]);
+            }
+            else if (selectedKeyIndex == modeKeyIndex)
+            {
+                characterPageIndex =
+                    (characterPageIndex + 1) % characterPages.size();
+                updateSelection();
             }
             else if (selectedKeyIndex == spaceKeyIndex)
             {
@@ -107,11 +165,14 @@ namespace swirski::ui::keyboard
 
     void open(
         const std::string &initialText,
-        SubmitHandler onSubmit)
+        SubmitHandler onSubmit,
+        bool obscureText)
     {
         returnScreen = swirski::screens::manager::getCurrentScreen();
         submitHandler = onSubmit;
         selectedKeyIndex = 0;
+        characterPageIndex = 0;
+        textIsObscured = obscureText;
         swirski::services::keyboard_service::begin(initialText);
         swirski::screens::manager::showScreen(
             swirski::screens::manager::Screen::Keyboard);
@@ -143,12 +204,12 @@ namespace swirski::ui::keyboard
         constexpr int keyHeight = 27;
         constexpr int gap = 4;
 
-        for (std::size_t i = 0; i < keys.size(); ++i)
+        for (std::size_t i = 0; i < keyLabels.size(); ++i)
         {
             lv_obj_t *key = lv_label_create(pageRoot);
             keyLabels[i] = key;
 
-            lv_label_set_text(key, keys[i]);
+            lv_label_set_text(key, "");
             lv_obj_set_pos(
                 key,
                 8 + static_cast<int>(i % columns) * (keyWidth + gap),
@@ -174,14 +235,14 @@ namespace swirski::ui::keyboard
         {
         case swirski::input::input_action::Previous:
             selectedKeyIndex = selectedKeyIndex == 0
-                ? keys.size() - 1
+                ? keyLabels.size() - 1
                 : selectedKeyIndex - 1;
             updateSelection();
             break;
 
         case swirski::input::input_action::Next:
             selectedKeyIndex =
-                (selectedKeyIndex + 1) % keys.size();
+                (selectedKeyIndex + 1) % keyLabels.size();
             updateSelection();
             break;
 

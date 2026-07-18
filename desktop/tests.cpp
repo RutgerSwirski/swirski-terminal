@@ -257,10 +257,13 @@ namespace
         using namespace swirski::services::keyboard_service;
 
         begin(std::string(40, 'A'));
-        CHECK(getText().size() == 32);
+        CHECK(getText().size() == 40);
+
+        begin(std::string(70, 'A'));
+        CHECK(getText().size() == 63);
 
         addCharacter('B');
-        CHECK(getText().size() == 32);
+        CHECK(getText().size() == 63);
     }
 
     struct Test
