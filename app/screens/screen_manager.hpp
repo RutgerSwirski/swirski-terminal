@@ -7,6 +7,8 @@
 
 namespace swirski::screens::manager
 {
+    using DisplayPowerHandler = void (*)(bool on);
+
     enum class Screen
     {
         Home,
@@ -29,5 +31,9 @@ namespace swirski::screens::manager
     lv_obj_t *createPageRoot();
 
     Screen getCurrentScreen();
+
+    void setDisplayPowerHandler(DisplayPowerHandler handler);
+    void updatePowerState();
+    bool wake();
 
 }

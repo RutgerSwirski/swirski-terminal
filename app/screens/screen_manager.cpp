@@ -29,8 +29,12 @@ namespace swirski::screens::manager
 
         Screen currentScreen = Screen::Home;
         std::string currentNotificationId;
+        DisplayPowerHandler displayPowerHandler = nullptr;
+        std::uint32_t lastInputAt = 0;
+        bool sleeping = false;
 
         constexpr int32_t STATUS_BAR_HEIGHT = 35;
+        constexpr std::uint32_t SCREEN_TIMEOUT_MS = 30 * 1000;
 
         void renderNotification()
         {
@@ -175,6 +179,7 @@ namespace swirski::screens::manager
         lv_display_set_default(displayHandle);
 
         createApplicationShell();
+        lastInputAt = lv_tick_get();
     }
 
     lv_obj_t *createPageRoot()
@@ -215,6 +220,48 @@ namespace swirski::screens::manager
         return currentScreen;
     }
 
+    void setDisplayPowerHandler(
+        DisplayPowerHandler handler)
+    {
+        displayPowerHandler = handler;
+    }
+
+    bool wake()
+    {
+        lastInputAt = lv_tick_get();
+
+        if (!sleeping)
+        {
+            return false;
+        }
+
+        sleeping = false;
+
+        if (displayPowerHandler != nullptr)
+        {
+            displayPowerHandler(true);
+        }
+
+        return true;
+    }
+
+    void updatePowerState()
+    {
+        if (
+            sleeping ||
+            lv_tick_elaps(lastInputAt) < SCREEN_TIMEOUT_MS)
+        {
+            return;
+        }
+
+        sleeping = true;
+
+        if (displayPowerHandler != nullptr)
+        {
+            displayPowerHandler(false);
+        }
+    }
+
     void showNotificationScreen(
         std::string notificationId)
     {
@@ -241,6 +288,11 @@ namespace swirski::screens::manager
     void handleInput(
         swirski::input::input_action action)
     {
+        if (wake())
+        {
+            return;
+        }
+
         const ScreenDefinition *definition =
             findScreen(currentScreen);
 

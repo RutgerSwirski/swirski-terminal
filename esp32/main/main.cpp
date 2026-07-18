@@ -42,6 +42,17 @@ namespace
     constexpr int LCD_HEIGHT = 240;
 
     lv_display_t *displayHandle = nullptr;
+    esp_lcd_panel_handle_t panelHandle = nullptr;
+
+    void setDisplayPower(bool on)
+    {
+        if (panelHandle != nullptr)
+        {
+            esp_lcd_panel_disp_on_off(
+                panelHandle,
+                on);
+        }
+    }
 }
 
 void initialiseDisplay()
@@ -92,8 +103,6 @@ void initialiseDisplay()
             &ioHandle));
 
     ESP_LOGI(swirski::TAG, "Creating ILI9341 panel");
-
-    esp_lcd_panel_handle_t panelHandle = nullptr;
 
     esp_lcd_panel_dev_config_t panelConfig{};
 
@@ -174,6 +183,9 @@ extern "C" void app_main()
 
     initialiseDisplay();
 
+    swirski::screens::manager::setDisplayPowerHandler(
+        setDisplayPower);
+
     swirski::service::settings::initialise();
     swirski::settings::hardware::initialise();
 
@@ -211,6 +223,7 @@ extern "C" void app_main()
         {
             swirski::ui::status_bar::updateSystemState();
             swirski::ui::notification_toast::update();
+            swirski::screens::manager::updatePowerState();
 
             if (
                 swirski::screens::manager::getCurrentScreen() ==
@@ -239,10 +252,14 @@ extern "C" void app_main()
 
             if (lvgl_port_lock(20))
             {
+                const bool screenWoke =
+                    swirski::screens::manager::wake();
+
                 const bool toastDismissed =
+                    !screenWoke &&
                     swirski::ui::notification_toast::dismiss();
 
-                if (!toastDismissed)
+                if (!screenWoke && !toastDismissed)
                 {
                     swirski::input::handleInput(
                         swirski::input::input_action::Back);

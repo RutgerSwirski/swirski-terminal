@@ -6,6 +6,7 @@
 
 #include "lvgl.h"
 #include "notification_service.hpp"
+#include "screen_manager.hpp"
 #include "swirski_ui.hpp"
 
 namespace swirski::ui::notification_toast
@@ -176,6 +177,7 @@ namespace swirski::ui::notification_toast
         if (notification)
         {
             requestedSyncPercent.reset();
+            swirski::screens::manager::wake();
             showToast(*notification);
         }
         else if (requestedSyncPercent)
@@ -185,6 +187,11 @@ namespace swirski::ui::notification_toast
                 *displayedSyncPercent !=
                     *requestedSyncPercent)
             {
+                if (!displayedSyncPercent)
+                {
+                    swirski::screens::manager::wake();
+                }
+
                 showSyncToast(*requestedSyncPercent);
             }
         }
