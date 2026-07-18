@@ -1,5 +1,6 @@
 #pragma once
 
+#include "input.hpp"
 #include "lvgl.h"
 
 #include <string>
@@ -21,6 +22,7 @@ namespace swirski::screens::manager
 
     void showScreen(Screen screen);
     void showNotificationScreen(std::string notificationId);
+    void handleInput(swirski::input::input_action action);
 
     void initialise(lv_display_t *display);
 

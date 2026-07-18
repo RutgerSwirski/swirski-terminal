@@ -28,8 +28,46 @@ namespace swirski::screens::manager
         lv_obj_t *statusBarRoot = nullptr;
 
         Screen currentScreen = Screen::Home;
+        std::string currentNotificationId;
 
         constexpr int32_t STATUS_BAR_HEIGHT = 35;
+
+        void renderNotification()
+        {
+            notification_screen::render(
+                currentNotificationId);
+        }
+
+        struct ScreenDefinition
+        {
+            Screen id;
+            const char *title;
+            void (*render)();
+            void (*handleInput)(swirski::input::input_action);
+        };
+
+        constexpr ScreenDefinition screens[]{
+            {Screen::Home, "SWIRSKI OS", home::render, home::handleInput},
+            {Screen::Notifications, "NOTIFICATIONS", notifications_screen::render, notifications_screen::handleInput},
+            {Screen::Notification, "NOTIFICATION", renderNotification, notification_screen::handleInput},
+            {Screen::Music, "MUSIC", music_screen::render, music_screen::handleInput},
+            {Screen::Games, "GAMES", games_screen::render, games_screen::handleInput},
+            {Screen::Pong, "PONG", pong_screen::render, pong_screen::handleInput},
+            {Screen::Blackjack, "BLACKJACK", blackjack_screen::render, blackjack_screen::handleInput},
+            {Screen::Settings, "SETTINGS", settings_screen::render, settings_screen::handleInput}};
+
+        const ScreenDefinition *findScreen(Screen screen)
+        {
+            for (const ScreenDefinition &definition : screens)
+            {
+                if (definition.id == screen)
+                {
+                    return &definition;
+                }
+            }
+
+            return nullptr;
+        }
 
         void createApplicationShell()
         {
@@ -180,72 +218,35 @@ namespace swirski::screens::manager
     void showNotificationScreen(
         std::string notificationId)
     {
-        currentScreen =
-            Screen::Notification;
-
-        swirski::ui::status_bar::setTitle(
-            "NOTIFICATION");
-
-        swirski::screens::notification_screen::render(
-            notificationId);
+        currentNotificationId = notificationId;
+        showScreen(Screen::Notification);
     }
 
     void showScreen(Screen screen)
     {
-        switch (screen)
+        const ScreenDefinition *definition =
+            findScreen(screen);
+
+        if (definition == nullptr)
         {
-        case Screen::Home:
-            currentScreen = Screen::Home;
-            swirski::ui::status_bar::setTitle(
-                "SWIRSKI OS");
-            swirski::screens::home::render();
-            break;
+            return;
+        }
 
-        case Screen::Notifications:
-            currentScreen = Screen::Notifications;
-            swirski::ui::status_bar::setTitle(
-                "NOTIFICATIONS");
-            swirski::screens::notifications_screen::render();
-            break;
+        currentScreen = screen;
+        swirski::ui::status_bar::setTitle(
+            definition->title);
+        definition->render();
+    }
 
-        case Screen::Music:
-            currentScreen = Screen::Music;
-            swirski::ui::status_bar::setTitle(
-                "MUSIC");
-            swirski::screens::music_screen::render();
-            break;
+    void handleInput(
+        swirski::input::input_action action)
+    {
+        const ScreenDefinition *definition =
+            findScreen(currentScreen);
 
-        case Screen::Games:
-            currentScreen = Screen::Games;
-            swirski::ui::status_bar::setTitle(
-                "GAMES");
-            swirski::screens::games_screen::render();
-            break;
-
-        case Screen::Pong:
-            currentScreen = Screen::Pong;
-            swirski::ui::status_bar::setTitle(
-                "PONG");
-            swirski::screens::pong_screen::render();
-            break;
-
-        case Screen::Blackjack:
-            currentScreen = Screen::Blackjack;
-            swirski::ui::status_bar::setTitle(
-                "BLACKJACK");
-            swirski::screens::blackjack_screen::render();
-            break;
-
-        case Screen::Settings:
-            currentScreen = Screen::Settings;
-            swirski::ui::status_bar::setTitle(
-                "SETTINGS");
-            swirski::screens::settings_screen::render();
-            break;
-
-        case Screen::Studio:
-        case Screen::Notification:
-            break;
+        if (definition != nullptr)
+        {
+            definition->handleInput(action);
         }
     }
 }
