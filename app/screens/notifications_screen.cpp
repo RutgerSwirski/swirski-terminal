@@ -172,6 +172,25 @@ namespace swirski::screens::notifications_screen
             swirski::ui::swirski_ui::space::md,
             LV_PART_MAIN);
 
+        if (notifications.empty())
+        {
+            lv_obj_t *emptyCard =
+                swirski::ui::swirski_ui::createCard(
+                    notificationList,
+                    60);
+
+            swirski::ui::swirski_ui::createBadge(
+                emptyCard,
+                "Notifications");
+
+            swirski::ui::swirski_ui::createLabel(
+                emptyCard,
+                "No notifications",
+                swirski::ui::swirski_ui::TextTone::Muted,
+                26,
+                18);
+        }
+
         for (const auto &notification : notifications)
         {
             if (

@@ -32,5 +32,6 @@ namespace swirski::service::date_time
 
     std::time_t getTimestamp();
     std::time_t getLocalTimestamp();
+    bool hasValidTime();
 
 }

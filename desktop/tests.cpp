@@ -118,7 +118,8 @@ namespace
     void upsertReplacesExistingNotification()
     {
         swirski::services::notification_service::setSnapshot(
-            {makeNotification("1", "Old")});
+            {makeNotification("2", "Second"),
+             makeNotification("1", "Old")});
 
         swirski::services::notification_service::upsert(
             makeNotification("1", "Updated"));
@@ -126,7 +127,8 @@ namespace
         const auto &notifications =
             swirski::services::notification_service::getNotifications();
 
-        CHECK(notifications.size() == 1);
+        CHECK(notifications.size() == 2);
+        CHECK(notifications[0].id == "1");
         CHECK(notifications[0].title == "Updated");
     }
 
@@ -209,11 +211,15 @@ namespace
 
     void timeSyncKeepsUtcAndOffsetSeparate()
     {
+        swirski::service::date_time::initialise(0);
+        CHECK(!swirski::service::date_time::hasValidTime());
+
         swirski::protocol::handleIncomingMessage(
             R"({"version":1,"type":"time.sync","id":"time-1","payload":{"unixTimeSeconds":1000,"timezoneOffsetMinutes":60}})");
 
         CHECK(swirski::service::date_time::getTimestamp() == 1000);
         CHECK(swirski::service::date_time::getLocalTimestamp() == 4600);
+        CHECK(swirski::service::date_time::hasValidTime());
     }
 
     void pausedMusicPositionStaysStill()

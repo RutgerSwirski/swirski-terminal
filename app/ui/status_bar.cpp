@@ -203,7 +203,9 @@ namespace swirski::ui::status_bar
 
         char clockSnapshot[13] = "-- --- --:--";
 
-        if (gmtime_r(&timestamp, &localTime) != nullptr)
+        if (
+            swirski::service::date_time::hasValidTime() &&
+            gmtime_r(&timestamp, &localTime) != nullptr)
         {
             std::strftime(
                 clockSnapshot,
@@ -286,6 +288,12 @@ namespace swirski::ui::status_bar
     {
         if (clockLabel == nullptr)
         {
+            return;
+        }
+
+        if (!swirski::service::date_time::hasValidTime())
+        {
+            lv_label_set_text(clockLabel, "-- --- --:--");
             return;
         }
 

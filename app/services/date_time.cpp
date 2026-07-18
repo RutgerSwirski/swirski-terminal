@@ -19,6 +19,7 @@ namespace swirski::service::date_time
 
         time_t timestamp = 0;
         int timezoneOffsetMinutes = 0;
+        bool timeValid = false;
 
         // SyncState syncState = SyncState::NotSynced;
 
@@ -149,6 +150,8 @@ namespace swirski::service::date_time
         timezoneOffsetMinutes =
             loadCachedTimezoneOffset();
 
+        timeValid = timestamp > 0;
+
         lastUpdateTick = lv_tick_get();
     }
 
@@ -206,6 +209,7 @@ namespace swirski::service::date_time
     void setFromTimestamp(std::time_t incomingTimestamp)
     {
         timestamp = incomingTimestamp;
+        timeValid = timestamp > 0;
         lastUpdateTick = lv_tick_get();
     }
 
@@ -214,6 +218,7 @@ namespace swirski::service::date_time
         int incomingTimezoneOffsetMinutes)
     {
         timestamp = utcTimestamp;
+        timeValid = timestamp > 0;
         timezoneOffsetMinutes =
             incomingTimezoneOffsetMinutes;
         lastUpdateTick = lv_tick_get();
@@ -222,6 +227,11 @@ namespace swirski::service::date_time
     void save()
     {
         saveCachedTime();
+    }
+
+    bool hasValidTime()
+    {
+        return timeValid;
     }
 
 }

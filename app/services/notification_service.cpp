@@ -18,56 +18,7 @@ namespace swirski::services::notification_service
     {
         constexpr std::size_t MAX_NOTIFICATIONS = 40;
 
-        std::vector<Notification> notifications = {
-
-            {"1",
-             "com.whatsapp",
-             "WhatsApp",
-             "Anna",
-             "Are you still coming tonight?",
-             0},
-            {"2",
-             "com.spotify.music",
-             "Spotify",
-             "Now playing",
-             "Once in a Lifetime — Talking Heads",
-             0},
-            {"3",
-             "com.google.android.calendar",
-             "Calendar",
-             "Design meeting",
-             "Starts in 10 minutes",
-             0},
-            {"4",
-             "com.google.android.calendar",
-             "Calendar",
-             "Design meeting",
-             "Starts in 10 minutes",
-             0},
-            {"5",
-             "com.google.android.calendar",
-             "Calendar",
-             "Design meeting",
-             "Starts in 10 minutes",
-             0},
-            {"6",
-             "com.google.android.calendar",
-             "Calendar",
-             "Design meeting",
-             "Starts in 10 minutes",
-             0},
-            {"7",
-             "com.google.android.calendar",
-             "Calendar",
-             "Design meeting",
-             "Starts in 10 minutes",
-             0},
-            {"8",
-             "com.google.android.calendar",
-             "Calendar",
-             "Design meeting",
-             "Starts in 10 minutes",
-             0}};
+        std::vector<Notification> notifications;
 
         std::optional<Notification> pendingToastNotification;
 
@@ -230,15 +181,12 @@ namespace swirski::services::notification_service
 
         if (existing != notifications.end())
         {
-            *existing =
-                std::move(notification);
+            notifications.erase(existing);
         }
-        else
-        {
-            notifications.insert(
-                notifications.begin(),
-                std::move(notification));
-        }
+
+        notifications.insert(
+            notifications.begin(),
+            std::move(notification));
 
         if (notifications.size() > MAX_NOTIFICATIONS)
         {
@@ -311,8 +259,7 @@ namespace swirski::services::notification_service
 
         std::vector<Notification> snapshot;
 
-        snapshot.reserve(
-            notificationObjects.size());
+        snapshot.reserve(MAX_NOTIFICATIONS);
 
         for (
             JsonObjectConst object :
