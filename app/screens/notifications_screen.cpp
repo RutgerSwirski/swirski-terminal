@@ -41,7 +41,7 @@ namespace swirski::screens::notifications_screen
 
         int renderedNotificationRevision = -1;
 
-        constexpr std::size_t MAX_RENDERED_NOTIFICATIONS = 20;
+        constexpr std::size_t MAX_RENDERED_NOTIFICATIONS = 40;
 
     }
 

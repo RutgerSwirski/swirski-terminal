@@ -82,7 +82,7 @@ namespace swirski::screens::wifi_screen
                 swirski::services::wifi_service::getConnectionState() ==
                 swirski::services::wifi_service::ConnectionState::Connected)
             {
-                return 1;
+                return 2;
             }
 
             return std::min(
@@ -113,7 +113,22 @@ namespace swirski::screens::wifi_screen
             {
                 lv_obj_t *label = itemLabels[i + 1];
 
-                if (wifiConnected || i >= networks.size())
+                if (wifiConnected)
+                {
+                    if (i == 0)
+                    {
+                        lv_obj_remove_flag(label, LV_OBJ_FLAG_HIDDEN);
+                        lv_label_set_text(label, "Disconnect");
+                    }
+                    else
+                    {
+                        lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
+                    }
+
+                    continue;
+                }
+
+                if (i >= networks.size())
                 {
                     lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
                     continue;
@@ -246,6 +261,16 @@ namespace swirski::screens::wifi_screen
                     swirski::services::wifi_service::scan();
                 }
 
+                updateScreen();
+                break;
+            }
+
+            if (
+                swirski::services::wifi_service::getConnectionState() ==
+                    swirski::services::wifi_service::ConnectionState::Connected &&
+                selectedItemIndex == 1)
+            {
+                swirski::services::wifi_service::disconnect();
                 updateScreen();
                 break;
             }

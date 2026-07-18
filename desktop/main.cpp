@@ -19,6 +19,9 @@
 
 #include "websocket_transport.hpp"
 #include "music_screen.hpp"
+#include "notifications_screen.hpp"
+#include "screen_manager.hpp"
+#include "wifi_screen.hpp"
 
 int main()
 
@@ -68,6 +71,21 @@ int main()
 
         websocketTransport.update();
         swirski::ui::status_bar::updateSystemState();
+
+        switch (swirski::screens::manager::getCurrentScreen())
+        {
+        case swirski::screens::manager::Screen::Notifications:
+            swirski::screens::notifications_screen::refreshIfNeeded();
+            break;
+        case swirski::screens::manager::Screen::Music:
+            swirski::screens::music_screen::refreshIfNeeded();
+            break;
+        case swirski::screens::manager::Screen::Wifi:
+            swirski::screens::wifi_screen::refreshIfNeeded();
+            break;
+        default:
+            break;
+        }
 
         swirski::inputs::keyboard::processInput(event, running);
 
