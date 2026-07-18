@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <mutex>
 
 #include "lvgl.h"
 #include "notification_service.hpp"
@@ -18,11 +19,22 @@ namespace swirski::ui::notification_toast
 
         lv_obj_t *toastRoot = nullptr;
         std::uint32_t toastShownAt = 0;
+        std::uint32_t toastVisibleMs = TOAST_VISIBLE_MS;
 
         std::optional<int> requestedSyncPercent;
         std::optional<int> displayedSyncPercent;
         std::uint32_t syncUpdatedAt = 0;
         bool clearSyncRequested = false;
+
+        struct PendingMessage
+        {
+            std::string title;
+            std::string body;
+            std::uint32_t durationMs;
+        };
+
+        std::optional<PendingMessage> pendingMessage;
+        std::mutex pendingMessageMutex;
 
         void clearToast()
         {
@@ -75,6 +87,7 @@ namespace swirski::ui::notification_toast
 
             toastShownAt =
                 lv_tick_get();
+            toastVisibleMs = TOAST_VISIBLE_MS;
         }
 
         void showSyncToast(
@@ -94,10 +107,41 @@ namespace swirski::ui::notification_toast
 
             toastShownAt =
                 lv_tick_get();
+            toastVisibleMs = TOAST_VISIBLE_MS;
 
             displayedSyncPercent =
                 percent;
         }
+
+        void showMessageToast(
+            const PendingMessage &message)
+        {
+            clearToast();
+
+            toastRoot =
+                swirski::ui::swirski_ui::createToast(
+                    message.title.c_str(),
+                    message.body.c_str(),
+                    260,
+                    58);
+
+            toastShownAt = lv_tick_get();
+            toastVisibleMs = message.durationMs;
+        }
+    }
+
+    void requestMessage(
+        const char *title,
+        const char *body,
+        std::uint32_t durationMs)
+    {
+        std::lock_guard<std::mutex> lock(
+            pendingMessageMutex);
+
+        pendingMessage = PendingMessage{
+            title == nullptr ? "Swirski OS" : title,
+            body == nullptr ? "" : body,
+            durationMs};
     }
 
     void requestSyncProgress(
@@ -151,6 +195,22 @@ namespace swirski::ui::notification_toast
 
     void update()
     {
+        std::optional<PendingMessage> message;
+
+        {
+            std::lock_guard<std::mutex> lock(
+                pendingMessageMutex);
+            message = std::move(pendingMessage);
+            pendingMessage.reset();
+        }
+
+        if (message)
+        {
+            requestedSyncPercent.reset();
+            swirski::screens::manager::wake();
+            showMessageToast(*message);
+        }
+
         if (clearSyncRequested)
         {
             clearSyncRequested =
@@ -199,7 +259,7 @@ namespace swirski::ui::notification_toast
         if (
             !requestedSyncPercent &&
             toastRoot != nullptr &&
-            lv_tick_elaps(toastShownAt) >= TOAST_VISIBLE_MS)
+            lv_tick_elaps(toastShownAt) >= toastVisibleMs)
         {
             clearToast();
         }

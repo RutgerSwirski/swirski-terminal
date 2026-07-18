@@ -17,7 +17,9 @@
 #include <vector>
 
 #include <NimBLEDevice.h>
+#include "esp_random.h"
 
+#include "ble_security.hpp"
 #include "protocol.hpp"
 #include "system_state.hpp"
 #include "notification_toast.hpp"
@@ -554,6 +556,42 @@ namespace
             }
         }
 
+        std::uint32_t onPassKeyDisplay() override
+        {
+            const std::uint32_t passkey =
+                100000 + (esp_random() % 900000);
+
+            const std::string body =
+                "Code: " + std::to_string(passkey);
+
+            swirski::ui::notification_toast::requestMessage(
+                "Bluetooth pairing",
+                body.c_str(),
+                30000);
+
+            return passkey;
+        }
+
+        void onAuthenticationComplete(
+            NimBLEConnInfo &connInfo) override
+        {
+            const bool secure =
+                swirski::transport::ble_security::isSecure(
+                    connInfo.isEncrypted(),
+                    connInfo.isAuthenticated(),
+                    connInfo.isBonded());
+
+            swirski::ui::notification_toast::requestMessage(
+                "Bluetooth",
+                secure ? "Pairing complete" : "Pairing failed");
+
+            if (!secure)
+            {
+                NimBLEDevice::getServer()->disconnect(
+                    connInfo.getConnHandle());
+            }
+        }
+
     private:
         std::function<void(bool, std::uint16_t)> connectionHandler;
     };
@@ -570,6 +608,17 @@ namespace
             NimBLECharacteristic *characteristic,
             NimBLEConnInfo &connInfo) override
         {
+            if (!swirski::transport::ble_security::isSecure(
+                    connInfo.isEncrypted(),
+                    connInfo.isAuthenticated(),
+                    connInfo.isBonded()))
+            {
+                std::cerr
+                    << "Rejected unsecure BLE write"
+                    << std::endl;
+                return;
+            }
+
             const std::string frameBytes =
                 characteristic->getValue();
 
@@ -637,6 +686,13 @@ namespace swirski::transport::ble
             return;
         }
 
+        NimBLEDevice::setSecurityIOCap(
+            BLE_HS_IO_DISPLAY_ONLY);
+        NimBLEDevice::setSecurityAuth(
+            true,
+            true,
+            true);
+
         server = NimBLEDevice::createServer();
 
         if (server == nullptr)
@@ -691,11 +747,14 @@ namespace swirski::transport::ble
 
         receiveCharacteristic = service->createCharacteristic(
             RECEIVE_CHARACTERISTIC_UUID,
-            NIMBLE_PROPERTY::WRITE);
+            NIMBLE_PROPERTY::WRITE |
+                NIMBLE_PROPERTY::WRITE_ENC);
 
         transmitCharacteristic = service->createCharacteristic(
             TRANSMIT_CHARACTERISTIC_UUID,
-            NIMBLE_PROPERTY::READ | NIMBLE_PROPERTY::NOTIFY);
+            NIMBLE_PROPERTY::READ |
+                NIMBLE_PROPERTY::NOTIFY |
+                NIMBLE_PROPERTY::READ_ENC);
 
         if (receiveCharacteristic == nullptr || transmitCharacteristic == nullptr)
         {
@@ -757,6 +816,19 @@ namespace swirski::transport::ble
 
         advertising->enableScanResponse(true);
 
+        const bool nameSet = advertising->setName("Swirski Terminal");
+
+        if (!nameSet)
+        {
+            setBleStatus(
+                swirski::state::system::ConnectionStatus::Error);
+
+            std::cerr
+                << "Could not set name to BLE advertising"
+                << std::endl;
+            return;
+        }
+
         const bool serviceUuidAdded =
             advertising->addServiceUUID(SERVICE_UUID);
 
@@ -768,19 +840,6 @@ namespace swirski::transport::ble
 
             std::cerr
                 << "Could not add service UUID to BLE advertising"
-                << std::endl;
-            return;
-        }
-
-        const bool nameSet = advertising->setName("Swirski Terminal");
-
-        if (!nameSet)
-        {
-            setBleStatus(
-                swirski::state::system::ConnectionStatus::Error);
-
-            std::cerr
-                << "Could not set name to BLE advertising"
                 << std::endl;
             return;
         }
@@ -911,7 +970,8 @@ namespace swirski::transport::ble
 
         std::cout
             << "Processing complete BLE message: "
-            << *completeMessage
+            << completeMessage->size()
+            << " bytes"
             << std::endl;
 
         const auto result =

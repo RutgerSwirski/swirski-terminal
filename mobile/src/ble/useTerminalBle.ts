@@ -16,7 +16,10 @@ import {
   encodeMessageIntoFrames,
 } from './framing';
 import { requestBlePermissions } from './requestBlePermissions';
-import { createDisconnectMessage, createPingMessage } from '../protocol/messages';
+import {
+  createDisconnectMessage,
+  createPingMessage,
+} from '../protocol/messages';
 import { handleMusicCommandMessage } from '../music/handleMusicCommand';
 
 type SwirskiBackgroundModule = {
@@ -36,6 +39,7 @@ export type ConnectionStatus =
   | 'disconnected'
   | 'connecting'
   | 'discovering'
+  | 'pairing'
   | 'ready'
   | 'disconnecting'
   | 'error';
@@ -45,7 +49,10 @@ export type TransferProgress = {
   percent: number;
 } | null;
 
-function shouldLogFrameProgress(frameIndex: number, frameCount: number): boolean {
+function shouldLogFrameProgress(
+  frameIndex: number,
+  frameCount: number,
+): boolean {
   return frameIndex === 1 || frameIndex === frameCount || frameIndex % 10 === 0;
 }
 
@@ -64,7 +71,6 @@ export function useTerminalBle() {
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
   const [transferProgress, setTransferProgress] =
     useState<TransferProgress>(null);
-
   const txSubscriptionRef = useRef<Subscription | null>(null);
   const disconnectSubscriptionRef = useRef<Subscription | null>(null);
   const txFrameAssemblerRef = useRef<BleFrameAssembler | null>(null);
@@ -251,6 +257,12 @@ export function useTerminalBle() {
         await mtuDevice.discoverAllServicesAndCharacteristics();
 
       await inspectGatt(discovered);
+      setConnectionStatus('pairing');
+      await bleManager.readCharacteristicForDevice(
+        discovered.id,
+        SERVICE_UUID,
+        TX_CHARACTERISTIC_UUID,
+      );
       subscribeToTx(discovered);
 
       disconnectSubscriptionRef.current?.remove();
@@ -419,12 +431,7 @@ export function useTerminalBle() {
       manualDisconnectRef.current = false;
       setConnectionStatus('ready');
     }
-  }, [
-    clearReconnectTimer,
-    connectedDevice,
-    connectionStatus,
-    sendBleMessage,
-  ]);
+  }, [clearReconnectTimer, connectedDevice, connectionStatus, sendBleMessage]);
 
   const sendPing = useCallback(async () => {
     if (!connectedDevice || connectionStatus !== 'ready') {
@@ -470,10 +477,7 @@ export function useTerminalBle() {
   }, [clearReconnectTimer]);
 
   useEffect(() => {
-    if (
-      bleState !== State.PoweredOn ||
-      restoredConnectionRef.current
-    ) {
+    if (bleState !== State.PoweredOn || restoredConnectionRef.current) {
       return;
     }
 
