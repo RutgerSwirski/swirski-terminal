@@ -145,6 +145,40 @@ namespace
         CHECK(!swirski::services::notification_service::removeNotificationById("missing"));
     }
 
+    void notificationStorageIsCapped()
+    {
+        std::vector<Notification> notifications;
+
+        for (int index = 0; index < 45; ++index)
+        {
+            notifications.push_back(
+                makeNotification(
+                    std::to_string(index),
+                    "Notification"));
+        }
+
+        swirski::services::notification_service::setSnapshot(
+            std::move(notifications));
+
+        CHECK(
+            swirski::services::notification_service::
+                getNotifications()
+                    .size() == 40);
+    }
+
+    void notificationRemovalMessageUpdatesService()
+    {
+        swirski::services::notification_service::setSnapshot(
+            {makeNotification("remove-me", "Temporary")});
+
+        swirski::protocol::handleIncomingMessage(
+            R"({"version":1,"type":"notification.removed","id":"remove-1","payload":{"id":"remove-me"}})");
+
+        CHECK(
+            swirski::services::notification_service::
+                getNotificationById("remove-me") == nullptr);
+    }
+
     void packageNameGetsReadableFallback()
     {
         swirski::protocol::handleIncomingMessage(
@@ -216,6 +250,8 @@ int main()
         {"snapshot replaces notifications", snapshotReplacesNotifications},
         {"upsert replaces existing notification", upsertReplacesExistingNotification},
         {"notification lookup and removal work", notificationLookupAndRemovalWork},
+        {"notification storage is capped", notificationStorageIsCapped},
+        {"notification removal message updates service", notificationRemovalMessageUpdatesService},
         {"package name gets readable fallback", packageNameGetsReadableFallback},
         {"music message updates state", musicMessageUpdatesState},
         {"time sync keeps UTC and offset separate", timeSyncKeepsUtcAndOffsetSeparate},

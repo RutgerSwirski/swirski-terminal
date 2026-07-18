@@ -151,9 +151,35 @@ export function useNotificationBridge({
         )
       : null;
 
+    const notificationRemovedSubscription = SwirskiNotifications
+      ? new NativeEventEmitter(SwirskiNotifications).addListener(
+          'SwirskiNotificationRemoved',
+          async (messageJson: string) => {
+            const device = connectedDeviceRef.current;
+
+            if (!device || connectionStatusRef.current !== 'ready') {
+              return;
+            }
+
+            try {
+              const message = JSON.parse(messageJson) as Record<
+                string,
+                unknown
+              >;
+
+              await sendBleMessageRef.current(device, message);
+              console.log('Notification removal sent');
+            } catch (error) {
+              console.error('Could not send notification removal:', error);
+            }
+          },
+        )
+      : null;
+
     return () => {
       appStateSubscription.remove();
       notificationEventSubscription?.remove();
+      notificationRemovedSubscription?.remove();
     };
   }, [refreshNotificationAccess]);
 

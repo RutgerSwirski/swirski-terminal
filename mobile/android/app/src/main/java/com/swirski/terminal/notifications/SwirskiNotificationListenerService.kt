@@ -40,6 +40,7 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
 
     notifications.remove(notificationId)
     cancelNotificationReceived(notificationId)
+    emitNotificationRemoved(notificationId)
 
     Log.d(TAG, "Removed notification: ${sbn.key}")
   }
@@ -151,7 +152,9 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
   companion object {
     private const val TAG = "SwirskiNotifications"
     const val NOTIFICATION_RECEIVED_EVENT = "SwirskiNotificationReceived"
+    const val NOTIFICATION_REMOVED_EVENT = "SwirskiNotificationRemoved"
     private const val NOTIFICATION_EMIT_DEBOUNCE_MS = 750L
+    private const val MAX_NOTIFICATIONS = 40
 
     private val notifications =
       ConcurrentHashMap<String, TerminalNotification>()
@@ -165,7 +168,7 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
     fun getSnapshot(): List<TerminalNotification> {
       return notifications.values.sortedByDescending { notification ->
         notification.postedAt
-      }
+      }.take(MAX_NOTIFICATIONS)
     }
 
     fun createSnapshotMessageJson(messageId: String): String {
@@ -217,6 +220,28 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
         .put("id", messageId)
         .put("payload", payload)
         .toString()
+    }
+
+    private fun emitNotificationRemoved(notificationId: String) {
+      val context = reactContext ?: return
+
+      val messageJson = JSONObject()
+        .put("version", 1)
+        .put("type", "notification.removed")
+        .put("id", "mobile-notification-removed-${System.currentTimeMillis()}")
+        .put(
+          "payload",
+          JSONObject().put("id", notificationId),
+        )
+        .toString()
+
+      try {
+        context
+          .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+          .emit(NOTIFICATION_REMOVED_EVENT, messageJson)
+      } catch (error: Exception) {
+        Log.d(TAG, "Could not emit notification removal", error)
+      }
     }
 
     private fun createNotificationId(sbn: StatusBarNotification): String {

@@ -16,6 +16,7 @@ namespace swirski::services::notification_service
 
     namespace
     {
+        constexpr std::size_t MAX_NOTIFICATIONS = 40;
 
         std::vector<Notification> notifications = {
 
@@ -194,6 +195,7 @@ namespace swirski::services::notification_service
             if (it->id == id)
             {
                 notifications.erase(it);
+                revision += 1;
                 return true;
             }
         }
@@ -202,6 +204,11 @@ namespace swirski::services::notification_service
 
     void setSnapshot(std::vector<Notification> snapshot)
     {
+        if (snapshot.size() > MAX_NOTIFICATIONS)
+        {
+            snapshot.resize(MAX_NOTIFICATIONS);
+        }
+
         notifications = std::move(snapshot);
 
         revision += 1;
@@ -231,6 +238,11 @@ namespace swirski::services::notification_service
             notifications.insert(
                 notifications.begin(),
                 std::move(notification));
+        }
+
+        if (notifications.size() > MAX_NOTIFICATIONS)
+        {
+            notifications.resize(MAX_NOTIFICATIONS);
         }
 
         revision += 1;
@@ -285,7 +297,7 @@ namespace swirski::services::notification_service
 
         notification.postedAt =
             object["postedAt"] |
-            0;
+            std::int64_t{0};
 
         return notification;
     }
@@ -306,6 +318,11 @@ namespace swirski::services::notification_service
             JsonObjectConst object :
             notificationObjects)
         {
+            if (snapshot.size() >= MAX_NOTIFICATIONS)
+            {
+                break;
+            }
+
             const auto notification =
                 parseNotification(object);
 

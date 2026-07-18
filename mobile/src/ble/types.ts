@@ -24,3 +24,12 @@ export type NotificationReceivedMessage = {
     notification: TerminalNotification;
   };
 };
+
+export type NotificationRemovedMessage = {
+  version: 1;
+  type: 'notification.removed';
+  id: string;
+  payload: {
+    id: string;
+  };
+};

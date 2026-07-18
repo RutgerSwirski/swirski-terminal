@@ -36,6 +36,11 @@ namespace
             return swirski::protocol::MessageType::NotificationReceived;
         }
 
+        if (rawType == "notification.removed")
+        {
+            return swirski::protocol::MessageType::NotificationRemoved;
+        }
+
         if (rawType == "notifications.snapshot")
         {
             return swirski::protocol::MessageType::NotificationsSnapshot;
@@ -239,6 +244,20 @@ namespace swirski::protocol
             swirski::services::notification_service::
                 handleNotificationReceived(
                     document["payload"].as<JsonObjectConst>());
+
+            return {};
+        }
+
+        case MessageType::NotificationRemoved:
+        {
+            const char *notificationId =
+                document["payload"]["id"];
+
+            if (notificationId != nullptr)
+            {
+                swirski::services::notification_service::
+                    removeNotificationById(notificationId);
+            }
 
             return {};
         }
