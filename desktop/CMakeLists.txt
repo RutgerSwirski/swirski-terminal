@@ -71,6 +71,8 @@ add_executable(
 
     ../app/ui/status_bar.cpp
     ../app/ui/keyboard.cpp
+    ../app/ui/fonts/swirski_font_12.c
+    ../app/ui/fonts/swirski_font_14.c
 
     ../app/screens/screen_manager.cpp
     ../app/screens/home_screen.cpp

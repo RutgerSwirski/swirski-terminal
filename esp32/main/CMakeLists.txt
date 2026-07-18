@@ -18,6 +18,8 @@ idf_component_register(
         "${APP_DIR}/ui/status_bar.cpp"
         "${APP_DIR}/ui/notification_toast.cpp"
         "${APP_DIR}/ui/keyboard.cpp"
+        "${APP_DIR}/ui/fonts/swirski_font_12.c"
+        "${APP_DIR}/ui/fonts/swirski_font_14.c"
 
         "${APP_DIR}/screens/home_screen.cpp"
         "${APP_DIR}/screens/notifications_screen.cpp"

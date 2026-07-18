@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include "lvgl.h"
+#include "fonts/swirski_fonts.hpp"
 
 namespace swirski::ui::swirski_ui
 {
@@ -75,6 +76,11 @@ namespace swirski::ui::swirski_ui
 
     inline void styleAppRoot(lv_obj_t *object)
     {
+        lv_obj_set_style_text_font(
+            object,
+            &swirski_font_14,
+            LV_PART_MAIN);
+
         lv_obj_set_style_bg_color(
             object,
             color::background(),
@@ -253,6 +259,11 @@ namespace swirski::ui::swirski_ui
                 : color::text(),
             LV_PART_MAIN);
 
+        lv_obj_set_style_text_font(
+            label,
+            &swirski_font_14,
+            LV_PART_MAIN);
+
         return label;
     }
 
@@ -350,7 +361,7 @@ namespace swirski::ui::swirski_ui
 
         lv_obj_set_style_text_font(
             badge,
-            &lv_font_montserrat_12,
+            &swirski_font_12,
             LV_PART_MAIN);
 
         lv_obj_align(
@@ -463,7 +474,7 @@ namespace swirski::ui::swirski_ui
 
         lv_obj_set_style_text_font(
             label,
-            &lv_font_montserrat_12,
+            &swirski_font_12,
             LV_PART_MAIN);
 
         lv_obj_set_style_text_color(

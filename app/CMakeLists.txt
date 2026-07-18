@@ -5,6 +5,7 @@ idf_component_register(
         "screens/*.cpp"
         "services/*.cpp"
         "ui/*.cpp"
+        "ui/fonts/*.c"
         "transport/*.cpp"
         "protocol/*.cpp"
         "state/*.cpp"

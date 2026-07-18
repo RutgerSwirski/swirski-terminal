@@ -267,7 +267,7 @@ namespace swirski::ui::status_bar
 
         lv_obj_set_style_text_font(
             clockLabel,
-            &lv_font_montserrat_12,
+            &swirski_font_12,
             LV_PART_MAIN);
 
         pagePathLabel = lv_label_create(centerSection);
