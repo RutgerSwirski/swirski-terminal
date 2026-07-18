@@ -10,6 +10,8 @@
 
 #include <ArduinoJson.h>
 
+#include "display_text.hpp"
+
 namespace swirski::services::notification_service
 {
     int revision = 0;
@@ -236,12 +238,18 @@ namespace swirski::services::notification_service
         }
 
         notification.title =
-            object["title"] |
-            "";
+            display_text::normalize(
+                object["title"] |
+                "");
 
         notification.body =
-            object["body"] |
-            "";
+            display_text::normalize(
+                object["body"] |
+                "");
+
+        notification.appName =
+            display_text::normalize(
+                std::move(notification.appName));
 
         notification.postedAt =
             object["postedAt"] |

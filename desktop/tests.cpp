@@ -5,6 +5,7 @@
 #include "keyboard_service.hpp"
 #include "ble_security.hpp"
 #include "wifi_service.hpp"
+#include "display_text.hpp"
 
 #include <ArduinoJson.h>
 
@@ -269,6 +270,14 @@ namespace
         CHECK(getText().size() == 63);
     }
 
+    void displayTextRemovesEmoji()
+    {
+        CHECK(
+            swirski::services::display_text::normalize(
+                "Hello \xF0\x9F\x90\xB6 world \xF0\x9F\x94\xA5") ==
+            "Hello world");
+    }
+
     void bleSecurityRequiresAllProtections()
     {
         using swirski::transport::ble_security::isSecure;
@@ -385,6 +394,7 @@ int main()
         {"playing music position stops at duration", playingMusicPositionStopsAtDuration},
         {"keyboard text can be edited", keyboardTextCanBeEdited},
         {"keyboard text is limited", keyboardTextIsLimited},
+        {"display text removes emoji", displayTextRemovesEmoji},
         {"BLE security requires encryption, authentication and bonding", bleSecurityRequiresAllProtections},
         {"Wi-Fi configure does not echo password", wifiConfigureDoesNotEchoPassword},
         {"invalid Wi-Fi credentials are rejected", invalidWifiCredentialsAreRejected},

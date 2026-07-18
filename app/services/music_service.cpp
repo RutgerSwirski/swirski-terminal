@@ -4,6 +4,8 @@
 #include <iostream>
 #include <utility>
 
+#include "display_text.hpp"
+
 namespace swirski::services::music_service
 {
     int revision = 0;
@@ -72,16 +74,19 @@ namespace swirski::services::music_service
         MusicState state;
 
         state.appName =
-            payload["appName"] |
-            "Music";
+            display_text::normalize(
+                payload["appName"] |
+                "Music");
 
         state.title =
-            payload["title"] |
-            "Nothing playing";
+            display_text::normalize(
+                payload["title"] |
+                "Nothing playing");
 
         state.artist =
-            payload["artist"] |
-            "";
+            display_text::normalize(
+                payload["artist"] |
+                "");
 
         state.isPlaying =
             payload["isPlaying"] |
