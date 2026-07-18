@@ -378,6 +378,6 @@ class SwirskiMediaModule(
 
     companion object {
         const val MUSIC_STATE_CHANGED_EVENT = "SwirskiMusicStateChanged"
-        private const val MUSIC_STATE_EMIT_DEBOUNCE_MS = 400L
+        private const val MUSIC_STATE_EMIT_DEBOUNCE_MS = 750L
     }
 }
