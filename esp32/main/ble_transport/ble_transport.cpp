@@ -982,6 +982,13 @@ namespace swirski::transport::ble
             swirski::protocol::handleIncomingMessage(
                 *completeMessage);
 
+        if (result.pingReceived)
+        {
+            swirski::ui::notification_toast::requestMessage(
+                "Ping",
+                "Pong!");
+        }
+
         if (
             result.disconnectRequested)
         {

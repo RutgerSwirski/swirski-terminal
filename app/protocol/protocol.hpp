@@ -10,6 +10,7 @@ namespace swirski::protocol
     {
         std::optional<std::string> response;
         bool disconnectRequested = false;
+        bool pingReceived = false;
     };
 
     MessageResult handleIncomingMessage(

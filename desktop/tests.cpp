@@ -87,6 +87,7 @@ namespace
                 R"({"version":1,"type":"ping","id":"ping-3"})");
 
         CHECK(result.response.has_value());
+        CHECK(result.pingReceived);
 
         JsonDocument response;
         CHECK(!deserializeJson(response, *result.response));

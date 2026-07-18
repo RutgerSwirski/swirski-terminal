@@ -334,7 +334,8 @@ namespace swirski::protocol
         case MessageType::Ping:
             return {
                 createPongMessage(message->id),
-                false};
+                false,
+                true};
 
         case MessageType::Pong:
             std::cout
