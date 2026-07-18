@@ -2,12 +2,18 @@
 
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <cstring>
 
 #ifdef ESP_PLATFORM
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
+#include "lwip/inet.h"
+#include "lwip/netdb.h"
+#include "ping/ping_sock.h"
 #endif
 
 namespace swirski::services::wifi_service
@@ -19,6 +25,10 @@ namespace swirski::services::wifi_service
         ConnectionState connectionState =
             ConnectionState::Unavailable;
         bool scanning = false;
+        std::int32_t signalStrength = -127;
+        InternetTestState internetTestState =
+            InternetTestState::Idle;
+        std::uint32_t internetLatencyMs = 0;
         std::string connectedSsid;
         std::vector<Network> networks;
         std::uint32_t revision = 0;
@@ -28,6 +38,136 @@ namespace swirski::services::wifi_service
         std::atomic_bool connectionSucceeded{false};
         std::atomic_bool connectionFailed{false};
         std::atomic_bool ignoreNextDisconnect{false};
+        std::atomic_bool pingReplyReceived{false};
+        std::atomic_int internetTestResult{0};
+        std::atomic_uint32_t pendingInternetLatencyMs{0};
+
+        using Clock = std::chrono::steady_clock;
+        constexpr std::chrono::seconds signalUpdateInterval{5};
+        Clock::time_point lastSignalUpdate = Clock::now();
+
+        void updateSignalStrength()
+        {
+            wifi_ap_record_t accessPoint{};
+
+            if (esp_wifi_sta_get_ap_info(&accessPoint) != ESP_OK)
+            {
+                return;
+            }
+
+            const int previousLevel =
+                signalBarsForRssi(signalStrength);
+            signalStrength = accessPoint.rssi;
+
+            if (signalBarsForRssi(signalStrength) != previousLevel)
+            {
+                revision++;
+            }
+        }
+
+        void handlePingSuccess(
+            esp_ping_handle_t handle,
+            void *)
+        {
+            std::uint32_t latencyMs = 0;
+            esp_ping_get_profile(
+                handle,
+                ESP_PING_PROF_TIMEGAP,
+                &latencyMs,
+                sizeof(latencyMs));
+
+            pendingInternetLatencyMs = latencyMs;
+            pingReplyReceived = true;
+        }
+
+        void handlePingEnd(
+            esp_ping_handle_t handle,
+            void *)
+        {
+            internetTestResult =
+                pingReplyReceived ? 1 : 2;
+            esp_ping_delete_session(handle);
+        }
+
+        void runInternetTest(void *)
+        {
+            addrinfo hints{};
+            hints.ai_family = AF_UNSPEC;
+
+            addrinfo *addressInfo = nullptr;
+
+            if (
+                getaddrinfo(
+                    "swirski.studio",
+                    nullptr,
+                    &hints,
+                    &addressInfo) != 0 ||
+                addressInfo == nullptr)
+            {
+                internetTestResult = 2;
+                vTaskDelete(nullptr);
+                return;
+            }
+
+            ip_addr_t targetAddress{};
+
+            if (addressInfo->ai_family == AF_INET)
+            {
+                const auto *address =
+                    reinterpret_cast<sockaddr_in *>(
+                        addressInfo->ai_addr);
+                inet_addr_to_ip4addr(
+                    ip_2_ip4(&targetAddress),
+                    &address->sin_addr);
+            }
+            else if (addressInfo->ai_family == AF_INET6)
+            {
+                const auto *address =
+                    reinterpret_cast<sockaddr_in6 *>(
+                        addressInfo->ai_addr);
+                inet6_addr_to_ip6addr(
+                    ip_2_ip6(&targetAddress),
+                    &address->sin6_addr);
+            }
+            else
+            {
+                freeaddrinfo(addressInfo);
+                internetTestResult = 2;
+                vTaskDelete(nullptr);
+                return;
+            }
+
+            freeaddrinfo(addressInfo);
+
+            esp_ping_config_t config =
+                ESP_PING_DEFAULT_CONFIG();
+            config.target_addr = targetAddress;
+            config.count = 1;
+            config.timeout_ms = 2000;
+
+            esp_ping_callbacks_t callbacks{};
+            callbacks.on_ping_success = handlePingSuccess;
+            callbacks.on_ping_end = handlePingEnd;
+
+            esp_ping_handle_t pingHandle = nullptr;
+
+            if (
+                esp_ping_new_session(
+                    &config,
+                    &callbacks,
+                    &pingHandle) != ESP_OK ||
+                esp_ping_start(pingHandle) != ESP_OK)
+            {
+                if (pingHandle != nullptr)
+                {
+                    esp_ping_delete_session(pingHandle);
+                }
+
+                internetTestResult = 2;
+            }
+
+            vTaskDelete(nullptr);
+        }
 
         void handleWifiEvent(
             void *,
@@ -199,12 +339,38 @@ namespace swirski::services::wifi_service
         if (connectionSucceeded.exchange(false))
         {
             connectionState = ConnectionState::Connected;
+            updateSignalStrength();
             revision++;
         }
 
         if (connectionFailed.exchange(false))
         {
             connectionState = ConnectionState::Failed;
+            signalStrength = -127;
+            revision++;
+        }
+
+        if (
+            connectionState == ConnectionState::Connected &&
+            Clock::now() - lastSignalUpdate >= signalUpdateInterval)
+        {
+            lastSignalUpdate = Clock::now();
+            updateSignalStrength();
+        }
+
+        const int testResult =
+            internetTestResult.exchange(0);
+
+        if (
+            testResult != 0 &&
+            connectionState == ConnectionState::Connected)
+        {
+            internetTestState =
+                testResult == 1
+                    ? InternetTestState::Success
+                    : InternetTestState::Failed;
+            internetLatencyMs =
+                pendingInternetLatencyMs;
             revision++;
         }
 #endif
@@ -229,6 +395,63 @@ namespace swirski::services::wifi_service
             revision++;
         }
 #endif
+    }
+
+    void startInternetTest()
+    {
+#ifdef ESP_PLATFORM
+        if (
+            connectionState != ConnectionState::Connected ||
+            internetTestState == InternetTestState::Testing)
+        {
+            return;
+        }
+
+        internetTestState = InternetTestState::Testing;
+        internetLatencyMs = 0;
+        pingReplyReceived = false;
+        pendingInternetLatencyMs = 0;
+        internetTestResult = 0;
+        revision++;
+
+        if (
+            xTaskCreate(
+                runInternetTest,
+                "internet_test",
+                4096,
+                nullptr,
+                2,
+                nullptr) != pdPASS)
+        {
+            internetTestState = InternetTestState::Failed;
+            revision++;
+        }
+#else
+        internetTestState = InternetTestState::Failed;
+        revision++;
+#endif
+    }
+
+    void disconnect()
+    {
+#ifdef ESP_PLATFORM
+        ignoreNextDisconnect = true;
+
+        if (esp_wifi_disconnect() != ESP_OK)
+        {
+            ignoreNextDisconnect = false;
+        }
+
+        wifi_config_t emptyConfig{};
+        esp_wifi_set_config(WIFI_IF_STA, &emptyConfig);
+#endif
+
+        connectedSsid.clear();
+        signalStrength = -127;
+        connectionState = ConnectionState::Disconnected;
+        internetTestState = InternetTestState::Idle;
+        internetLatencyMs = 0;
+        revision++;
     }
 
     void connect(
@@ -288,6 +511,21 @@ namespace swirski::services::wifi_service
     bool isScanning()
     {
         return scanning;
+    }
+
+    std::int32_t getSignalStrength()
+    {
+        return signalStrength;
+    }
+
+    InternetTestState getInternetTestState()
+    {
+        return internetTestState;
+    }
+
+    std::uint32_t getInternetLatencyMs()
+    {
+        return internetLatencyMs;
     }
 
     const std::string &getConnectedSsid()

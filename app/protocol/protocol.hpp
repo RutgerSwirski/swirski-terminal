@@ -18,4 +18,6 @@ namespace swirski::protocol
     std::optional<Message> parseMessage(const std::string &rawMessage);
 
     std::string createPongMessage(const std::string &messageId);
+    std::string createWifiNetworksMessage();
+    std::string createWifiStatusMessage();
 }

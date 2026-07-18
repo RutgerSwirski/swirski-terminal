@@ -26,6 +26,7 @@
 #include "hardware_settings.hpp"
 #include "wifi_service.hpp"
 #include "wifi_screen.hpp"
+#include "protocol.hpp"
 
 #include "ble_transport.hpp"
 
@@ -217,11 +218,65 @@ extern "C" void app_main()
 
     vTaskDelay(1);
 
+    bool wifiScanInProgress = false;
+    auto lastWifiState =
+        swirski::services::wifi_service::getConnectionState();
+    auto lastInternetTestState =
+        swirski::services::wifi_service::getInternetTestState();
+
     while (true)
     {
 
         bleTransport.update();
         swirski::services::wifi_service::update();
+
+        const bool wifiScanning =
+            swirski::services::wifi_service::isScanning();
+        const auto wifiState =
+            swirski::services::wifi_service::getConnectionState();
+        const auto internetTestState =
+            swirski::services::wifi_service::getInternetTestState();
+        bool wifiStatusSent = false;
+
+        if (wifiScanning)
+        {
+            wifiScanInProgress = true;
+        }
+        else if (wifiScanInProgress)
+        {
+            wifiScanInProgress = false;
+            bleTransport.send(
+                swirski::protocol::createWifiNetworksMessage());
+            bleTransport.send(
+                swirski::protocol::createWifiStatusMessage());
+            wifiStatusSent = true;
+        }
+
+        if (wifiState != lastWifiState)
+        {
+            lastWifiState = wifiState;
+
+            if (!wifiStatusSent)
+            {
+                bleTransport.send(
+                    swirski::protocol::createWifiStatusMessage());
+            }
+        }
+
+        if (internetTestState != lastInternetTestState)
+        {
+            lastInternetTestState = internetTestState;
+
+            if (
+                internetTestState ==
+                    swirski::services::wifi_service::InternetTestState::Success ||
+                internetTestState ==
+                    swirski::services::wifi_service::InternetTestState::Failed)
+            {
+                bleTransport.send(
+                    swirski::protocol::createWifiStatusMessage());
+            }
+        }
 
         if (lvgl_port_lock(0))
         {

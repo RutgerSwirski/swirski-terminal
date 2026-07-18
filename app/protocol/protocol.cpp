@@ -10,6 +10,7 @@
 #include "date_time.hpp"
 #include "music_service.hpp"
 #include "notification_service.hpp"
+#include "wifi_service.hpp"
 
 namespace
 {
@@ -49,6 +50,36 @@ namespace
         if (rawType == "music.state")
         {
             return swirski::protocol::MessageType::MusicState;
+        }
+
+        if (rawType == "wifi.scan.request")
+        {
+            return swirski::protocol::MessageType::WifiScanRequest;
+        }
+
+        if (rawType == "wifi.networks")
+        {
+            return swirski::protocol::MessageType::WifiNetworks;
+        }
+
+        if (rawType == "wifi.configure")
+        {
+            return swirski::protocol::MessageType::WifiConfigure;
+        }
+
+        if (rawType == "wifi.disconnect")
+        {
+            return swirski::protocol::MessageType::WifiDisconnect;
+        }
+
+        if (rawType == "wifi.status")
+        {
+            return swirski::protocol::MessageType::WifiStatus;
+        }
+
+        if (rawType == "wifi.internet.test")
+        {
+            return swirski::protocol::MessageType::WifiInternetTest;
         }
 
         if (rawType == "disconnect.requested")
@@ -117,6 +148,59 @@ namespace
 
 namespace swirski::protocol
 {
+    namespace
+    {
+        const char *wifiStateName(
+            services::wifi_service::ConnectionState state)
+        {
+            using State = services::wifi_service::ConnectionState;
+
+            switch (state)
+            {
+            case State::Unavailable:
+                return "unavailable";
+            case State::Disconnected:
+                return "disconnected";
+            case State::Connecting:
+                return "connecting";
+            case State::Connected:
+                return "connected";
+            case State::Failed:
+                return "failed";
+            }
+
+            return "unavailable";
+        }
+
+        const char *internetTestStateName(
+            services::wifi_service::InternetTestState state)
+        {
+            using State =
+                services::wifi_service::InternetTestState;
+
+            switch (state)
+            {
+            case State::Idle:
+                return "idle";
+            case State::Testing:
+                return "testing";
+            case State::Success:
+                return "success";
+            case State::Failed:
+                return "failed";
+            }
+
+            return "idle";
+        }
+
+        std::string serializeDocument(JsonDocument &document)
+        {
+            std::string output;
+            serializeJson(document, output);
+            return output;
+        }
+    }
+
     std::string createPongMessage(
         const std::string &messageId)
     {
@@ -130,6 +214,59 @@ namespace swirski::protocol
         serializeJson(document, output);
 
         return output;
+    }
+
+    std::string createWifiNetworksMessage()
+    {
+        JsonDocument document;
+        document["version"] = 1;
+        document["type"] = "wifi.networks";
+        document["id"] =
+            "terminal-wifi-networks-" +
+            std::to_string(
+                services::wifi_service::getRevision());
+
+        JsonArray networkArray =
+            document["payload"]["networks"].to<JsonArray>();
+
+        for (const auto &network :
+             services::wifi_service::getNetworks())
+        {
+            JsonObject item = networkArray.add<JsonObject>();
+            item["ssid"] = network.ssid;
+            item["signalStrength"] = network.signalStrength;
+            item["secured"] = network.secured;
+        }
+
+        return serializeDocument(document);
+    }
+
+    std::string createWifiStatusMessage()
+    {
+        JsonDocument document;
+        document["version"] = 1;
+        document["type"] = "wifi.status";
+        document["id"] =
+            "terminal-wifi-status-" +
+            std::to_string(
+                services::wifi_service::getRevision());
+
+        JsonObject payload =
+            document["payload"].to<JsonObject>();
+        payload["state"] = wifiStateName(
+            services::wifi_service::getConnectionState());
+        payload["ssid"] =
+            services::wifi_service::getConnectedSsid();
+        payload["scanning"] =
+            services::wifi_service::isScanning();
+        payload["signalStrength"] =
+            services::wifi_service::getSignalStrength();
+        payload["internetTest"] = internetTestStateName(
+            services::wifi_service::getInternetTestState());
+        payload["internetLatencyMs"] =
+            services::wifi_service::getInternetLatencyMs();
+
+        return serializeDocument(document);
     }
 
     std::optional<Message> parseMessage(
@@ -275,6 +412,57 @@ namespace swirski::protocol
                     document["payload"].as<JsonObjectConst>());
 
             return {};
+
+        case MessageType::WifiScanRequest:
+            services::wifi_service::scan();
+            return {createWifiStatusMessage(), false};
+
+        case MessageType::WifiConfigure:
+        {
+            JsonObjectConst payload =
+                document["payload"].as<JsonObjectConst>();
+
+            if (
+                !payload["ssid"].is<const char *>() ||
+                !payload["password"].is<const char *>())
+            {
+                std::cerr
+                    << "Invalid wifi.configure payload"
+                    << std::endl;
+                return {};
+            }
+
+            const std::string ssid =
+                payload["ssid"].as<std::string>();
+            const std::string password =
+                payload["password"].as<std::string>();
+
+            if (
+                ssid.empty() ||
+                ssid.size() > 32 ||
+                password.size() > 63)
+            {
+                std::cerr
+                    << "Invalid Wi-Fi credential lengths"
+                    << std::endl;
+                return {};
+            }
+
+            services::wifi_service::connect(ssid, password);
+            return {createWifiStatusMessage(), false};
+        }
+
+        case MessageType::WifiDisconnect:
+            services::wifi_service::disconnect();
+            return {createWifiStatusMessage(), false};
+
+        case MessageType::WifiNetworks:
+        case MessageType::WifiStatus:
+            return {};
+
+        case MessageType::WifiInternetTest:
+            services::wifi_service::startInternetTest();
+            return {createWifiStatusMessage(), false};
 
         case MessageType::DisconnectRequested:
             return {

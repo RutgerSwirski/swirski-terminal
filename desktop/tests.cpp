@@ -3,6 +3,8 @@
 #include "protocol.hpp"
 #include "date_time.hpp"
 #include "keyboard_service.hpp"
+#include "ble_security.hpp"
+#include "wifi_service.hpp"
 
 #include <ArduinoJson.h>
 
@@ -266,6 +268,95 @@ namespace
         CHECK(getText().size() == 63);
     }
 
+    void bleSecurityRequiresAllProtections()
+    {
+        using swirski::transport::ble_security::isSecure;
+
+        CHECK(isSecure(true, true, true));
+        CHECK(!isSecure(false, true, true));
+        CHECK(!isSecure(true, false, true));
+        CHECK(!isSecure(true, true, false));
+    }
+
+    void wifiConfigureDoesNotEchoPassword()
+    {
+        const auto result =
+            swirski::protocol::handleIncomingMessage(
+                R"({"version":1,"type":"wifi.configure","id":"wifi-1","payload":{"ssid":"Home","password":"very-secret"}})");
+
+        CHECK(result.response.has_value());
+        CHECK(result.response->find("very-secret") == std::string::npos);
+        CHECK(result.response->find("wifi.status") != std::string::npos);
+    }
+
+    void invalidWifiCredentialsAreRejected()
+    {
+        const auto result =
+            swirski::protocol::handleIncomingMessage(
+                R"({"version":1,"type":"wifi.configure","id":"wifi-2","payload":{"ssid":"","password":"password"}})");
+
+        CHECK(!result.response.has_value());
+
+        const auto missingPassword =
+            swirski::protocol::handleIncomingMessage(
+                R"({"version":1,"type":"wifi.configure","id":"wifi-3","payload":{"ssid":"Home"}})");
+
+        CHECK(!missingPassword.response.has_value());
+    }
+
+    void wifiStatusContainsExpectedFields()
+    {
+        JsonDocument status;
+        CHECK(!deserializeJson(
+            status,
+            swirski::protocol::createWifiStatusMessage()));
+
+        CHECK(status["type"] == "wifi.status");
+        CHECK(status["payload"]["state"].is<const char *>());
+        CHECK(status["payload"]["scanning"].is<bool>());
+        CHECK(status["payload"]["signalStrength"].is<int>());
+        CHECK(status["payload"]["internetTest"].is<const char *>());
+        CHECK(status["payload"]["internetLatencyMs"].is<unsigned int>());
+    }
+
+    void wifiDisconnectReturnsDisconnectedStatus()
+    {
+        const auto result =
+            swirski::protocol::handleIncomingMessage(
+                R"({"version":1,"type":"wifi.disconnect","id":"wifi-4"})");
+
+        CHECK(result.response.has_value());
+        CHECK(
+            swirski::services::wifi_service::getConnectionState() ==
+            swirski::services::wifi_service::ConnectionState::Disconnected);
+
+        JsonDocument status;
+        CHECK(!deserializeJson(status, *result.response));
+        CHECK(status["payload"]["state"] == "disconnected");
+    }
+
+    void wifiSignalBarsUseStableThresholds()
+    {
+        using swirski::services::wifi_service::signalBarsForRssi;
+
+        CHECK(signalBarsForRssi(-127) == 0);
+        CHECK(signalBarsForRssi(-71) == 1);
+        CHECK(signalBarsForRssi(-70) == 2);
+        CHECK(signalBarsForRssi(-56) == 2);
+        CHECK(signalBarsForRssi(-55) == 3);
+    }
+
+    void internetTestReturnsWifiStatus()
+    {
+        const auto result =
+            swirski::protocol::handleIncomingMessage(
+                R"({"version":1,"type":"wifi.internet.test","id":"internet-1"})");
+
+        CHECK(result.response.has_value());
+        CHECK(result.response->find("wifi.status") != std::string::npos);
+        CHECK(result.response->find("internetTest") != std::string::npos);
+    }
+
     struct Test
     {
         const char *name;
@@ -292,7 +383,14 @@ int main()
         {"paused music position stays still", pausedMusicPositionStaysStill},
         {"playing music position stops at duration", playingMusicPositionStopsAtDuration},
         {"keyboard text can be edited", keyboardTextCanBeEdited},
-        {"keyboard text is limited", keyboardTextIsLimited}};
+        {"keyboard text is limited", keyboardTextIsLimited},
+        {"BLE security requires encryption, authentication and bonding", bleSecurityRequiresAllProtections},
+        {"Wi-Fi configure does not echo password", wifiConfigureDoesNotEchoPassword},
+        {"invalid Wi-Fi credentials are rejected", invalidWifiCredentialsAreRejected},
+        {"Wi-Fi status contains expected fields", wifiStatusContainsExpectedFields},
+        {"Wi-Fi disconnect returns disconnected status", wifiDisconnectReturnsDisconnectedStatus},
+        {"Wi-Fi signal bars use stable thresholds", wifiSignalBarsUseStableThresholds},
+        {"internet test returns Wi-Fi status", internetTestReturnsWifiStatus}};
 
     int failures = 0;
 

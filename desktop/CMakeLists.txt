@@ -136,6 +136,7 @@ if(BUILD_TESTING)
         ../app/services/music_service.cpp
         ../app/services/notification_service.cpp
         ../app/services/keyboard_service.cpp
+        ../app/services/wifi_service.cpp
     )
 
     target_include_directories(
@@ -143,6 +144,7 @@ if(BUILD_TESTING)
         PRIVATE
             ../app/protocol
             ../app/services
+            ../app/transport
     )
 
     target_link_libraries(
