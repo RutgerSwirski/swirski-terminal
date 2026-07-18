@@ -161,29 +161,29 @@ namespace swirski::services::notification_service
 
     void setNotifications(std::vector<Notification> incomingNotifications)
     {
-        notifications = incomingNotifications;
+        notifications = std::move(incomingNotifications);
     }
 
-    std::vector<Notification> getNotifications()
+    const std::vector<Notification> &getNotifications()
     {
         return notifications;
     }
 
-    std::optional<Notification> getNotificationById(const std::string &id)
+    const Notification *getNotificationById(const std::string &id)
     {
-        for (auto notification : notifications)
+        for (const auto &notification : notifications)
         {
             if (notification.id == id)
             {
-                return notification;
+                return &notification;
             }
         }
-        return {};
+        return nullptr;
     }
 
     bool addNotification(Notification notification)
     {
-        notifications.push_back(notification);
+        notifications.push_back(std::move(notification));
         return true;
     }
 

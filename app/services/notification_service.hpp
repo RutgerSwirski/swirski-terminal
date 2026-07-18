@@ -26,9 +26,9 @@ namespace swirski::services::notification_service
 
     bool addNotification(Notification notification);
 
-    std::vector<Notification> getNotifications();
+    const std::vector<Notification> &getNotifications();
 
-    std::optional<Notification> getNotificationById(const std::string &notificationId);
+    const Notification *getNotificationById(const std::string &notificationId);
 
     bool removeNotificationById(const std::string &notificationId);
 

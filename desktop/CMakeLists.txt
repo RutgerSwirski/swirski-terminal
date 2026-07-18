@@ -120,3 +120,35 @@ target_link_libraries(
         ixwebsocket::ixwebsocket
         ArduinoJson
 )
+
+include(CTest)
+
+if(BUILD_TESTING)
+    add_executable(
+        swirski_os_tests
+        tests.cpp
+        ../app/protocol/protocol.cpp
+        ../app/services/date_time.cpp
+        ../app/services/music_service.cpp
+        ../app/services/notification_service.cpp
+    )
+
+    target_include_directories(
+        swirski_os_tests
+        PRIVATE
+            ../app/protocol
+            ../app/services
+    )
+
+    target_link_libraries(
+        swirski_os_tests
+        PRIVATE
+            lvgl::lvgl
+            ArduinoJson
+    )
+
+    add_test(
+        NAME swirski_os_tests
+        COMMAND swirski_os_tests
+    )
+endif()

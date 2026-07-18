@@ -124,7 +124,8 @@ namespace swirski::screens::notifications_screen
 
         notificationRows.clear();
 
-        std::vector<swirski::services::notification_service::Notification> notifications = swirski::services::notification_service::getNotifications();
+        const auto &notifications =
+            swirski::services::notification_service::getNotifications();
 
         std::cout << "Rendering notifications screen" << std::endl;
 
