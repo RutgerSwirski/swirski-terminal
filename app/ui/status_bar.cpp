@@ -4,6 +4,7 @@
 #include "lvgl.h"
 
 #include "services/date_time.hpp"
+#include "services/wifi_service.hpp"
 #include "swirski_ui.hpp"
 
 #include <ctime>
@@ -20,11 +21,54 @@ namespace swirski::ui::status_bar
 
         lv_obj_t *connectionLabel = nullptr;
         lv_obj_t *connectionDot = nullptr;
+        lv_obj_t *wifiIndicator = nullptr;
+        lv_obj_t *wifiBars[3]{};
 
         std::uint32_t lastRenderedSystemRevision = 0;
+        std::uint32_t lastRenderedWifiRevision = 0;
 
         bool connected = false;
         bool error = false;
+
+        void renderWifiState()
+        {
+            if (wifiIndicator == nullptr)
+            {
+                return;
+            }
+
+            const bool wifiConnected =
+                swirski::services::wifi_service::getConnectionState() ==
+                swirski::services::wifi_service::ConnectionState::Connected;
+
+            if (!wifiConnected)
+            {
+                lv_obj_add_flag(
+                    wifiIndicator,
+                    LV_OBJ_FLAG_HIDDEN);
+                return;
+            }
+
+            lv_obj_remove_flag(
+                wifiIndicator,
+                LV_OBJ_FLAG_HIDDEN);
+
+            const std::int32_t signalStrength =
+                swirski::services::wifi_service::getSignalStrength();
+            const int activeBars =
+                swirski::services::wifi_service::signalBarsForRssi(
+                    signalStrength);
+
+            for (int index = 0; index < 3; ++index)
+            {
+                lv_obj_set_style_opa(
+                    wifiBars[index],
+                    index < activeBars
+                        ? LV_OPA_COVER
+                        : LV_OPA_20,
+                    LV_PART_MAIN);
+            }
+        }
 
         void renderSystemState(
             const swirski::state::system::SystemStateSnapshot &snapshot)
@@ -192,7 +236,7 @@ namespace swirski::ui::status_bar
             LV_FLEX_ALIGN_CENTER);
         lv_obj_set_style_pad_column(
             rightSection,
-            6,
+            4,
             LV_PART_MAIN);
 
         clockLabel = lv_label_create(leftSection);
@@ -234,6 +278,39 @@ namespace swirski::ui::status_bar
             pagePathLabel,
             swirski::ui::swirski_ui::color::ink(),
             LV_PART_MAIN);
+
+        wifiIndicator = lv_obj_create(rightSection);
+        lv_obj_remove_style_all(wifiIndicator);
+        lv_obj_set_size(wifiIndicator, 14, 12);
+        lv_obj_set_layout(wifiIndicator, LV_LAYOUT_FLEX);
+        lv_obj_set_flex_flow(wifiIndicator, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(
+            wifiIndicator,
+            LV_FLEX_ALIGN_CENTER,
+            LV_FLEX_ALIGN_END,
+            LV_FLEX_ALIGN_END);
+        lv_obj_set_style_pad_column(
+            wifiIndicator,
+            1,
+            LV_PART_MAIN);
+
+        for (int index = 0; index < 3; ++index)
+        {
+            wifiBars[index] = lv_obj_create(wifiIndicator);
+            lv_obj_remove_style_all(wifiBars[index]);
+            lv_obj_set_size(
+                wifiBars[index],
+                3,
+                4 + index * 3);
+            lv_obj_set_style_bg_color(
+                wifiBars[index],
+                swirski::ui::swirski_ui::color::accent(),
+                LV_PART_MAIN);
+            lv_obj_set_style_bg_opa(
+                wifiBars[index],
+                LV_OPA_COVER,
+                LV_PART_MAIN);
+        }
 
         connectionLabel =
             lv_label_create(rightSection);
@@ -279,9 +356,12 @@ namespace swirski::ui::status_bar
             swirski::state::system::getSnapshot();
 
         renderSystemState(snapshot);
+        renderWifiState();
 
         lastRenderedSystemRevision =
             snapshot.revision;
+        lastRenderedWifiRevision =
+            swirski::services::wifi_service::getRevision();
     }
 
     void updateClock()
@@ -332,18 +412,24 @@ namespace swirski::ui::status_bar
     {
         const auto snapshot =
             swirski::state::system::getSnapshot();
+        const std::uint32_t wifiRevision =
+            swirski::services::wifi_service::getRevision();
 
         if (
-            snapshot.revision ==
+            snapshot.revision !=
             lastRenderedSystemRevision)
         {
-            return;
+            renderSystemState(snapshot);
+
+            lastRenderedSystemRevision =
+                snapshot.revision;
         }
 
-        renderSystemState(snapshot);
-
-        lastRenderedSystemRevision =
-            snapshot.revision;
+        if (wifiRevision != lastRenderedWifiRevision)
+        {
+            renderWifiState();
+            lastRenderedWifiRevision = wifiRevision;
+        }
     }
 
 }

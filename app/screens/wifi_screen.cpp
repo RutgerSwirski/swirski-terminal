@@ -27,10 +27,33 @@ namespace swirski::screens::wifi_screen
         {
             using State =
                 swirski::services::wifi_service::ConnectionState;
+            using InternetState =
+                swirski::services::wifi_service::InternetTestState;
 
             if (swirski::services::wifi_service::isScanning())
             {
                 return "Scanning...";
+            }
+
+            if (
+                swirski::services::wifi_service::getConnectionState() ==
+                State::Connected)
+            {
+                switch (
+                    swirski::services::wifi_service::getInternetTestState())
+                {
+                case InternetState::Testing:
+                    return "Testing swirski.studio...";
+                case InternetState::Success:
+                    return "Online: " +
+                        std::to_string(
+                            swirski::services::wifi_service::getInternetLatencyMs()) +
+                        " ms";
+                case InternetState::Failed:
+                    return "Internet test failed";
+                case InternetState::Idle:
+                    break;
+                }
             }
 
             switch (
@@ -55,6 +78,13 @@ namespace swirski::screens::wifi_screen
 
         std::size_t itemCount()
         {
+            if (
+                swirski::services::wifi_service::getConnectionState() ==
+                swirski::services::wifi_service::ConnectionState::Connected)
+            {
+                return 1;
+            }
+
             return std::min(
                 maxVisibleNetworks,
                 swirski::services::wifi_service::getNetworks().size()) + 1;
@@ -66,7 +96,15 @@ namespace swirski::screens::wifi_screen
                 statusLabel,
                 statusText().c_str());
 
-            lv_label_set_text(itemLabels[0], "Scan again");
+            const bool wifiConnected =
+                swirski::services::wifi_service::getConnectionState() ==
+                swirski::services::wifi_service::ConnectionState::Connected;
+
+            lv_label_set_text(
+                itemLabels[0],
+                wifiConnected
+                    ? "Ping swirski.studio"
+                    : "Scan again");
 
             const auto &networks =
                 swirski::services::wifi_service::getNetworks();
@@ -75,7 +113,7 @@ namespace swirski::screens::wifi_screen
             {
                 lv_obj_t *label = itemLabels[i + 1];
 
-                if (i >= networks.size())
+                if (wifiConnected || i >= networks.size())
                 {
                     lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
                     continue;
@@ -197,7 +235,17 @@ namespace swirski::screens::wifi_screen
         case swirski::input::input_action::Confirm:
             if (selectedItemIndex == 0)
             {
-                swirski::services::wifi_service::scan();
+                if (
+                    swirski::services::wifi_service::getConnectionState() ==
+                    swirski::services::wifi_service::ConnectionState::Connected)
+                {
+                    swirski::services::wifi_service::startInternetTest();
+                }
+                else
+                {
+                    swirski::services::wifi_service::scan();
+                }
+
                 updateScreen();
                 break;
             }
