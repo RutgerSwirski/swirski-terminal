@@ -12,6 +12,7 @@ type ConnectionPanelProps = {
   connectedDevice: Device | null;
   isScanning: boolean;
   notificationAccessEnabled: boolean;
+  onEnableBluetooth(): void;
   onOpenNotificationSettings(): void;
   onStartScan(): void;
 };
@@ -22,6 +23,7 @@ export function ConnectionPanel({
   connectedDevice,
   isScanning,
   notificationAccessEnabled,
+  onEnableBluetooth,
   onOpenNotificationSettings,
   onStartScan,
 }: ConnectionPanelProps) {
@@ -47,16 +49,27 @@ export function ConnectionPanel({
         </Card>
       )}
 
-      {connectedDevice && (
-        <Text weight="medium">Connected: {connectedDevice.name}</Text>
+      {bleState === State.PoweredOn && connectedDevice && (
+        <Text weight="medium">
+          Connected:{' '}
+          {connectedDevice.name ??
+            connectedDevice.localName ??
+            'Swirski Terminal'}
+        </Text>
       )}
 
-      <Button
-        disabled={isScanning}
-        onPress={onStartScan}
-      >
-        {isScanning ? 'Scanning...' : 'Start scanning'}
-      </Button>
+      {bleState === State.PoweredOff && (
+        <Button onPress={onEnableBluetooth}>Turn on Bluetooth</Button>
+      )}
+
+      {bleState === State.PoweredOn && !connectedDevice && (
+        <Button
+          disabled={isScanning}
+          onPress={onStartScan}
+        >
+          {isScanning ? 'Scanning...' : 'Start scanning'}
+        </Button>
+      )}
     </>
   );
 }

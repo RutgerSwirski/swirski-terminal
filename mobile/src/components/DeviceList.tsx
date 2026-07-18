@@ -27,20 +27,17 @@ export function DeviceList({
   onConnect,
   onDisconnect,
 }: DeviceListProps) {
-  const isDeviceConnected = connectedDevice !== null;
-
-  //if device connected filter out disconnected devices
-  if (isDeviceConnected) {
-    devices = devices.filter(device => device.id === connectedDevice?.id);
-  }
+  const visibleDevices = connectedDevice
+    ? [devices.find(device => device.id === connectedDevice.id) ?? connectedDevice]
+    : devices;
 
   return (
     <View style={styles.list}>
-      {devices.map(device => (
+      {visibleDevices.map(device => (
         <Card key={device.id} variant="outline" style={styles.deviceCard}>
           <CardContent>
             <CardTitle size="sm">
-              {device.name ?? device.localName ?? 'Unnamed device'}
+              {device.name ?? device.localName ?? 'Swirski Terminal'}
             </CardTitle>
             <CardMeta>{device.id}</CardMeta>
             <Text tone="muted">RSSI: {device.rssi ?? 'Unknown'}</Text>

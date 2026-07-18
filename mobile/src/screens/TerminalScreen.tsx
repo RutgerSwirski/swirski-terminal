@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Card, CardContent, Text } from '@swirski/ui/native';
 import type { Device } from 'react-native-ble-plx';
+import { State } from 'react-native-ble-plx';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useTerminalBle } from '../ble/useTerminalBle';
@@ -19,6 +20,9 @@ import {
 
 export function TerminalScreen() {
   const terminalBle = useTerminalBle();
+  const connectedDevice = terminalBle.connectedDevice;
+  const connectionStatus = terminalBle.connectionStatus;
+  const sendBleMessage = terminalBle.sendBleMessage;
   const insets = useSafeAreaInsets();
   const lastSyncedDeviceIdRef = useRef<string | null>(null);
 
@@ -33,41 +37,44 @@ export function TerminalScreen() {
     connectionStatus: terminalBle.connectionStatus,
     sendBleMessage: terminalBle.sendBleMessage,
   });
+  const sendCurrentNotificationSnapshot =
+    notificationBridge.sendCurrentNotificationSnapshot;
+  const sendCurrentMusicState = musicBridge.sendCurrentMusicState;
 
   const sendTestNotificationSnapshot = useCallback(
     async (device: Device) => {
-      await terminalBle.sendBleMessage(
+      await sendBleMessage(
         device,
         createTestNotificationSnapshotMessage(),
       );
     },
-    [terminalBle],
+    [sendBleMessage],
   );
 
   const sendTestNotificationReceived = useCallback(
     async (device: Device) => {
-      await terminalBle.sendBleMessage(
+      await sendBleMessage(
         device,
         createTestNotificationReceivedMessage(),
       );
     },
-    [terminalBle],
+    [sendBleMessage],
   );
 
   const sendTestMusicState = useCallback(
     async (device: Device) => {
-      await terminalBle.sendBleMessage(
+      await sendBleMessage(
         device,
         createTestMusicStateMessage(),
       );
     },
-    [terminalBle],
+    [sendBleMessage],
   );
 
   useEffect(() => {
-    const device = terminalBle.connectedDevice;
+    const device = connectedDevice;
 
-    if (!device || terminalBle.connectionStatus !== 'ready') {
+    if (!device || connectionStatus !== 'ready') {
       lastSyncedDeviceIdRef.current = null;
       return;
     }
@@ -84,26 +91,49 @@ export function TerminalScreen() {
       }
 
       try {
-        await terminalBle.sendBleMessage(device, createTimeSyncMessage());
+        await sendBleMessage(device, createTimeSyncMessage());
       } catch (error) {
         console.error('Could not send date/time sync:', error);
       }
 
       try {
-        await notificationBridge.sendCurrentNotificationSnapshot(device);
+        await sendCurrentNotificationSnapshot(device);
       } catch (error) {
         console.error('Could not send notification snapshot:', error);
       }
 
       try {
-        await musicBridge.sendCurrentMusicState(device);
+        await sendCurrentMusicState(device);
       } catch (error) {
         console.error('Could not send current music state:', error);
       }
     }
 
     sendInitialState();
-  }, [musicBridge, notificationBridge, terminalBle]);
+  }, [
+    connectedDevice,
+    connectionStatus,
+    sendBleMessage,
+    sendCurrentMusicState,
+    sendCurrentNotificationSnapshot,
+  ]);
+
+  useEffect(() => {
+    const device = connectedDevice;
+
+    if (!device || connectionStatus !== 'ready') {
+      return;
+    }
+
+    const timeSyncInterval = setInterval(() => {
+      sendBleMessage(device, createTimeSyncMessage())
+        .catch(error => {
+          console.error('Could not refresh date/time sync:', error);
+        });
+    }, 30 * 60 * 1000);
+
+    return () => clearInterval(timeSyncInterval);
+  }, [connectedDevice, connectionStatus, sendBleMessage]);
 
   return (
     <ScrollView
@@ -124,6 +154,7 @@ export function TerminalScreen() {
           notificationAccessEnabled={
             notificationBridge.notificationAccessEnabled
           }
+          onEnableBluetooth={terminalBle.enableBluetooth}
           onOpenNotificationSettings={
             notificationBridge.openNotificationAccessSettings
           }
@@ -139,13 +170,15 @@ export function TerminalScreen() {
           </Card>
         )}
 
-        <DeviceList
-          devices={terminalBle.devices}
-          connectedDevice={terminalBle.connectedDevice}
-          connectionStatus={terminalBle.connectionStatus}
-          onConnect={terminalBle.connectToDevice}
-          onDisconnect={terminalBle.disconnectFromDevice}
-        />
+        {terminalBle.bleState === State.PoweredOn && (
+          <DeviceList
+            devices={terminalBle.devices}
+            connectedDevice={terminalBle.connectedDevice}
+            connectionStatus={terminalBle.connectionStatus}
+            onConnect={terminalBle.connectToDevice}
+            onDisconnect={terminalBle.disconnectFromDevice}
+          />
+        )}
 
         <DebugActions
           connectedDevice={terminalBle.connectedDevice}
