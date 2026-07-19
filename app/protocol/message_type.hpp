@@ -10,6 +10,7 @@ namespace swirski::protocol
         NotificationReceived,
         NotificationRemoved,
         MusicState,
+        WeatherSnapshot,
         WifiScanRequest,
         WifiNetworks,
         WifiConfigure,

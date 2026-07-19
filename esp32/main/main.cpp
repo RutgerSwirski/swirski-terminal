@@ -22,6 +22,7 @@
 #include "settings_screen.hpp"
 #include "notifications_screen.hpp"
 #include "music_screen.hpp"
+#include "weather_screen.hpp"
 #include "ui/status_bar.hpp"
 #include "ui/notification_toast.hpp"
 #include "input.hpp"
@@ -302,6 +303,13 @@ extern "C" void app_main()
             {
                 swirski::screens::music_screen::
                     refreshIfNeeded();
+            }
+
+            if (
+                swirski::screens::manager::getCurrentScreen() ==
+                swirski::screens::manager::Screen::Weather)
+            {
+                swirski::screens::weather_screen::refreshIfNeeded();
             }
 
             if (

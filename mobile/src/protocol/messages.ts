@@ -1,5 +1,20 @@
 import { TerminalNotification } from '../ble/types';
 
+export type WeatherSnapshot = {
+  location: string;
+  updatedAtMs: number;
+  current: {
+    temperatureC: number;
+    condition: string;
+  };
+  forecast: Array<{
+    day: string;
+    condition: string;
+    lowC: number;
+    highC: number;
+  }>;
+};
+
 export function createPingMessage(): Record<string, unknown> {
   return {
     version: 1,
@@ -30,6 +45,17 @@ export function createTimeSyncMessage(): Record<string, unknown> {
       unixTimeSeconds: Math.floor(now.getTime() / 1000),
       timezoneOffsetMinutes: -now.getTimezoneOffset(),
     },
+  };
+}
+
+export function createWeatherSnapshotMessage(
+  weather: WeatherSnapshot,
+): Record<string, unknown> {
+  return {
+    version: 1,
+    type: 'weather.snapshot',
+    id: `mobile-weather-${Date.now()}`,
+    payload: weather,
   };
 }
 

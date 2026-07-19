@@ -79,6 +79,7 @@ add_executable(
     ../app/screens/notifications_screen.cpp
     ../app/screens/notification_screen.cpp
     ../app/screens/music_screen.cpp
+    ../app/screens/weather_screen.cpp
     ../app/screens/games_screen.cpp
     ../app/screens/pong_screen.cpp
     ../app/screens/blackjack_screen.cpp
@@ -90,6 +91,7 @@ add_executable(
     ../app/services/date_time.cpp
     ../app/services/notification_service.cpp
     ../app/services/music_service.cpp
+    ../app/services/weather_service.cpp
     ../app/services/settings_service.cpp
     ../app/services/keyboard_service.cpp
     ../app/services/wifi_service.cpp
@@ -139,6 +141,7 @@ if(BUILD_TESTING)
         ../app/protocol/protocol.cpp
         ../app/services/date_time.cpp
         ../app/services/music_service.cpp
+        ../app/services/weather_service.cpp
         ../app/services/notification_service.cpp
         ../app/services/keyboard_service.cpp
         ../app/services/wifi_service.cpp

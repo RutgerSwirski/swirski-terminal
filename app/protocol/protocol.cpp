@@ -10,6 +10,7 @@
 #include "date_time.hpp"
 #include "music_service.hpp"
 #include "notification_service.hpp"
+#include "weather_service.hpp"
 #include "wifi_service.hpp"
 
 namespace
@@ -50,6 +51,11 @@ namespace
         if (rawType == "music.state")
         {
             return swirski::protocol::MessageType::MusicState;
+        }
+
+        if (rawType == "weather.snapshot")
+        {
+            return swirski::protocol::MessageType::WeatherSnapshot;
         }
 
         if (rawType == "wifi.scan.request")
@@ -410,6 +416,13 @@ namespace swirski::protocol
         case MessageType::MusicState:
             swirski::services::music_service::
                 handleMusicState(
+                    document["payload"].as<JsonObjectConst>());
+
+            return {};
+
+        case MessageType::WeatherSnapshot:
+            swirski::services::weather_service::
+                handleWeatherSnapshot(
                     document["payload"].as<JsonObjectConst>());
 
             return {};

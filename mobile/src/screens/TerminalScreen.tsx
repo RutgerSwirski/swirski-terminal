@@ -19,6 +19,7 @@ import {
   createTimeSyncMessage,
 } from '../protocol/messages';
 import { useTerminalWifi } from '../wifi/useTerminalWifi';
+import { useWeatherBridge } from '../weather/useWeatherBridge';
 
 export function TerminalScreen() {
   const terminalBle = useTerminalBle();
@@ -39,6 +40,11 @@ export function TerminalScreen() {
     connectionStatus: terminalBle.connectionStatus,
     sendBleMessage: terminalBle.sendBleMessage,
   });
+  const weatherBridge = useWeatherBridge({
+    connectedDevice,
+    connectionStatus,
+    sendBleMessage,
+  });
   const terminalWifi = useTerminalWifi({
     connectedDevice,
     connectionStatus,
@@ -48,6 +54,7 @@ export function TerminalScreen() {
   const sendCurrentNotificationSnapshot =
     notificationBridge.sendCurrentNotificationSnapshot;
   const sendCurrentMusicState = musicBridge.sendCurrentMusicState;
+  const sendCurrentWeather = weatherBridge.sendCurrentWeather;
   const scanTerminalWifi = terminalWifi.scan;
 
   const sendTestNotificationSnapshot = useCallback(
@@ -113,6 +120,12 @@ export function TerminalScreen() {
       } catch (error) {
         console.error('Could not send current music state:', error);
       }
+
+      try {
+        await sendCurrentWeather(device);
+      } catch (error) {
+        console.error('Could not send current weather:', error);
+      }
     }
 
     sendInitialState();
@@ -121,6 +134,7 @@ export function TerminalScreen() {
     connectionStatus,
     sendBleMessage,
     sendCurrentMusicState,
+    sendCurrentWeather,
     sendCurrentNotificationSnapshot,
     scanTerminalWifi,
   ]);

@@ -5,6 +5,7 @@
 #include "keyboard_service.hpp"
 #include "ble_security.hpp"
 #include "wifi_service.hpp"
+#include "weather_service.hpp"
 #include "display_text.hpp"
 
 #include <ArduinoJson.h>
@@ -214,6 +215,37 @@ namespace
         CHECK(music.positionMs == 30000);
     }
 
+    void weatherMessageUpdatesSnapshot()
+    {
+        swirski::protocol::handleIncomingMessage(
+            R"({"version":1,"type":"weather.snapshot","id":"weather-1","payload":{"location":"Current location","updatedAtMs":1784332107616,"current":{"temperatureC":21,"condition":"Cloudy"},"forecast":[{"day":"SUN","condition":"Cloudy","lowC":14,"highC":22},{"day":"MON","condition":"Rain","lowC":12,"highC":19}]}})");
+
+        const auto &weather =
+            swirski::services::weather_service::getSnapshot();
+
+        CHECK(swirski::services::weather_service::hasData());
+        CHECK(weather.location == "Current location");
+        CHECK(weather.temperatureC == 21);
+        CHECK(weather.condition == "Cloudy");
+        CHECK(weather.updatedAtMs == 1784332107616ULL);
+        CHECK(weather.forecastCount == 2);
+        CHECK(weather.forecast[1].day == "MON");
+        CHECK(weather.forecast[1].highC == 19);
+    }
+
+    void invalidWeatherMessageIsIgnored()
+    {
+        const int revision =
+            swirski::services::weather_service::getRevision();
+
+        swirski::protocol::handleIncomingMessage(
+            R"({"version":1,"type":"weather.snapshot","id":"weather-2","payload":{"current":{"condition":"Rain"},"forecast":[]}})");
+
+        CHECK(
+            swirski::services::weather_service::getRevision() ==
+            revision);
+    }
+
     void timeSyncKeepsUtcAndOffsetSeparate()
     {
         swirski::service::date_time::initialise(0);
@@ -389,6 +421,8 @@ int main()
         {"notification removal message updates service", notificationRemovalMessageUpdatesService},
         {"package name gets readable fallback", packageNameGetsReadableFallback},
         {"music message updates state", musicMessageUpdatesState},
+        {"weather message updates snapshot", weatherMessageUpdatesSnapshot},
+        {"invalid weather message is ignored", invalidWeatherMessageIsIgnored},
         {"time sync keeps UTC and offset separate", timeSyncKeepsUtcAndOffsetSeparate},
         {"paused music position stays still", pausedMusicPositionStaysStill},
         {"playing music position stops at duration", playingMusicPositionStopsAtDuration},

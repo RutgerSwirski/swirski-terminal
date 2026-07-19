@@ -14,6 +14,7 @@ namespace swirski::screens::manager
         Home,
         Notifications,
         Music,
+        Weather,
         Games,
         Pong,
         Blackjack,

@@ -9,6 +9,7 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.swirski.terminal.background.SwirskiBackgroundPackage
 import com.swirski.terminal.media.SwirskiMediaPackage
 import com.swirski.terminal.notifications.SwirskiNotificationsPackage
+import com.swirski.terminal.weather.SwirskiWeatherPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -21,6 +22,7 @@ class MainApplication : Application(), ReactApplication {
           add(SwirskiBackgroundPackage())
           add(SwirskiNotificationsPackage())
           add(SwirskiMediaPackage())
+          add(SwirskiWeatherPackage())
         },
     )
   }

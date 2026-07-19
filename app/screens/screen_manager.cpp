@@ -5,6 +5,7 @@
 #include "notifications_screen.hpp"
 #include "notification_screen.hpp"
 #include "music_screen.hpp"
+#include "weather_screen.hpp"
 #include "games_screen.hpp"
 #include "pong_screen.hpp"
 #include "blackjack_screen.hpp"
@@ -59,6 +60,7 @@ namespace swirski::screens::manager
             {Screen::Notifications, "NOTIFICATIONS", notifications_screen::render, notifications_screen::handleInput},
             {Screen::Notification, "NOTIFICATION", renderNotification, notification_screen::handleInput},
             {Screen::Music, "MUSIC", music_screen::render, music_screen::handleInput},
+            {Screen::Weather, "WEATHER", weather_screen::render, weather_screen::handleInput},
             {Screen::Games, "GAMES", games_screen::render, games_screen::handleInput},
             {Screen::Pong, "PONG", pong_screen::render, pong_screen::handleInput},
             {Screen::Blackjack, "BLACKJACK", blackjack_screen::render, blackjack_screen::handleInput},

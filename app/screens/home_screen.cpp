@@ -19,18 +19,20 @@ namespace swirski::screens::home
     {
         std::size_t selectedItemIndex = 0;
 
-        std::array<std::string, 5> homeMenuItems{
+        std::array<std::string, 6> homeMenuItems{
             "Notifications",
             "Music",
+            "Weather",
             "Games",
             "Studio",
             "Settings"};
 
-        std::array<lv_obj_t *, 5> menuItemLabels{};
+        std::array<lv_obj_t *, 6> menuItemLabels{};
 
-        const std::array<swirski::screens::manager::Screen, 5> homeMenuScreens{
+        const std::array<swirski::screens::manager::Screen, 6> homeMenuScreens{
             swirski::screens::manager::Screen::Notifications,
             swirski::screens::manager::Screen::Music,
+            swirski::screens::manager::Screen::Weather,
             swirski::screens::manager::Screen::Games,
             swirski::screens::manager::Screen::Studio,
             swirski::screens::manager::Screen::Settings};
