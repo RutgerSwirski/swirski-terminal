@@ -14,6 +14,7 @@
 #ifdef ESP_PLATFORM
 #include "esp_heap_caps.h"
 #include "esp_log.h"
+#include "esp_attr.h"
 #endif
 
 namespace swirski::screens::snake_screen
@@ -46,9 +47,12 @@ namespace swirski::screens::snake_screen
             Left
         };
 
+#ifdef ESP_PLATFORM
+        EXT_RAM_BSS_ATTR
+#endif
         std::array<Point, columns * rows> snake{};
 
-        int snakeLength = 4;
+                int snakeLength = 4;
         Point food{12, 7};
         Direction direction = Direction::Right;
         int score = 0;
@@ -105,9 +109,13 @@ namespace swirski::screens::snake_screen
             {
                 ESP_LOGE(
                     "SNAKE",
-                    "Could not allocate %u-byte canvas in PSRAM",
+                    "Could not allocate %u-byte canvas in PSRAM. "
+                    "PSRAM free: %u, PSRAM largest block: %u",
+                    static_cast<unsigned>(boardBufferSize),
                     static_cast<unsigned>(
-                        boardBufferSize));
+                        heap_caps_get_free_size(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)),
+                    static_cast<unsigned>(
+                        heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT)));
 
                 return false;
             }
@@ -284,10 +292,8 @@ namespace swirski::screens::snake_screen
                     reinterpret_cast<std::uint16_t *>(
                         static_cast<std::uint8_t *>(
                             boardDrawBuffer.data) +
-                        (
-                            point.y * cellSize +
-                            pixelY
-                        ) *
+                        (point.y * cellSize +
+                         pixelY) *
                             boardDrawBuffer.header.stride);
 
                 for (
@@ -295,9 +301,8 @@ namespace swirski::screens::snake_screen
                     pixelX < cellSize - 1;
                     ++pixelX)
                 {
-                    pixelRow[
-                        point.x * cellSize +
-                        pixelX] = pixelColor;
+                    pixelRow[point.x * cellSize +
+                             pixelX] = pixelColor;
                 }
             }
         }
@@ -512,8 +517,7 @@ namespace swirski::screens::snake_screen
                     (
                         static_cast<int>(
                             direction) +
-                        3
-                    ) %
+                        3) %
                     4);
         }
 
@@ -524,8 +528,7 @@ namespace swirski::screens::snake_screen
                     (
                         static_cast<int>(
                             direction) +
-                        1
-                    ) %
+                        1) %
                     4);
         }
 

@@ -51,10 +51,11 @@ namespace swirski::screens::tetris_screen
          * Values 1–7 represent the seven pieces, allowing us to retain
          * each locked piece's colour.
          */
-        std::array<
-            std::array<std::uint8_t, columns>,
-            rows>
-            board{};
+
+#ifdef ESP_PLATFORM
+        EXT_RAM_BSS_ATTR
+#endif
+        std::array<std::array<std::uint8_t, columns>, rows> board{};
 
         int currentPiece = 0;
         int nextPiece = 0;
