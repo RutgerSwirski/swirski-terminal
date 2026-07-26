@@ -1,0 +1,6 @@
+(sym_lib_table
+  (lib (name "ILI9341")(type "KiCad")(uri "${KIPRJMOD}/ILI9341.kicad_sym")(options "")(descr ""))
+  (lib (name "ESP32S3SuperMini")(type "KiCad")(uri "${KIPRJMOD}/ESP32S3SuperMini.kicad_sym")(options "")(descr ""))
+  (lib (name "LipoRiderPlus")(type "KiCad")(uri "${KIPRJMOD}/LipoRiderPlus.kicad_sym")(options "")(descr ""))
+  (lib (name "ILI9341_DEV")(type "KiCad")(uri "${KIPRJMOD}/ILI9341_DEV.kicad_sym")(options "")(descr ""))
+)
