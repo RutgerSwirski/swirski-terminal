@@ -1,4 +1,4 @@
-20113924650043394
+20115709804330932
 Audio_Module
 Reverb_BTDR-1H
 Digital Reverberation Unit, http://www.belton.co.kr/inc/downfile.php?seq=17&file=pdf (footprint from http://www.uk-electronic.de/PDF/BTDR-1.pdf)
@@ -79104,8 +79104,8 @@ ESP32_S3_SUPER_MINI_2x09Pins
 Through hole straight pin header, 1x09, 2.54mm pitch, single row
 Through hole pin header THT 1x09 2.54mm single row
 0
-9
-9
+18
+18
 Swirski_Terminal
 ILI9341_DEV_14Pin
 Through hole straight pin header, 1x14, 2.54mm pitch, single row
@@ -79113,6 +79113,13 @@ Through hole pin header THT 1x14 2.54mm single row
 0
 14
 14
+Swirski_Terminal
+Seeed_LiPo_Rider_Plus
+
+
+0
+0
+0
 Symbol
 CE-Logo_8.5x6mm_SilkScreen
 CE marking
