@@ -104,7 +104,7 @@
 					)
 				)
 			)
-			(pin power_in line
+			(pin bidirectional line
 				(at -17.78 48.26 0)
 				(length 2.54)
 				(name "GND"
