@@ -8,11 +8,10 @@
 #include "notification_service.hpp"
 #include "swirski_ui.hpp"
 
+#include <algorithm>
 #include <vector>
 
 #include <iostream>
-
-#include <string>
 
 #include "lvgl.h"
 
@@ -28,47 +27,70 @@ namespace swirski::screens::notifications_screen
             lv_obj_t *appNameLabel;
             lv_obj_t *titleLabel;
             lv_obj_t *bodyLabel;
-
-            std::string id;
-            std::string appName;
-            std::string title;
-            std::string body;
         };
 
         std::vector<NotificationRow> notificationRows = {};
 
+        lv_obj_t *emptyCard = nullptr;
+
         std::size_t selectedNotificationIndex = 0;
+        std::size_t windowStartIndex = 0;
 
         int renderedNotificationRevision = -1;
 
-        constexpr std::size_t MAX_RENDERED_NOTIFICATIONS = 40;
+        constexpr std::size_t RENDERED_NOTIFICATION_COUNT = 3;
 
-    }
-
-    void update()
-    {
-        for (
-            std::size_t i = 0;
-            i < notificationRows.size();
-            ++i)
+        void ensureSelectionVisible(
+            std::size_t notificationCount)
         {
-            NotificationRow &row =
-                notificationRows[i];
+            if (notificationCount == 0)
+            {
+                selectedNotificationIndex = 0;
+                windowStartIndex = 0;
+                return;
+            }
 
-            const bool isSelected =
-                i == selectedNotificationIndex;
+            selectedNotificationIndex =
+                std::min(
+                    selectedNotificationIndex,
+                    notificationCount - 1);
 
-            lv_label_set_text(
-                row.titleLabel,
-                row.title.c_str());
+            if (selectedNotificationIndex < windowStartIndex)
+            {
+                windowStartIndex = selectedNotificationIndex;
+            }
+            else if (
+                selectedNotificationIndex >=
+                windowStartIndex +
+                    RENDERED_NOTIFICATION_COUNT)
+            {
+                windowStartIndex =
+                    selectedNotificationIndex -
+                    RENDERED_NOTIFICATION_COUNT +
+                    1;
+            }
 
+            const std::size_t maximumWindowStart =
+                notificationCount >
+                        RENDERED_NOTIFICATION_COUNT
+                    ? notificationCount -
+                          RENDERED_NOTIFICATION_COUNT
+                    : 0;
+
+            windowStartIndex =
+                std::min(
+                    windowStartIndex,
+                    maximumWindowStart);
+        }
+
+        void updateRowStyle(
+            NotificationRow &row,
+            bool isSelected)
+        {
             const lv_color_t titleColor =
                 isSelected
                     ? swirski::ui::swirski_ui::color::surface()
                     : swirski::ui::swirski_ui::color::text();
-
-            const lv_color_t appNameColor =
-                swirski::ui::swirski_ui::color::ink();
 
             const lv_color_t bodyColor =
                 isSelected
@@ -96,7 +118,7 @@ namespace swirski::screens::notifications_screen
 
             lv_obj_set_style_text_color(
                 row.appNameLabel,
-                appNameColor,
+                swirski::ui::swirski_ui::color::ink(),
                 LV_PART_MAIN);
 
             lv_obj_set_style_bg_color(
@@ -110,10 +132,100 @@ namespace swirski::screens::notifications_screen
                 LV_PART_MAIN);
         }
 
-        if (!notificationRows.empty())
+    }
+
+    void update()
+    {
+        const auto &notifications =
+            swirski::services::notification_service::
+                getNotifications();
+
+        ensureSelectionVisible(notifications.size());
+
+        if (emptyCard != nullptr)
         {
+            if (notifications.empty())
+            {
+                lv_obj_remove_flag(
+                    emptyCard,
+                    LV_OBJ_FLAG_HIDDEN);
+            }
+            else
+            {
+                lv_obj_add_flag(
+                    emptyCard,
+                    LV_OBJ_FLAG_HIDDEN);
+            }
+        }
+
+        for (
+            std::size_t rowIndex = 0;
+            rowIndex < notificationRows.size();
+            ++rowIndex)
+        {
+            NotificationRow &row =
+                notificationRows[rowIndex];
+
+            const std::size_t notificationIndex =
+                windowStartIndex + rowIndex;
+
+            if (notificationIndex >= notifications.size())
+            {
+                lv_obj_add_flag(
+                    row.container,
+                    LV_OBJ_FLAG_HIDDEN);
+                continue;
+            }
+
+            lv_obj_remove_flag(
+                row.container,
+                LV_OBJ_FLAG_HIDDEN);
+
+            const auto &notification =
+                notifications[notificationIndex];
+
+            const char *rowTitle =
+                !notification.title.empty()
+                    ? notification.title.c_str()
+                : !notification.body.empty()
+                    ? notification.body.c_str()
+                    : "New notification";
+
+            const char *bodyPreview =
+                notification.body.empty()
+                    ? "No preview available"
+                    : notification.body.c_str();
+
+            lv_label_set_text(
+                row.appNameLabel,
+                notification.appName.empty()
+                    ? "APP"
+                    : notification.appName.c_str());
+
+            lv_label_set_text(
+                row.titleLabel,
+                rowTitle);
+
+            lv_label_set_text(
+                row.bodyLabel,
+                bodyPreview);
+
+            updateRowStyle(
+                row,
+                notificationIndex ==
+                    selectedNotificationIndex);
+        }
+
+        if (
+            !notifications.empty() &&
+            !notificationRows.empty())
+        {
+            const std::size_t selectedRowIndex =
+                selectedNotificationIndex -
+                windowStartIndex;
+
             lv_obj_scroll_to_view(
-                notificationRows[selectedNotificationIndex]
+                notificationRows[selectedRowIndex]
                     .container,
                 LV_ANIM_OFF);
         }
@@ -123,9 +235,6 @@ namespace swirski::screens::notifications_screen
     {
 
         notificationRows.clear();
-
-        const auto &notifications =
-            swirski::services::notification_service::getNotifications();
 
         std::cout << "Rendering notifications screen" << std::endl;
 
@@ -172,46 +281,30 @@ namespace swirski::screens::notifications_screen
             swirski::ui::swirski_ui::space::md,
             LV_PART_MAIN);
 
-        if (notifications.empty())
+        emptyCard =
+            swirski::ui::swirski_ui::createCard(
+                notificationList,
+                60);
+
+        swirski::ui::swirski_ui::createBadge(
+            emptyCard,
+            "Notifications");
+
+        swirski::ui::swirski_ui::createLabel(
+            emptyCard,
+            "No notifications",
+            swirski::ui::swirski_ui::TextTone::Muted,
+            26,
+            18);
+
+        notificationRows.reserve(
+            RENDERED_NOTIFICATION_COUNT);
+
+        for (
+            std::size_t rowIndex = 0;
+            rowIndex < RENDERED_NOTIFICATION_COUNT;
+            ++rowIndex)
         {
-            lv_obj_t *emptyCard =
-                swirski::ui::swirski_ui::createCard(
-                    notificationList,
-                    60);
-
-            swirski::ui::swirski_ui::createBadge(
-                emptyCard,
-                "Notifications");
-
-            swirski::ui::swirski_ui::createLabel(
-                emptyCard,
-                "No notifications",
-                swirski::ui::swirski_ui::TextTone::Muted,
-                26,
-                18);
-        }
-
-        for (const auto &notification : notifications)
-        {
-            if (
-                notificationRows.size() >=
-                MAX_RENDERED_NOTIFICATIONS)
-            {
-                break;
-            }
-
-            const std::string rowTitle =
-                !notification.title.empty()
-                    ? notification.title
-                : !notification.body.empty()
-                    ? notification.body
-                    : "New notification";
-
-            const std::string bodyPreview =
-                notification.body.empty()
-                    ? "No preview available"
-                    : notification.body;
-
             lv_obj_t *container =
                 swirski::ui::swirski_ui::createCard(
                     notificationList,
@@ -224,16 +317,14 @@ namespace swirski::screens::notifications_screen
             lv_obj_t *appNameLabel =
                 swirski::ui::swirski_ui::createBadge(
                     container,
-                    notification.appName.empty()
-                        ? "APP"
-                        : notification.appName.c_str());
+                    "APP");
 
             // Title
 
             lv_obj_t *titleLabel =
                 swirski::ui::swirski_ui::createLabel(
                     container,
-                    rowTitle.c_str(),
+                    "",
                     swirski::ui::swirski_ui::TextTone::Default,
                     24,
                     18);
@@ -243,7 +334,7 @@ namespace swirski::screens::notifications_screen
             lv_obj_t *bodyLabel =
                 swirski::ui::swirski_ui::createLabel(
                     container,
-                    bodyPreview.c_str(),
+                    "",
                     swirski::ui::swirski_ui::TextTone::Muted,
                     44,
                     18);
@@ -253,21 +344,7 @@ namespace swirski::screens::notifications_screen
                 appNameLabel,
                 titleLabel,
                 bodyLabel,
-                notification.id,
-                notification.appName,
-                rowTitle,
-                bodyPreview,
             });
-        }
-
-        if (notificationRows.empty())
-        {
-            selectedNotificationIndex = 0;
-        }
-        else if (selectedNotificationIndex >= notificationRows.size())
-        {
-            selectedNotificationIndex =
-                notificationRows.size() - 1;
         }
 
         renderedNotificationRevision =
@@ -287,13 +364,21 @@ namespace swirski::screens::notifications_screen
             return;
         }
 
-        render();
+        renderedNotificationRevision =
+            swirski::services::notification_service::
+                revision;
+
+        update();
     }
 
     void handleInput(swirski::input::input_action action)
     {
 
-        if (notificationRows.empty())
+        const auto &notifications =
+            swirski::services::notification_service::
+                getNotifications();
+
+        if (notifications.empty())
         {
             if (
                 action ==
@@ -313,7 +398,8 @@ namespace swirski::screens::notifications_screen
             std::cout << "Previous" << std::endl;
             if (selectedNotificationIndex == 0)
             {
-                selectedNotificationIndex = notificationRows.size() - 1;
+                selectedNotificationIndex =
+                    notifications.size() - 1;
             }
             else
                 selectedNotificationIndex--;
@@ -323,7 +409,9 @@ namespace swirski::screens::notifications_screen
             break;
         case swirski::input::input_action::Next:
             std::cout << "Next" << std::endl;
-            if (selectedNotificationIndex == notificationRows.size() - 1)
+            if (
+                selectedNotificationIndex ==
+                notifications.size() - 1)
             {
                 selectedNotificationIndex = 0;
             }
@@ -336,7 +424,8 @@ namespace swirski::screens::notifications_screen
         case swirski::input::input_action::Confirm:
             std::cout << "Confirm" << std::endl;
 
-            swirski::screens::manager::showNotificationScreen(notificationRows[selectedNotificationIndex].id);
+            swirski::screens::manager::showNotificationScreen(
+                notifications[selectedNotificationIndex].id);
 
             break;
         case swirski::input::input_action::Back:
