@@ -44,6 +44,18 @@ namespace swirski::services::notification_service
             return segment == "android";
         }
 
+        bool hasSameContent(
+            const Notification &left,
+            const Notification &right)
+        {
+            return left.packageName == right.packageName &&
+                   left.appName == right.appName &&
+                   left.title == right.title &&
+                   left.body == right.body &&
+                   left.ongoing == right.ongoing &&
+                   left.postedAt == right.postedAt;
+        }
+
         std::string readableNameFromPackageName(
             const std::string &packageName)
         {
@@ -167,37 +179,6 @@ namespace swirski::services::notification_service
         revision += 1;
     }
 
-    void upsert(
-        Notification notification)
-    {
-        const auto existing =
-            std::find_if(
-                notifications.begin(),
-                notifications.end(),
-                [&notification](
-                    const Notification &current)
-                {
-                    return current.id ==
-                           notification.id;
-                });
-
-        if (existing != notifications.end())
-        {
-            notifications.erase(existing);
-        }
-
-        notifications.insert(
-            notifications.begin(),
-            std::move(notification));
-
-        if (notifications.size() > MAX_NOTIFICATIONS)
-        {
-            notifications.resize(MAX_NOTIFICATIONS);
-        }
-
-        revision += 1;
-    }
-
     std::optional<Notification>
     parseNotification(
         JsonObjectConst object)
@@ -222,6 +203,10 @@ namespace swirski::services::notification_service
         notification.appName =
             object["appName"] |
             "";
+
+        notification.ongoing =
+            object["ongoing"] |
+            false;
 
         if (
             notification.appName.empty() ||
@@ -296,37 +281,121 @@ namespace swirski::services::notification_service
             << std::endl;
     }
 
-    void handleNotificationReceived(
+    UpsertResult upsert(
+        const Notification &incoming)
+    {
+        const auto existing =
+            std::find_if(
+                notifications.begin(),
+                notifications.end(),
+                [&incoming](const Notification &current)
+                {
+                    return current.id == incoming.id;
+                });
+
+        if (existing == notifications.end())
+        {
+            notifications.insert(
+                notifications.begin(),
+                incoming);
+
+            if (notifications.size() > MAX_NOTIFICATIONS)
+            {
+                notifications.pop_back();
+            }
+
+            revision += 1;
+
+            return UpsertResult::Inserted;
+        }
+
+        if (hasSameContent(*existing, incoming))
+        {
+            return UpsertResult::Unchanged;
+        }
+
+        /*
+         * Update in place instead of removing and reinserting.
+         *
+         * This prevents an ongoing timer from jumping back to the
+         * top of the notification list every second.
+         */
+        *existing = incoming;
+
+        revision += 1;
+
+        return UpsertResult::Updated;
+    }
+
+    std::optional<UpsertResult>
+    handleNotificationUpserted(
         JsonObjectConst payload)
     {
         JsonObjectConst object =
             payload["notification"]
                 .as<JsonObjectConst>();
 
-        const auto notification =
+        const auto parsedNotification =
             parseNotification(object);
 
-        if (!notification)
+        if (!parsedNotification)
         {
             std::cerr
-                << "Invalid notification.received payload"
+                << "Invalid notification.upserted payload"
                 << std::endl;
 
-            return;
+            return std::nullopt;
         }
 
-        upsert(*notification);
+        const bool alert =
+            payload["alert"] |
+            false;
 
-        pendingToastNotification =
-            *notification;
+        const Notification notification =
+            *parsedNotification;
 
-        std::cout
-            << "Applied incoming notification: "
-            << notification->id
-            << std::endl;
+        const UpsertResult result =
+            upsert(notification);
+
+        /*
+         * Only show a toast for a genuinely new notification.
+         *
+         * Timer updates will return Updated, so they will update
+         * the stored notification without creating another toast.
+         */
+        if (
+            result == UpsertResult::Inserted &&
+            alert)
+        {
+            pendingToastNotification =
+                notification;
+        }
+
+        switch (result)
+        {
+        case UpsertResult::Inserted:
+            std::cout
+                << "Inserted notification: "
+                << notification.id
+                << std::endl;
+            break;
+
+        case UpsertResult::Updated:
+            std::cout
+                << "Updated notification: "
+                << notification.id
+                << std::endl;
+            break;
+
+        case UpsertResult::Unchanged:
+            break;
+        }
+
+        return result;
     }
 
-    std::optional<Notification> takePendingToastNotification()
+    std::optional<Notification>
+    takePendingToastNotification()
     {
         auto notification =
             std::move(pendingToastNotification);

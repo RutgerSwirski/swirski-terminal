@@ -134,8 +134,9 @@ namespace
             swirski::services::notification_service::getNotifications();
 
         CHECK(notifications.size() == 2);
-        CHECK(notifications[0].id == "1");
-        CHECK(notifications[0].title == "Updated");
+        CHECK(notifications[0].id == "2");
+        CHECK(notifications[1].id == "1");
+        CHECK(notifications[1].title == "Updated");
     }
 
     void notificationLookupAndRemovalWork()
@@ -184,7 +185,37 @@ namespace
 
         CHECK(
             swirski::services::notification_service::
-                getNotificationById("remove-me") == nullptr);
+            getNotificationById("remove-me") == nullptr);
+    }
+
+    void notificationUpsertAlertsOnlyWhenInserted()
+    {
+        swirski::services::notification_service::setSnapshot({});
+
+        swirski::protocol::handleIncomingMessage(
+            R"({"version":1,"type":"notification.upserted","id":"upsert-1","payload":{"alert":true,"notification":{"id":"live-1","packageName":"com.example.app","appName":"Example","title":"First","body":"Body","postedAt":1000,"ongoing":false}}})");
+
+        const auto insertedToast =
+            swirski::services::notification_service::
+                takePendingToastNotification();
+
+        CHECK(insertedToast.has_value());
+        CHECK(insertedToast->id == "live-1");
+
+        swirski::protocol::handleIncomingMessage(
+            R"({"version":1,"type":"notification.upserted","id":"upsert-2","payload":{"alert":true,"notification":{"id":"live-1","packageName":"com.example.app","appName":"Example","title":"Updated","body":"Body","postedAt":1000,"ongoing":false}}})");
+
+        CHECK(
+            !swirski::services::notification_service::
+                 takePendingToastNotification()
+                 .has_value());
+
+        const auto *updated =
+            swirski::services::notification_service::
+                getNotificationById("live-1");
+
+        CHECK(updated != nullptr);
+        CHECK(updated->title == "Updated");
     }
 
     void packageNameGetsReadableFallback()
@@ -419,6 +450,7 @@ int main()
         {"notification lookup and removal work", notificationLookupAndRemovalWork},
         {"notification storage is capped", notificationStorageIsCapped},
         {"notification removal message updates service", notificationRemovalMessageUpdatesService},
+        {"notification upsert alerts only when inserted", notificationUpsertAlertsOnlyWhenInserted},
         {"package name gets readable fallback", packageNameGetsReadableFallback},
         {"music message updates state", musicMessageUpdatesState},
         {"weather message updates snapshot", weatherMessageUpdatesSnapshot},

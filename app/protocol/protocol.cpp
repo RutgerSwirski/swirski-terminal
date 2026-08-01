@@ -33,9 +33,10 @@ namespace
             return swirski::protocol::MessageType::TimeSync;
         }
 
-        if (rawType == "notification.received")
+        if (rawType == "notification.upserted")
         {
-            return swirski::protocol::MessageType::NotificationReceived;
+            return swirski::protocol::MessageType::
+                NotificationUpserted;
         }
 
         if (rawType == "notification.removed")
@@ -383,15 +384,15 @@ namespace swirski::protocol
             return {};
         }
 
-        case MessageType::NotificationReceived:
+        case MessageType::NotificationUpserted:
         {
             swirski::services::notification_service::
-                handleNotificationReceived(
-                    document["payload"].as<JsonObjectConst>());
+                handleNotificationUpserted(
+                    document["payload"]
+                        .as<JsonObjectConst>());
 
             return {};
         }
-
         case MessageType::NotificationRemoved:
         {
             const char *notificationId =

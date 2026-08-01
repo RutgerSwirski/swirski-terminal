@@ -18,6 +18,14 @@ namespace swirski::services::notification_service
         std::string title;
         std::string body;
         std::int64_t postedAt = 0;
+        bool ongoing = false;
+    };
+
+    enum class UpsertResult
+    {
+        Inserted,
+        Updated,
+        Unchanged
     };
 
     extern int revision;
@@ -34,11 +42,13 @@ namespace swirski::services::notification_service
 
     void setSnapshot(std::vector<Notification> snapshot);
 
-    void upsert(Notification notification);
+    UpsertResult upsert(const Notification &notification);
 
     void handleNotificationsSnapshot(JsonObjectConst payload);
 
-    void handleNotificationReceived(JsonObjectConst payload);
+    std::optional<UpsertResult>
+    handleNotificationUpserted(
+        JsonObjectConst payload);
 
     std::optional<Notification> takePendingToastNotification();
 

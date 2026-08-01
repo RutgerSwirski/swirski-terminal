@@ -7,7 +7,7 @@ namespace swirski::protocol
         Ping,
         Pong,
         TimeSync,
-        NotificationReceived,
+        NotificationUpserted,
         NotificationRemoved,
         MusicState,
         WeatherSnapshot,

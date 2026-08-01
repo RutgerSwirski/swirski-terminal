@@ -110,6 +110,8 @@ export function createTestNotificationSnapshotMessage(): Record<
       title: 'Stella',
       body: 'Are you still coming tonight?',
       postedAt: Date.now(),
+      ongoing: false,
+      category: 'msg',
     },
     {
       id: 'test-calendar-1',
@@ -118,6 +120,8 @@ export function createTestNotificationSnapshotMessage(): Record<
       title: 'Design meeting testing!',
       body: 'Starts in 10 minutes',
       postedAt: Date.now() - 10_000,
+      ongoing: false,
+      category: 'event',
     },
   ];
 
@@ -131,7 +135,7 @@ export function createTestNotificationSnapshotMessage(): Record<
   };
 }
 
-export function createTestNotificationReceivedMessage(): Record<
+export function createTestNotificationUpsertedMessage(): Record<
   string,
   unknown
 > {
@@ -142,13 +146,16 @@ export function createTestNotificationReceivedMessage(): Record<
     title: 'Test live notification',
     body: 'This should appear as a toast on the ESP32.'.repeat(10),
     postedAt: Date.now(),
+    ongoing: false,
+    category: 'msg',
   };
 
   return {
     version: 1,
-    type: 'notification.received',
+    type: 'notification.upserted',
     id: `mobile-notification-${Date.now()}`,
     payload: {
+      alert: true,
       notification,
     },
   };

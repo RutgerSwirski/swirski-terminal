@@ -10,7 +10,7 @@ type DebugActionsProps = {
   connectionStatus: ConnectionStatus;
   onPing(): void;
   onSendTestNotificationSnapshot(device: Device): void;
-  onSendTestNotificationReceived(device: Device): void;
+  onSendTestNotificationUpserted(device: Device): void;
   onSendTestMusicState(device: Device): void;
 };
 
@@ -19,7 +19,7 @@ export function DebugActions({
   connectionStatus,
   onPing,
   onSendTestNotificationSnapshot,
-  onSendTestNotificationReceived,
+  onSendTestNotificationUpserted,
   onSendTestMusicState,
 }: DebugActionsProps) {
   if (!connectedDevice) {
@@ -50,10 +50,10 @@ export function DebugActions({
 
           <Button
             variant="outline"
-            onPress={() => onSendTestNotificationReceived(connectedDevice)}
+            onPress={() => onSendTestNotificationUpserted(connectedDevice)}
             disabled={disabled}
           >
-            Send test notification received
+            Send test notification upsert
           </Button>
 
           <Button

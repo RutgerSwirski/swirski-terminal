@@ -5,6 +5,8 @@ export type TerminalNotification = {
   title: string;
   body: string;
   postedAt: number;
+  ongoing: boolean;
+  category: string | null;
 };
 
 export type NotificationsSnapshotMessage = {
@@ -16,11 +18,12 @@ export type NotificationsSnapshotMessage = {
   };
 };
 
-export type NotificationReceivedMessage = {
+export type NotificationUpsertedMessage = {
   version: 1;
-  type: 'notification.received';
+  type: 'notification.upserted';
   id: string;
   payload: {
+    alert: boolean;
     notification: TerminalNotification;
   };
 };

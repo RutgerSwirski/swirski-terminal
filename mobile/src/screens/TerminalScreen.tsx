@@ -14,7 +14,7 @@ import { useMusicBridge } from '../music/useMusicBridge';
 import { useNotificationBridge } from '../notifications/useNotificationBridge';
 import {
   createTestMusicStateMessage,
-  createTestNotificationReceivedMessage,
+  createTestNotificationUpsertedMessage,
   createTestNotificationSnapshotMessage,
   createTimeSyncMessage,
 } from '../protocol/messages';
@@ -64,9 +64,9 @@ export function TerminalScreen() {
     [sendBleMessage],
   );
 
-  const sendTestNotificationReceived = useCallback(
+  const sendTestNotificationUpserted = useCallback(
     async (device: Device) => {
-      await sendBleMessage(device, createTestNotificationReceivedMessage());
+      await sendBleMessage(device, createTestNotificationUpsertedMessage());
     },
     [sendBleMessage],
   );
@@ -217,7 +217,7 @@ export function TerminalScreen() {
           connectionStatus={terminalBle.connectionStatus}
           onPing={terminalBle.sendPing}
           onSendTestNotificationSnapshot={sendTestNotificationSnapshot}
-          onSendTestNotificationReceived={sendTestNotificationReceived}
+          onSendTestNotificationUpserted={sendTestNotificationUpserted}
           onSendTestMusicState={sendTestMusicState}
         />
       </View>

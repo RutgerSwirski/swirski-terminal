@@ -127,7 +127,7 @@ export function useNotificationBridge({
 
     const notificationEventSubscription = SwirskiNotifications
       ? new NativeEventEmitter(SwirskiNotifications).addListener(
-          'SwirskiNotificationReceived',
+          'SwirskiNotificationUpserted',
           async (messageJson: string) => {
             const device = connectedDeviceRef.current;
 
