@@ -53,8 +53,8 @@
           "45_degree_only": false,
           "border_display_style": 2,
           "border_hatch_pitch": 0.5,
-          "corner_radius": 0.0,
-          "corner_smoothing": 0,
+          "corner_radius": 5.0,
+          "corner_smoothing": 1,
           "fill_mode": 0,
           "hatch_gap": 1.5,
           "hatch_orientation": 0.0,
@@ -535,7 +535,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "gerbers/v1",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""
@@ -636,7 +636,7 @@
           "show": false
         }
       ],
-      "filter_string": "",
+      "filter_string": "C",
       "group_symbols": true,
       "include_excluded_from_bom": true,
       "name": "",
@@ -696,7 +696,7 @@
         "uuid": "e63e39d7-6ac0-4ffd-8aa3-1841a4541b55"
       }
     ],
-    "used_designators": "AO3400A1,TP_5V_SYS1,TP1-3,C1-8,TP_3V3_SYS1,TP_ESP_5V1,U1-5,Q1-3,TP_BAT_RAW1,TP_3V3_ESP1,1N1,#FLG1-2,SW1-3,#PWR1,JESP_PWR_LINK1,J_VIB1,J1-2,R1-9,JP1-2,TP_GND1",
+    "used_designators": "J_VIB1,J1-2,R1-9,JP1-2,TP_GND1,D1,U1-5,Q1-3,TP_ESP_5V1,TP_3V3_SYS1,C1-8,TP_5V_SYS1,AO3400A1,TP1-3,#PWR1,JESP_PWR_LINK1,SW1-3,#FLG1-3,1N1,TP_3V3_ESP1,TP_BAT_RAW1",
     "variants": []
   },
   "sheets": [

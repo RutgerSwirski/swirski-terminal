@@ -421,10 +421,10 @@
 					)
 				)
 			)
-			(pin power_out line
+			(pin power_in line
 				(at 11.43 24.13 180)
 				(length 2.54)
-				(name "5V"
+				(name "5V_IN"
 					(effects
 						(font
 							(size 1.27 1.27)
