@@ -6,6 +6,7 @@
 #include "rotary_encoder.hpp"
 #include "app_constants.hpp"
 #include "input.hpp"
+#include "haptics.hpp"
 
 namespace swirski::inputs::rotary_encoder
 {
@@ -66,6 +67,9 @@ namespace swirski::inputs::rotary_encoder
                 swirski::input::handleInput(
                     swirski::input::input_action::Next);
 
+                swirski::hardware::haptics::play(
+                    swirski::hardware::haptics::Effect::Tick);
+
                 lvgl_port_unlock();
             }
             else
@@ -76,6 +80,8 @@ namespace swirski::inputs::rotary_encoder
 
                 swirski::input::handleInput(
                     swirski::input::input_action::Previous);
+                swirski::hardware::haptics::play(
+                    swirski::hardware::haptics::Effect::Tick);
 
                 lvgl_port_unlock();
             }
@@ -90,6 +96,8 @@ namespace swirski::inputs::rotary_encoder
 
             swirski::input::handleInput(
                 swirski::input::input_action::Confirm);
+            swirski::hardware::haptics::play(
+                swirski::hardware::haptics::Effect::Tick);
 
             lvgl_port_unlock();
         }

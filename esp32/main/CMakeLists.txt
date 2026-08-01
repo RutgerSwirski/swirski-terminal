@@ -9,6 +9,8 @@ idf_component_register(
 
         "settings/hardware_settings.cpp"
 
+        "haptics/haptics.cpp"
+
         "ble_transport/ble_transport.cpp"
 
         "${APP_DIR}/app.cpp"
@@ -54,6 +56,7 @@ idf_component_register(
         "inputs"
         "settings"
         "ble_transport"
+        "haptics"
         "${APP_DIR}"
         "${APP_DIR}/screens"
         "${APP_DIR}/input"
@@ -81,4 +84,5 @@ idf_component_register(
         mbedtls
         app_update
         bootloader_support
+        esp_timer
 )

@@ -30,6 +30,9 @@ namespace swirski::services::notification_service
 
     extern int revision;
 
+    using AlertHandler = void (*)();
+    void setAlertHandler(AlertHandler handler);
+
     void setNotifications(std::vector<Notification> notifications);
 
     bool addNotification(Notification notification);

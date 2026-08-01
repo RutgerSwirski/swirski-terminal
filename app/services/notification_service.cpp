@@ -24,6 +24,8 @@ namespace swirski::services::notification_service
 
         std::optional<Notification> pendingToastNotification;
 
+        AlertHandler alertHandler = nullptr;
+
         bool looksLikePackageName(
             const std::string &value)
         {
@@ -123,6 +125,11 @@ namespace swirski::services::notification_service
                        ? packageName
                        : name;
         }
+    }
+
+    void setAlertHandler(AlertHandler handler)
+    {
+        alertHandler = handler;
     }
 
     void setNotifications(std::vector<Notification> incomingNotifications)
@@ -369,6 +376,11 @@ namespace swirski::services::notification_service
         {
             pendingToastNotification =
                 notification;
+
+            if (alertHandler != nullptr)
+            {
+                alertHandler();
+            }
         }
 
         switch (result)

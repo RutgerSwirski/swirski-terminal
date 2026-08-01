@@ -14,6 +14,7 @@
 #include "app.hpp"
 #include "./inputs/rotary_encoder.hpp"
 #include "./inputs/push_buttons.hpp"
+#include "haptics.hpp"
 #include "app_constants.hpp"
 #include "services/date_time.hpp"
 #include "services/settings_service.hpp"
@@ -58,6 +59,12 @@ namespace
                 panelHandle,
                 on);
         }
+    }
+
+    void playNotificationHaptic()
+    {
+        swirski::hardware::haptics::play(
+            swirski::hardware::haptics::Effect::Notification);
     }
 }
 
@@ -200,6 +207,9 @@ extern "C" void app_main()
 
     swirski::inputs::rotary_encoder::initialise();
     swirski::inputs::push_buttons::initialise();
+
+    swirski::hardware::haptics::initialise();
+
     swirski::service::date_time::initialise(0);
 
     swirski::transport::ble::BleTransport bleTransport;
@@ -228,6 +238,9 @@ extern "C" void app_main()
         swirski::services::wifi_service::getConnectionState();
     auto lastInternetTestState =
         swirski::services::wifi_service::getInternetTestState();
+
+    swirski::services::notification_service::setAlertHandler(
+        playNotificationHaptic);
 
     while (true)
     {
@@ -330,6 +343,8 @@ extern "C" void app_main()
         }
 
         swirski::inputs::rotary_encoder::poll();
+
+        swirski::hardware::haptics::update();
 
         if (swirski::inputs::push_buttons::backPressed())
         {

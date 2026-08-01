@@ -8,6 +8,8 @@
 
 #include "app_constants.hpp"
 
+#include "haptics.hpp"
+
 namespace swirski::inputs::push_buttons
 {
     namespace
@@ -47,6 +49,13 @@ namespace swirski::inputs::push_buttons
             currentBack == 0;
 
         prevBack = currentBack;
+
+        if (wasPressed)
+        {
+
+            swirski::hardware::haptics::play(
+                swirski::hardware::haptics::Effect::Tick);
+        }
 
         return wasPressed;
     }
