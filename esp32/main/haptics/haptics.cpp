@@ -46,15 +46,22 @@ namespace swirski::hardware::haptics
 
     void play(Effect effect)
     {
-
-        if (currentEffect == Effect::Notification)
+        if (active && currentEffect == Effect::Notification)
         {
-
             // If a notification is already playing, don't interrupt it with a tick
             if (effect == Effect::Tick)
             {
                 return;
             }
+        }
+
+        // A fast encoder turn must not extend one tick into continuous vibration.
+        if (
+            active &&
+            currentEffect == Effect::Tick &&
+            effect == Effect::Tick)
+        {
+            return;
         }
 
         const std::int64_t durationUs =
