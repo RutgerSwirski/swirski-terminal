@@ -14,13 +14,38 @@ namespace swirski::hardware::haptics
     {
         constexpr gpio_num_t HAPTIC_EN = GPIO_NUM_13;
 
-        // int timerDuration = 0;
-        // int currentTimer = 0;
+        constexpr std::int64_t TICK_DURATION_US = 100'000;
+        constexpr std::int64_t NOTIFICATION_PULSE_DURATION_US = 100'000;
+        constexpr std::int64_t NOTIFICATION_PAUSE_DURATION_US = 75'000;
 
-        std::int64_t stopAtUs = 0;
+        enum class NotificationPhase
+        {
+            FirstPulse,
+            Pause,
+            SecondPulse
+        };
+
+        std::int64_t phaseEndsAtUs = 0;
         bool active = false;
 
         std::optional<Effect> currentEffect;
+        NotificationPhase notificationPhase =
+            NotificationPhase::FirstPulse;
+
+        void setMotor(bool enabled)
+        {
+            ESP_ERROR_CHECK(
+                gpio_set_level(
+                    HAPTIC_EN,
+                    enabled ? 1 : 0));
+        }
+
+        void finishEffect()
+        {
+            setMotor(false);
+            active = false;
+            currentEffect.reset();
+        }
     }
     void initialise()
     {
@@ -38,8 +63,7 @@ namespace swirski::hardware::haptics
 
         ESP_ERROR_CHECK(gpio_config(&hapticsConfig));
 
-        ESP_ERROR_CHECK(
-            gpio_set_level(HAPTIC_EN, 0));
+        setMotor(false);
 
         ESP_LOGI(swirski::TAG, "Haptics initialised");
     }
@@ -64,33 +88,71 @@ namespace swirski::hardware::haptics
             return;
         }
 
-        const std::int64_t durationUs =
-            effect == Effect::Tick
-                ? 100'000
-                : 150'000;
+        const std::int64_t nowUs =
+            esp_timer_get_time();
 
-        stopAtUs =
-            esp_timer_get_time() +
-            durationUs;
+        phaseEndsAtUs =
+            nowUs +
+            (effect == Effect::Tick
+                 ? TICK_DURATION_US
+                 : NOTIFICATION_PULSE_DURATION_US);
 
         active = true;
         currentEffect = effect;
 
-        ESP_ERROR_CHECK(
-            gpio_set_level(HAPTIC_EN, 1));
+        if (effect == Effect::Notification)
+        {
+            notificationPhase =
+                NotificationPhase::FirstPulse;
+        }
+
+        setMotor(true);
     }
 
     void update()
     {
-        if (
-            active &&
-            esp_timer_get_time() >= stopAtUs)
+        if (!active)
         {
-            ESP_ERROR_CHECK(
-                gpio_set_level(HAPTIC_EN, 0));
+            return;
+        }
 
-            active = false;
-            currentEffect.reset();
+        const std::int64_t nowUs =
+            esp_timer_get_time();
+
+        if (nowUs < phaseEndsAtUs)
+        {
+            return;
+        }
+
+        if (currentEffect == Effect::Tick)
+        {
+            finishEffect();
+            return;
+        }
+
+        switch (notificationPhase)
+        {
+        case NotificationPhase::FirstPulse:
+            setMotor(false);
+            notificationPhase =
+                NotificationPhase::Pause;
+            phaseEndsAtUs =
+                nowUs +
+                NOTIFICATION_PAUSE_DURATION_US;
+            break;
+
+        case NotificationPhase::Pause:
+            setMotor(true);
+            notificationPhase =
+                NotificationPhase::SecondPulse;
+            phaseEndsAtUs =
+                nowUs +
+                NOTIFICATION_PULSE_DURATION_US;
+            break;
+
+        case NotificationPhase::SecondPulse:
+            finishEffect();
+            break;
         }
     }
 }
