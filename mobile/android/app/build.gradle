@@ -2,11 +2,15 @@ apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
+def swirskiNodeExecutable = project.findProperty('swirskiNodeExecutable') ?: 'node'
+
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
  */
 react {
+    nodeExecutableAndArgs = [swirskiNodeExecutable]
+
     /* Folders */
     //   The root of your project, i.e. where "package.json" lives. Default is '../..'
     // root = file("../../")
@@ -109,6 +113,10 @@ android {
         release {
             if (hasReleaseSigning) {
                 signingConfig signingConfigs.release
+            } else {
+                // Local standalone builds use Android's development key.
+                // CI/store releases still use the upload key configured above.
+                signingConfig signingConfigs.debug
             }
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
