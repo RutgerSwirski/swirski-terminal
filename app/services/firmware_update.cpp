@@ -1,6 +1,7 @@
 #include "firmware_update.hpp"
 
 #include <atomic>
+#include <cstring>
 
 #ifdef ESP_PLATFORM
 #include "esp_app_desc.h"
@@ -104,6 +105,42 @@ namespace swirski::services::firmware_update
                 return;
             }
 
+            esp_app_desc_t availableFirmware{};
+            result = esp_https_ota_get_img_desc(
+                handle,
+                &availableFirmware);
+
+            if (result != ESP_OK)
+            {
+                esp_https_ota_abort(handle);
+                failUpdate(
+                    FailureReason::Download,
+                    result);
+                vTaskDelete(nullptr);
+                return;
+            }
+
+            const esp_app_desc_t *installedFirmware =
+                esp_app_get_description();
+
+            if (
+                installedFirmware != nullptr &&
+                std::memcmp(
+                    availableFirmware.app_elf_sha256,
+                    installedFirmware->app_elf_sha256,
+                    sizeof(availableFirmware.app_elf_sha256)) == 0)
+            {
+                ESP_LOGI(
+                    "firmware_update",
+                    "Latest firmware is already installed");
+                esp_https_ota_abort(handle);
+                setState(State::UpToDate);
+                vTaskDelete(nullptr);
+                return;
+            }
+
+            setState(State::Downloading);
+
             do
             {
                 result = esp_https_ota_perform(handle);
@@ -182,15 +219,18 @@ namespace swirski::services::firmware_update
         const State currentState = state.load();
 
         if (
+            currentState == State::Checking ||
             currentState == State::Downloading ||
-            currentState == State::Restarting)
+            currentState == State::Restarting ||
+            currentState == State::Installed ||
+            currentState == State::UpToDate)
         {
             return false;
         }
 
         progress = 0;
         failureReason = FailureReason::None;
-        setState(State::Downloading);
+        setState(State::Checking);
 
         if (
             xTaskCreate(

@@ -101,6 +101,8 @@ namespace swirski::screens::settings_screen
             switch (
                 swirski::services::firmware_update::getState())
             {
+            case State::Checking:
+                return "Checking for update...";
             case State::Downloading:
                 return "Updating: " +
                     std::to_string(
@@ -110,6 +112,8 @@ namespace swirski::screens::settings_screen
                 return "Update complete - restarting";
             case State::Installed:
                 return "Update installed";
+            case State::UpToDate:
+                return "Firmware up to date";
             case State::Failed:
                 using FailureReason =
                     swirski::services::firmware_update::FailureReason;
@@ -141,7 +145,7 @@ namespace swirski::screens::settings_screen
             return
                 swirski::services::wifi_service::getConnectionState() ==
                         swirski::services::wifi_service::ConnectionState::Connected
-                    ? "Update firmware"
+                    ? "Check for update"
                     : "Update: connect Wi-Fi";
         }
 

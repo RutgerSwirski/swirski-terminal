@@ -8,9 +8,11 @@ namespace swirski::services::firmware_update
     enum class State
     {
         Idle,
+        Checking,
         Downloading,
         Restarting,
         Installed,
+        UpToDate,
         Failed,
         Unavailable
     };
