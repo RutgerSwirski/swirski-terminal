@@ -118,8 +118,8 @@ namespace swirski::screens::settings_screen
                 {
                 case FailureReason::Start:
                     return "Updater unavailable - retry";
-                case FailureReason::Connection:
-                    return "Update server unavailable";
+                case FailureReason::Initialisation:
+                    return "Couldn't start update - retry";
                 case FailureReason::Download:
                     return "Download interrupted - retry";
                 case FailureReason::IncompleteImage:

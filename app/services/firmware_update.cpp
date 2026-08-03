@@ -22,6 +22,10 @@ namespace swirski::services::firmware_update
             "https://github.com/RutgerSwirski/swirski-terminal/"
             "releases/download/firmware-latest/swirski_os_esp32.bin";
 
+        // GitHub redirects release downloads to a long, signed asset URL. The
+        // ESP HTTP client's default transmit buffer cannot hold that request URI.
+        constexpr int otaHttpTransmitBufferSize = 4096;
+
         std::atomic<State> state{State::Idle};
 #else
         std::atomic<State> state{State::Unavailable};
@@ -81,6 +85,7 @@ namespace swirski::services::firmware_update
             httpConfig.crt_bundle_attach = esp_crt_bundle_attach;
             httpConfig.timeout_ms = 20000;
             httpConfig.keep_alive_enable = true;
+            httpConfig.buffer_size_tx = otaHttpTransmitBufferSize;
 
             esp_https_ota_config_t otaConfig{};
             otaConfig.http_config = &httpConfig;
@@ -92,7 +97,7 @@ namespace swirski::services::firmware_update
             if (result != ESP_OK)
             {
                 failUpdate(
-                    FailureReason::Connection,
+                    FailureReason::Initialisation,
                     result);
                 vTaskDelete(nullptr);
                 return;

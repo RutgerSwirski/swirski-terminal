@@ -18,7 +18,7 @@ namespace swirski::services::firmware_update
     {
         None,
         Start,
-        Connection,
+        Initialisation,
         Download,
         IncompleteImage,
         InvalidImage
