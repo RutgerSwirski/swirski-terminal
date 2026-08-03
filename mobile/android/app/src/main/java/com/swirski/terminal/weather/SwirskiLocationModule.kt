@@ -3,6 +3,7 @@ package com.swirski.terminal.weather
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import androidx.core.content.ContextCompat
@@ -11,6 +12,7 @@ import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
 import com.facebook.react.bridge.ReactMethod
+import java.util.Locale
 
 class SwirskiLocationModule(
   reactContext: ReactApplicationContext,
@@ -52,9 +54,38 @@ class SwirskiLocationModule(
       val coordinates = Arguments.createMap()
       coordinates.putDouble("latitude", location.latitude)
       coordinates.putDouble("longitude", location.longitude)
+      coordinates.putString("locationName", resolveLocationName(location))
       promise.resolve(coordinates)
     } catch (error: Exception) {
       promise.reject("LOCATION_FAILED", "Could not read phone location", error)
+    }
+  }
+
+  @Suppress("DEPRECATION")
+  private fun resolveLocationName(location: Location): String? {
+    if (!Geocoder.isPresent()) {
+      return null
+    }
+
+    return try {
+      val address =
+        Geocoder(reactApplicationContext, Locale.getDefault())
+          .getFromLocation(location.latitude, location.longitude, 1)
+          ?.firstOrNull()
+          ?: return null
+      val area =
+        address.locality
+          ?: address.subAdminArea
+          ?: address.adminArea
+      val parts =
+        listOfNotNull(area, address.countryCode)
+          .map(String::trim)
+          .filter(String::isNotEmpty)
+          .distinct()
+
+      parts.joinToString(", ").takeIf(String::isNotEmpty)
+    } catch (_: Exception) {
+      null
     }
   }
 }

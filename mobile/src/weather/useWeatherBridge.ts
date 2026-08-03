@@ -8,13 +8,14 @@ import {
   type WeatherSnapshot,
 } from '../protocol/messages';
 
-type Coordinates = {
+type PhoneLocation = {
   latitude: number;
   longitude: number;
+  locationName?: string | null;
 };
 
 type SwirskiLocationModule = {
-  getLastKnownCoordinates(): Promise<Coordinates>;
+  getLastKnownCoordinates(): Promise<PhoneLocation>;
 };
 
 type WeatherApiResponse = {
@@ -46,6 +47,16 @@ function conditionForCode(code: number): string {
   return 'Thunderstorm';
 }
 
+function displayNameForLocation(location: PhoneLocation): string {
+  const locationName = location.locationName?.trim();
+
+  if (locationName) {
+    return locationName.slice(0, 32);
+  }
+
+  return `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`;
+}
+
 async function requestLocationPermission(): Promise<boolean> {
   if (Platform.OS !== 'android') {
     return false;
@@ -67,8 +78,8 @@ async function fetchWeather(): Promise<WeatherSnapshot> {
     throw new Error('Location permission was not granted');
   }
 
-  const { latitude, longitude } =
-    await SwirskiLocation.getLastKnownCoordinates();
+  const location = await SwirskiLocation.getLastKnownCoordinates();
+  const { latitude, longitude } = location;
   const url =
     'https://api.open-meteo.com/v1/forecast' +
     `?latitude=${latitude}&longitude=${longitude}` +
@@ -124,7 +135,7 @@ async function fetchWeather(): Promise<WeatherSnapshot> {
   }));
 
   return {
-    location: 'Current location',
+    location: displayNameForLocation(location),
     updatedAtMs: Date.now(),
     current: {
       temperatureC: Math.round(current.temperature_2m),
