@@ -6,6 +6,7 @@
 #include "notifications_screen.hpp"
 #include "notification_screen.hpp"
 #include "notification_service.hpp"
+#include "display_text.hpp"
 #include "swirski_ui.hpp"
 
 #include <algorithm>
@@ -191,10 +192,11 @@ namespace swirski::screens::notifications_screen
                     ? notification.body.c_str()
                     : "New notification";
 
-            const char *bodyPreview =
+            const std::string bodyPreview =
                 notification.body.empty()
                     ? "No preview available"
-                    : notification.body.c_str();
+                    : swirski::services::display_text::lastLine(
+                          notification.body);
 
             lv_label_set_text(
                 row.appNameLabel,
@@ -208,7 +210,7 @@ namespace swirski::screens::notifications_screen
 
             lv_label_set_text(
                 row.bodyLabel,
-                bodyPreview);
+                bodyPreview.c_str());
 
             updateRowStyle(
                 row,

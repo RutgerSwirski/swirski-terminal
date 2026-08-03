@@ -159,4 +159,13 @@ namespace swirski::services::display_text
 
         return result;
     }
+
+    inline std::string lastLine(const std::string &text)
+    {
+        const std::size_t newline = text.find_last_of("\r\n");
+
+        return newline == std::string::npos
+            ? text
+            : text.substr(newline + 1);
+    }
 }

@@ -341,6 +341,18 @@ namespace
             "Hello world");
     }
 
+    void displayTextGetsNewestMessageLine()
+    {
+        CHECK(
+            swirski::services::display_text::lastLine(
+                "First message\nSecond message\nNewest message") ==
+            "Newest message");
+        CHECK(
+            swirski::services::display_text::lastLine(
+                "Only message") ==
+            "Only message");
+    }
+
     void bleSecurityRequiresAllProtections()
     {
         using swirski::transport::ble_security::isSecure;
@@ -461,6 +473,7 @@ int main()
         {"keyboard text can be edited", keyboardTextCanBeEdited},
         {"keyboard text is limited", keyboardTextIsLimited},
         {"display text removes emoji", displayTextRemovesEmoji},
+        {"display text gets newest message line", displayTextGetsNewestMessageLine},
         {"BLE security requires encryption, authentication and bonding", bleSecurityRequiresAllProtections},
         {"Wi-Fi configure does not echo password", wifiConfigureDoesNotEchoPassword},
         {"invalid Wi-Fi credentials are rejected", invalidWifiCredentialsAreRejected},

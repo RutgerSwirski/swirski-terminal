@@ -22,7 +22,7 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        val incoming = createTerminalNotification(sbn)
+        val incoming = createTerminalNotification(sbn) ?: return
         val previous = notifications[incoming.id]
 
         if (!incoming.hasVisibleText()) {
@@ -100,7 +100,7 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
         activeNotifications.orEmpty().forEach { sbn ->
             val notification = createTerminalNotification(sbn)
 
-            if (notification.hasVisibleText()) {
+            if (notification?.hasVisibleText() == true) {
                 notifications[notification.id] = notification
             }
         }
@@ -110,35 +110,122 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
 
     private fun createTerminalNotification(
         sbn: StatusBarNotification,
-    ): TerminalNotification {
+    ): TerminalNotification? {
         val androidNotification =
             sbn.notification
 
+        if (
+            androidNotification.flags and
+                Notification.FLAG_GROUP_SUMMARY != 0
+        ) {
+            return null
+        }
+
         val extras =
             androidNotification.extras
+
+        val fallbackTitle =
+            extras
+                .getCharSequence(Notification.EXTRA_TITLE)
+                ?.toString()
+                .orEmpty()
+
+        val fallbackBody =
+            extras
+                .getCharSequence(Notification.EXTRA_BIG_TEXT)
+                ?.toString()
+                ?: extras
+                    .getCharSequence(Notification.EXTRA_TEXT)
+                    ?.toString()
+                    .orEmpty()
+
+        val messagingContent =
+            extractMessagingContent(androidNotification)
 
         return TerminalNotification(
             id = createNotificationId(sbn),
             packageName = sbn.packageName,
             appName = getAppName(sbn.packageName),
-            title =
-                extras
-                    .getCharSequence(Notification.EXTRA_TITLE)
-                    ?.toString()
-                    .orEmpty(),
-            body =
-                extras
-                    .getCharSequence(Notification.EXTRA_BIG_TEXT)
-                    ?.toString()
-                    ?: extras
-                        .getCharSequence(Notification.EXTRA_TEXT)
-                        ?.toString()
-                        .orEmpty(),
+            title = messagingContent?.title ?: fallbackTitle,
+            body = messagingContent?.body ?: fallbackBody,
             postedAt = sbn.postTime,
             ongoing = sbn.isOngoing,
             category = androidNotification.category,
         )
     }
+
+    private fun extractMessagingContent(
+        notification: Notification,
+    ): MessagingContent? {
+        val extras = notification.extras
+        val messageBundles =
+            extras.getParcelableArray(Notification.EXTRA_MESSAGES)
+                ?: return null
+        val messages =
+            Notification.MessagingStyle.Message
+                .getMessagesFromBundleArray(messageBundles)
+                .mapNotNull { message ->
+                    val text =
+                        message.text
+                            ?.toString()
+                            ?.trim()
+                            ?.takeIf { value -> value.isNotEmpty() }
+                            ?: return@mapNotNull null
+
+                    MessageLine(
+                        sender =
+                            message.sender
+                                ?.toString()
+                                ?.trim()
+                                .orEmpty(),
+                        text = text.take(MAX_MESSAGE_TEXT_LENGTH),
+                    )
+                }
+                .takeLast(MAX_STACKED_MESSAGES)
+
+        if (messages.isEmpty()) {
+            return null
+        }
+
+        val conversationTitle =
+            extras
+                .getCharSequence(Notification.EXTRA_CONVERSATION_TITLE)
+                ?.toString()
+                ?.trim()
+                .orEmpty()
+        val fallbackTitle =
+            extras
+                .getCharSequence(Notification.EXTRA_TITLE)
+                ?.toString()
+                .orEmpty()
+        val isGroupConversation =
+            extras.getBoolean(
+                Notification.EXTRA_IS_GROUP_CONVERSATION,
+                false,
+            )
+        val body = messages.joinToString("\n") { message ->
+            if (isGroupConversation && message.sender.isNotEmpty()) {
+                "${message.sender}: ${message.text}"
+            } else {
+                message.text
+            }
+        }
+
+        return MessagingContent(
+            title = conversationTitle.ifEmpty { fallbackTitle },
+            body = body,
+        )
+    }
+
+    private data class MessagingContent(
+        val title: String,
+        val body: String,
+    )
+
+    private data class MessageLine(
+        val sender: String,
+        val text: String,
+    )
 
     private fun scheduleNotificationUpserted(
         notification: TerminalNotification,
@@ -228,6 +315,8 @@ class SwirskiNotificationListenerService : NotificationListenerService() {
         const val NOTIFICATION_REMOVED_EVENT = "SwirskiNotificationRemoved"
         private const val NOTIFICATION_EMIT_DEBOUNCE_MS = 750L
         private const val MAX_NOTIFICATIONS = 40
+        private const val MAX_STACKED_MESSAGES = 6
+        private const val MAX_MESSAGE_TEXT_LENGTH = 320
 
         private val notifications =
             ConcurrentHashMap<String, TerminalNotification>()
