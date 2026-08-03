@@ -37,20 +37,25 @@ jobs:
         run: |
           tag="firmware-latest"
           asset="esp32/build/swirski_os_esp32.bin"
-          notes="Automated firmware build from commit ${GITHUB_SHA}."
+          short_sha="${GITHUB_SHA:0:7}"
+          built_at="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          notes="$(printf 'Automated rolling firmware build.\n\nCommit: `%s`\nBuilt: %s' "$GITHUB_SHA" "$built_at")"
 
           test -s "$asset"
 
           if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" "$asset" --clobber
-            gh api --method PATCH \
-              "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}" \
-              -f sha="$GITHUB_SHA" \
-              -F force=true
-            gh release edit "$tag" --title "Latest firmware" --notes "$notes"
-          else
-            gh release create "$tag" "$asset" \
-              --target "$GITHUB_SHA" \
-              --title "Latest firmware" \
-              --notes "$notes"
+            gh release delete "$tag" --yes
           fi
+
+          # Remove a leftover tag if a previous publication was interrupted.
+          if gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" \
+            >/dev/null 2>&1; then
+            gh api --method DELETE \
+              "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}"
+          fi
+
+          gh release create "$tag" "$asset" \
+            --target "$GITHUB_SHA" \
+            --title "Latest firmware (${short_sha})" \
+            --notes "$notes"

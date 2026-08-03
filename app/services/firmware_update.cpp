@@ -6,6 +6,7 @@
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
+#include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "esp_system.h"
 #include "freertos/FreeRTOS.h"
@@ -27,6 +28,8 @@ namespace swirski::services::firmware_update
 #endif
         std::atomic_uint8_t progress{0};
         std::atomic_uint32_t revision{0};
+        std::atomic<FailureReason> failureReason{
+            FailureReason::None};
 
         void setState(State newState)
         {
@@ -35,6 +38,19 @@ namespace swirski::services::firmware_update
         }
 
 #ifdef ESP_PLATFORM
+        void failUpdate(
+            FailureReason reason,
+            esp_err_t result)
+        {
+            ESP_LOGE(
+                "firmware_update",
+                "OTA failed: %s",
+                esp_err_to_name(result));
+
+            failureReason = reason;
+            setState(State::Failed);
+        }
+
         void updateProgress(esp_https_ota_handle_t handle)
         {
             const int imageSize =
@@ -73,42 +89,59 @@ namespace swirski::services::firmware_update
             esp_err_t result =
                 esp_https_ota_begin(&otaConfig, &handle);
 
-            while (result == ESP_OK)
+            if (result != ESP_OK)
+            {
+                failUpdate(
+                    FailureReason::Connection,
+                    result);
+                vTaskDelete(nullptr);
+                return;
+            }
+
+            do
             {
                 result = esp_https_ota_perform(handle);
                 updateProgress(handle);
+            } while (result == ESP_ERR_HTTPS_OTA_IN_PROGRESS);
 
-                if (result != ESP_ERR_HTTPS_OTA_IN_PROGRESS)
-                {
-                    break;
-                }
-
-                result = ESP_OK;
+            if (result != ESP_OK)
+            {
+                esp_https_ota_abort(handle);
+                failUpdate(
+                    FailureReason::Download,
+                    result);
+                vTaskDelete(nullptr);
+                return;
             }
 
             const bool downloadComplete =
-                result == ESP_OK &&
                 esp_https_ota_is_complete_data_received(handle);
 
-            if (downloadComplete)
-            {
-                result = esp_https_ota_finish(handle);
-            }
-            else if (handle != nullptr)
+            if (!downloadComplete)
             {
                 esp_https_ota_abort(handle);
+                failUpdate(
+                    FailureReason::IncompleteImage,
+                    ESP_ERR_INVALID_SIZE);
+                vTaskDelete(nullptr);
+                return;
             }
 
-            if (downloadComplete && result == ESP_OK)
+            result = esp_https_ota_finish(handle);
+
+            if (result != ESP_OK)
             {
-                progress = 100;
-                setState(State::Restarting);
-                vTaskDelay(pdMS_TO_TICKS(1000));
-                esp_restart();
+                failUpdate(
+                    FailureReason::InvalidImage,
+                    result);
+                vTaskDelete(nullptr);
+                return;
             }
 
-            setState(State::Failed);
-            vTaskDelete(nullptr);
+            progress = 100;
+            setState(State::Restarting);
+            vTaskDelay(pdMS_TO_TICKS(1500));
+            esp_restart();
         }
 #endif
     }
@@ -126,7 +159,13 @@ namespace swirski::services::firmware_update
                 &imageState) == ESP_OK &&
             imageState == ESP_OTA_IMG_PENDING_VERIFY)
         {
-            esp_ota_mark_app_valid_cancel_rollback();
+            if (
+                esp_ota_mark_app_valid_cancel_rollback() ==
+                ESP_OK)
+            {
+                progress = 100;
+                setState(State::Installed);
+            }
         }
 #endif
     }
@@ -144,6 +183,7 @@ namespace swirski::services::firmware_update
         }
 
         progress = 0;
+        failureReason = FailureReason::None;
         setState(State::Downloading);
 
         if (
@@ -155,6 +195,7 @@ namespace swirski::services::firmware_update
                 3,
                 nullptr) != pdPASS)
         {
+            failureReason = FailureReason::Start;
             setState(State::Failed);
             return false;
         }
@@ -168,6 +209,11 @@ namespace swirski::services::firmware_update
     State getState()
     {
         return state.load();
+    }
+
+    FailureReason getFailureReason()
+    {
+        return failureReason.load();
     }
 
     std::uint8_t getProgress()

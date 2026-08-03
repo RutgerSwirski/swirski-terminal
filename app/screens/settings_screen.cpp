@@ -26,6 +26,7 @@ namespace swirski::screens::settings_screen
         constexpr std::size_t updateIndex = 5;
 
         std::array<lv_obj_t *, 6> settingLabels{};
+        lv_obj_t *updateProgressBar = nullptr;
         std::size_t selectedSettingIndex = 0;
         bool editing = false;
         std::string keyboardText;
@@ -105,8 +106,30 @@ namespace swirski::screens::settings_screen
                         swirski::services::firmware_update::getProgress()) +
                     "%";
             case State::Restarting:
-                return "Restarting...";
+                return "Update complete - restarting";
+            case State::Installed:
+                return "Update installed";
             case State::Failed:
+                using FailureReason =
+                    swirski::services::firmware_update::FailureReason;
+
+                switch (
+                    swirski::services::firmware_update::getFailureReason())
+                {
+                case FailureReason::Start:
+                    return "Updater unavailable - retry";
+                case FailureReason::Connection:
+                    return "Update server unavailable";
+                case FailureReason::Download:
+                    return "Download interrupted - retry";
+                case FailureReason::IncompleteImage:
+                    return "Firmware download incomplete";
+                case FailureReason::InvalidImage:
+                    return "Firmware rejected";
+                case FailureReason::None:
+                    return "Update failed - retry";
+                }
+
                 return "Update failed - retry";
             case State::Unavailable:
                 return "Update: ESP32 only";
@@ -161,8 +184,32 @@ namespace swirski::screens::settings_screen
                 }
             }
 
+            const bool downloading =
+                swirski::services::firmware_update::getState() ==
+                swirski::services::firmware_update::State::Downloading;
+
+            lv_bar_set_value(
+                updateProgressBar,
+                swirski::services::firmware_update::getProgress(),
+                LV_ANIM_OFF);
+
+            if (downloading)
+            {
+                lv_obj_remove_flag(
+                    updateProgressBar,
+                    LV_OBJ_FLAG_HIDDEN);
+            }
+            else
+            {
+                lv_obj_add_flag(
+                    updateProgressBar,
+                    LV_OBJ_FLAG_HIDDEN);
+            }
+
             lv_obj_scroll_to_view(
-                settingLabels[selectedSettingIndex],
+                downloading && selectedSettingIndex == updateIndex
+                    ? updateProgressBar
+                    : settingLabels[selectedSettingIndex],
                 LV_ANIM_OFF);
 
             renderedUpdateRevision =
@@ -273,6 +320,29 @@ namespace swirski::screens::settings_screen
                 settingLabel,
                 LV_LABEL_LONG_DOT);
         }
+
+        updateProgressBar =
+            lv_bar_create(settingsList);
+
+        lv_obj_set_size(
+            updateProgressBar,
+            210,
+            8);
+
+        lv_bar_set_range(
+            updateProgressBar,
+            0,
+            100);
+
+        lv_obj_set_style_bg_color(
+            updateProgressBar,
+            swirski::ui::swirski_ui::color::surfaceSoft(),
+            LV_PART_MAIN);
+
+        lv_obj_set_style_bg_color(
+            updateProgressBar,
+            swirski::ui::swirski_ui::color::accentWarm(),
+            LV_PART_INDICATOR);
 
         updateScreen();
     }
