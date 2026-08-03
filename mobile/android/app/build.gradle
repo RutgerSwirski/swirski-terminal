@@ -3,6 +3,13 @@ apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
 
 def swirskiNodeExecutable = project.findProperty('swirskiNodeExecutable') ?: 'node'
+def swirskiDefaultVersionCode = new Date()
+    .format('yyDDDHHmm', TimeZone.getTimeZone('UTC'))
+    .toInteger()
+def swirskiVersionCode = (System.getenv('SWIRSKI_VERSION_CODE')
+    ?: swirskiDefaultVersionCode.toString()).toInteger()
+def swirskiVersionName = System.getenv('SWIRSKI_VERSION_NAME')
+    ?: "local-${swirskiDefaultVersionCode}"
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -96,8 +103,8 @@ android {
         applicationId "com.swirski.terminal"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode swirskiVersionCode
+        versionName swirskiVersionName
     }
     signingConfigs {
         if (hasReleaseSigning) {

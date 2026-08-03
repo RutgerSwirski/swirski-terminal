@@ -1,0 +1,136 @@
+name: Mobile Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-release
+  cancel-in-progress: false
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: mobile/.nvmrc
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Check mobile app
+        working-directory: mobile
+        run: npm run lint
+
+      - name: Prepare Android signing key
+        env:
+          SWIRSKI_UPLOAD_KEYSTORE_BASE64: ${{ secrets.SWIRSKI_UPLOAD_KEYSTORE_BASE64 }}
+          SWIRSKI_UPLOAD_STORE_PASSWORD: ${{ secrets.SWIRSKI_UPLOAD_STORE_PASSWORD }}
+          SWIRSKI_UPLOAD_KEY_ALIAS: ${{ secrets.SWIRSKI_UPLOAD_KEY_ALIAS }}
+          SWIRSKI_UPLOAD_KEY_PASSWORD: ${{ secrets.SWIRSKI_UPLOAD_KEY_PASSWORD }}
+        run: |
+          missing=false
+          for variable in \
+            SWIRSKI_UPLOAD_KEYSTORE_BASE64 \
+            SWIRSKI_UPLOAD_STORE_PASSWORD \
+            SWIRSKI_UPLOAD_KEY_ALIAS \
+            SWIRSKI_UPLOAD_KEY_PASSWORD; do
+            if [[ -z "${!variable}" ]]; then
+              echo "::error::Missing GitHub Actions secret: ${variable}"
+              missing=true
+            fi
+          done
+
+          if [[ "$missing" == true ]]; then
+            exit 1
+          fi
+
+          printf '%s' "$SWIRSKI_UPLOAD_KEYSTORE_BASE64" \
+            | base64 --decode > "${RUNNER_TEMP}/swirski-upload.jks"
+          chmod 600 "${RUNNER_TEMP}/swirski-upload.jks"
+
+      - name: Build signed release APK
+        working-directory: mobile/android
+        env:
+          SWIRSKI_UPLOAD_STORE_FILE: ${{ runner.temp }}/swirski-upload.jks
+          SWIRSKI_UPLOAD_STORE_PASSWORD: ${{ secrets.SWIRSKI_UPLOAD_STORE_PASSWORD }}
+          SWIRSKI_UPLOAD_KEY_ALIAS: ${{ secrets.SWIRSKI_UPLOAD_KEY_ALIAS }}
+          SWIRSKI_UPLOAD_KEY_PASSWORD: ${{ secrets.SWIRSKI_UPLOAD_KEY_PASSWORD }}
+        run: |
+          version_code="$(date -u '+%y%j%H%M')"
+          version_name="${GITHUB_SHA:0:7}"
+
+          echo "MOBILE_VERSION_CODE=${version_code}" >> "$GITHUB_ENV"
+          echo "MOBILE_VERSION_NAME=${version_name}" >> "$GITHUB_ENV"
+
+          export SWIRSKI_VERSION_CODE="$version_code"
+          export SWIRSKI_VERSION_NAME="$version_name"
+
+          ./gradlew \
+            -PswirskiNodeExecutable="$(command -v node)" \
+            assembleRelease
+
+      - name: Publish latest mobile app
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="mobile-latest"
+          apk="swirski_terminal_android.apk"
+          manifest="mobile-update.json"
+          source_apk="mobile/android/app/build/outputs/apk/release/app-release.apk"
+          apk_url="https://github.com/${GITHUB_REPOSITORY}/releases/download/${tag}/${apk}"
+          release_url="https://github.com/${GITHUB_REPOSITORY}/releases/tag/${tag}"
+          built_at="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          notes="$(printf 'Automated rolling Android build.\n\nCommit: `%s`\nBuilt: %s' "$GITHUB_SHA" "$built_at")"
+
+          test -s "$source_apk"
+          cp "$source_apk" "$apk"
+
+          jq -n \
+            --argjson versionCode "$MOBILE_VERSION_CODE" \
+            --arg versionName "$MOBILE_VERSION_NAME" \
+            --arg apkUrl "$apk_url" \
+            --arg releaseUrl "$release_url" \
+            --arg builtAt "$built_at" \
+            '{versionCode: $versionCode, versionName: $versionName, apkUrl: $apkUrl, releaseUrl: $releaseUrl, builtAt: $builtAt}' \
+            > "$manifest"
+
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release delete "$tag" --yes
+          fi
+
+          # Remove a leftover tag if a previous publication was interrupted.
+          if gh api \
+            "repos/${GITHUB_REPOSITORY}/git/ref/tags/${tag}" \
+            >/dev/null 2>&1; then
+            gh api --method DELETE \
+              "repos/${GITHUB_REPOSITORY}/git/refs/tags/${tag}"
+          fi
+
+          gh release create "$tag" "$apk" "$manifest" \
+            --target "$GITHUB_SHA" \
+            --title "Latest mobile app (${MOBILE_VERSION_NAME})" \
+            --notes "$notes"

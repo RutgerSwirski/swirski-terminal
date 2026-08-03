@@ -103,9 +103,45 @@ Android notification-listener access is required for notification sync and
 media discovery. The app prompts for the relevant Bluetooth and notification
 permissions when needed.
 
-Release APKs are unsigned unless the private signing environment variables in
-`mobile/android/app/build.gradle` are configured. Signing keys and passwords
-must never be committed to this repository.
+Pushes to `main` that change `mobile/` automatically build the Android app and
+replace the rolling `mobile-latest` GitHub Release. The app checks that
+release's small manifest when it opens and shows **Mobile update available**
+when its installed build number is older. The download opens in Android's
+normal APK installation flow.
+
+The rolling workflow requires the same permanent signing key for every build so
+Android can install each APK over the previous one. Reuse and securely back up
+the key that signed any APK already installed on your phone. Only generate a
+new key if there is no existing release key:
+
+```bash
+keytool -genkeypair -v \
+  -keystore swirski-upload.jks \
+  -alias swirski-upload \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000
+```
+
+Configure these repository secrets before running the workflow, replacing the
+example path with the existing key when applicable:
+
+```bash
+base64 -w 0 path/to/swirski-upload.jks | gh secret set SWIRSKI_UPLOAD_KEYSTORE_BASE64
+gh secret set SWIRSKI_UPLOAD_STORE_PASSWORD
+gh secret set SWIRSKI_UPLOAD_KEY_ALIAS
+gh secret set SWIRSKI_UPLOAD_KEY_PASSWORD
+```
+
+Use the alias entered above (`swirski-upload` in the example). The last three
+commands prompt for their values. Never commit the key or passwords. Losing
+the key means future APKs cannot update existing installations.
+
+Local standalone builds made by `mobile/deploy.sh` use Android's development
+key unless the same `SWIRSKI_UPLOAD_*` environment variables are supplied. If
+the app currently installed on a phone uses that development key, uninstall it
+once before installing the first `mobile-latest` APK, then re-enable Android's
+notification-listener access. Subsequent rolling releases install as updates.
 
 ## Protocol
 

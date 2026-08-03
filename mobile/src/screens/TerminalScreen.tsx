@@ -9,6 +9,7 @@ import { useTerminalBle } from '../ble/useTerminalBle';
 import { ConnectionPanel } from '../components/ConnectionPanel';
 import { DebugActions } from '../components/DebugActions';
 import { DeviceList } from '../components/DeviceList';
+import { MobileUpdateCard } from '../components/MobileUpdateCard';
 import { WifiPanel } from '../components/WifiPanel';
 import { useMusicBridge } from '../music/useMusicBridge';
 import { useNotificationBridge } from '../notifications/useNotificationBridge';
@@ -180,6 +181,8 @@ export function TerminalScreen() {
           }
           onStartScan={terminalBle.startScan}
         />
+
+        <MobileUpdateCard />
 
         {terminalBle.transferProgress && (
           <Card variant="outline" tone="yellow" style={styles.syncCard}>
