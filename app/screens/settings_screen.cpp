@@ -23,9 +23,10 @@ namespace swirski::screens::settings_screen
         constexpr std::size_t dateIndex = 1;
         constexpr std::size_t keyboardIndex = 3;
         constexpr std::size_t wifiIndex = 4;
-        constexpr std::size_t updateIndex = 5;
+        constexpr std::size_t buildIndex = 5;
+        constexpr std::size_t updateIndex = 6;
 
-        std::array<lv_obj_t *, 6> settingLabels{};
+        std::array<lv_obj_t *, 7> settingLabels{};
         lv_obj_t *updateProgressBar = nullptr;
         std::size_t selectedSettingIndex = 0;
         bool editing = false;
@@ -146,7 +147,7 @@ namespace swirski::screens::settings_screen
 
         void updateScreen()
         {
-            const std::array<std::string, 6> settingTexts{
+            const std::array<std::string, 7> settingTexts{
                 "Power: " +
                     std::string(
                         powerModeName(
@@ -160,6 +161,8 @@ namespace swirski::screens::settings_screen
                             swirski::services::wifi_service::ConnectionState::Connected
                         ? swirski::services::wifi_service::getConnectedSsid()
                         : "Setup"),
+                "Build: " +
+                    swirski::services::firmware_update::getInstalledBuildId(),
                 firmwareUpdateText()};
 
             for (std::size_t i = 0; i < settingLabels.size(); ++i)
@@ -393,6 +396,11 @@ namespace swirski::screens::settings_screen
             break;
 
         case swirski::input::input_action::Confirm:
+            if (!editing && selectedSettingIndex == buildIndex)
+            {
+                break;
+            }
+
             if (!editing && selectedSettingIndex == updateIndex)
             {
                 if (

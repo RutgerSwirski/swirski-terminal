@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 
 namespace swirski::services::firmware_update
 {
@@ -31,4 +32,5 @@ namespace swirski::services::firmware_update
     FailureReason getFailureReason();
     std::uint8_t getProgress();
     std::uint32_t getRevision();
+    std::string getInstalledBuildId();
 }

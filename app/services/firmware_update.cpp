@@ -3,6 +3,7 @@
 #include <atomic>
 
 #ifdef ESP_PLATFORM
+#include "esp_app_desc.h"
 #include "esp_crt_bundle.h"
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
@@ -229,5 +230,30 @@ namespace swirski::services::firmware_update
     std::uint32_t getRevision()
     {
         return revision.load();
+    }
+
+    std::string getInstalledBuildId()
+    {
+#ifdef ESP_PLATFORM
+        const esp_app_desc_t *description =
+            esp_app_get_description();
+
+        if (description == nullptr)
+        {
+            return "unknown";
+        }
+
+        const std::string version{description->version};
+        const std::size_t commitMarker = version.rfind("-g");
+
+        if (commitMarker != std::string::npos)
+        {
+            return version.substr(commitMarker + 2, 7);
+        }
+
+        return version.empty() ? "unknown" : version;
+#else
+        return "desktop";
+#endif
     }
 }
