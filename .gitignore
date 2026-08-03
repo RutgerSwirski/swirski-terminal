@@ -77,3 +77,6 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# KiCad local history repositories
+kicad/**/.history/
