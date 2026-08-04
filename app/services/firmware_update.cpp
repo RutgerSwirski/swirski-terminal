@@ -1,4 +1,5 @@
 #include "firmware_update.hpp"
+#include "firmware_version.hpp"
 
 #include <atomic>
 #include <cstring>
@@ -123,12 +124,14 @@ namespace swirski::services::firmware_update
             const esp_app_desc_t *installedFirmware =
                 esp_app_get_description();
 
-            if (
+            const bool sameImage =
                 installedFirmware != nullptr &&
                 std::memcmp(
                     availableFirmware.app_elf_sha256,
                     installedFirmware->app_elf_sha256,
-                    sizeof(availableFirmware.app_elf_sha256)) == 0)
+                    sizeof(availableFirmware.app_elf_sha256)) == 0;
+
+            if (sameImage)
             {
                 ESP_LOGI(
                     "firmware_update",
@@ -138,6 +141,53 @@ namespace swirski::services::firmware_update
                 vTaskDelete(nullptr);
                 return;
             }
+
+            const BuildComparison comparison =
+                installedFirmware == nullptr
+                ? BuildComparison::Unknown
+                : compareBuildVersions(
+                      installedFirmware->version,
+                      availableFirmware.version);
+
+            if (comparison != BuildComparison::AvailableIsNewer)
+            {
+                const char *installedVersion =
+                    installedFirmware == nullptr
+                    ? "unknown"
+                    : installedFirmware->version;
+
+                if (
+                    comparison ==
+                    BuildComparison::InstalledIsSameOrNewer)
+                {
+                    ESP_LOGW(
+                        "firmware_update",
+                        "Ignoring firmware downgrade: installed=%s available=%s",
+                        installedVersion,
+                        availableFirmware.version);
+                }
+                else
+                {
+                    ESP_LOGW(
+                        "firmware_update",
+                        "Cannot order legacy firmware versions; refusing replacement: installed=%s available=%s",
+                        installedVersion,
+                        availableFirmware.version);
+                }
+
+                esp_https_ota_abort(handle);
+                setState(State::UpToDate);
+                vTaskDelete(nullptr);
+                return;
+            }
+
+            ESP_LOGI(
+                "firmware_update",
+                "Installing newer firmware: installed=%s available=%s",
+                installedFirmware == nullptr
+                    ? "unknown"
+                    : installedFirmware->version,
+                availableFirmware.version);
 
             setState(State::Downloading);
 

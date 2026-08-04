@@ -7,6 +7,7 @@
 #include "wifi_service.hpp"
 #include "weather_service.hpp"
 #include "display_text.hpp"
+#include "firmware_version.hpp"
 #include "max17048_conversion.hpp"
 #include "system_state.hpp"
 
@@ -103,6 +104,36 @@ namespace
         CHECK(
             swirski::state::system::getSnapshot().revision ==
             after.revision);
+    }
+
+    void orderedFirmwareVersionsPreventDowngrades()
+    {
+        using swirski::services::firmware_update::BuildComparison;
+        using swirski::services::firmware_update::compareBuildVersions;
+        using swirski::services::firmware_update::parseBuildNumber;
+
+        CHECK(parseBuildNumber("b123-abcdef0") == 123);
+        CHECK(!parseBuildNumber("firmware-latest-2-gabcdef0").has_value());
+        CHECK(!parseBuildNumber("b4294967296-overflow").has_value());
+
+        CHECK(
+            compareBuildVersions("b123-aaaaaaa", "b124-bbbbbbb") ==
+            BuildComparison::AvailableIsNewer);
+        CHECK(
+            compareBuildVersions("b124-aaaaaaa", "b123-bbbbbbb") ==
+            BuildComparison::InstalledIsSameOrNewer);
+        CHECK(
+            compareBuildVersions("b124-aaaaaaa", "b124-bbbbbbb") ==
+            BuildComparison::InstalledIsSameOrNewer);
+        CHECK(
+            compareBuildVersions("legacy-local", "b124-bbbbbbb") ==
+            BuildComparison::AvailableIsNewer);
+        CHECK(
+            compareBuildVersions("b124-aaaaaaa", "legacy-release") ==
+            BuildComparison::InstalledIsSameOrNewer);
+        CHECK(
+            compareBuildVersions("legacy-local", "legacy-release") ==
+            BuildComparison::Unknown);
     }
 
     void malformedJsonIsRejected()
@@ -489,6 +520,7 @@ int main()
     const std::vector<Test> tests{
         {"MAX17048 registers convert to app values", max17048RegistersConvertToAppValues},
         {"battery measurement updates system state together", batteryMeasurementUpdatesSystemStateTogether},
+        {"ordered firmware versions prevent downgrades", orderedFirmwareVersionsPreventDowngrades},
         {"valid protocol message parses", validProtocolMessageParses},
         {"malformed JSON is rejected", malformedJsonIsRejected},
         {"unsupported protocol version is rejected", unsupportedProtocolVersionIsRejected},
