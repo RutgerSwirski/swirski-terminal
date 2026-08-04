@@ -60,6 +60,29 @@ namespace swirski::state::system
         currentState.revision++;
     }
 
+    void setBatteryMeasurement(
+        std::optional<std::uint16_t> millivolts,
+        std::optional<std::uint8_t> percentage)
+    {
+        if (
+            percentage.has_value() &&
+            *percentage > 100)
+        {
+            return;
+        }
+
+        if (
+            currentState.batteryMillivolts == millivolts &&
+            currentState.batteryPercent == percentage)
+        {
+            return;
+        }
+
+        currentState.batteryMillivolts = millivolts;
+        currentState.batteryPercent = percentage;
+        currentState.revision++;
+    }
+
     void setCharging(
         bool isCharging)
     {

@@ -7,6 +7,8 @@
 #include "wifi_service.hpp"
 #include "weather_service.hpp"
 #include "display_text.hpp"
+#include "max17048_conversion.hpp"
+#include "system_state.hpp"
 
 #include <ArduinoJson.h>
 
@@ -68,6 +70,39 @@ namespace
         CHECK(message.has_value());
         CHECK(message->type == swirski::protocol::MessageType::Ping);
         CHECK(message->id == "ping-1");
+    }
+
+    void max17048RegistersConvertToAppValues()
+    {
+        CHECK(
+            swirski::hardware::max17048::
+                voltageMillivoltsFromRaw(0xC800) == 4000);
+        CHECK(
+            swirski::hardware::max17048::
+                percentageFromRaw(0x3280) == 51);
+        CHECK(
+            swirski::hardware::max17048::
+                percentageFromRaw(0xFF00) == 100);
+    }
+
+    void batteryMeasurementUpdatesSystemStateTogether()
+    {
+        const auto before =
+            swirski::state::system::getSnapshot();
+
+        swirski::state::system::setBatteryMeasurement(4012, 73);
+
+        const auto after =
+            swirski::state::system::getSnapshot();
+
+        CHECK(after.batteryMillivolts == 4012);
+        CHECK(after.batteryPercent == 73);
+        CHECK(after.revision == before.revision + 1);
+
+        swirski::state::system::setBatteryMeasurement(4012, 73);
+        CHECK(
+            swirski::state::system::getSnapshot().revision ==
+            after.revision);
     }
 
     void malformedJsonIsRejected()
@@ -452,6 +487,8 @@ namespace
 int main()
 {
     const std::vector<Test> tests{
+        {"MAX17048 registers convert to app values", max17048RegistersConvertToAppValues},
+        {"battery measurement updates system state together", batteryMeasurementUpdatesSystemStateTogether},
         {"valid protocol message parses", validProtocolMessageParses},
         {"malformed JSON is rejected", malformedJsonIsRejected},
         {"unsupported protocol version is rejected", unsupportedProtocolVersionIsRejected},

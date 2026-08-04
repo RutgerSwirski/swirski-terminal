@@ -31,6 +31,7 @@
 #include "wifi_service.hpp"
 #include "wifi_screen.hpp"
 #include "protocol.hpp"
+#include "max17048.hpp"
 
 #include "ble_transport.hpp"
 
@@ -209,6 +210,7 @@ extern "C" void app_main()
     swirski::inputs::push_buttons::initialise();
 
     swirski::hardware::haptics::initialise();
+    swirski::hardware::max17048::initialise();
 
     swirski::service::date_time::initialise(0);
 
@@ -247,6 +249,7 @@ extern "C" void app_main()
 
         bleTransport.update();
         swirski::services::wifi_service::update();
+        swirski::hardware::max17048::update();
 
         const bool wifiScanning =
             swirski::services::wifi_service::isScanning();

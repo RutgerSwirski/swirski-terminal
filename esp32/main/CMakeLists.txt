@@ -11,6 +11,8 @@ idf_component_register(
 
         "haptics/haptics.cpp"
 
+        "power/max17048.cpp"
+
         "ble_transport/ble_transport.cpp"
 
         "${APP_DIR}/app.cpp"
@@ -57,6 +59,7 @@ idf_component_register(
         "settings"
         "ble_transport"
         "haptics"
+        "power"
         "${APP_DIR}"
         "${APP_DIR}/screens"
         "${APP_DIR}/input"
@@ -71,6 +74,7 @@ idf_component_register(
         esp_driver_gpio
         esp_driver_pcnt
         esp_driver_spi
+        esp_driver_i2c
         esp_pm
         esp_lcd
         esp_lcd_ili9341

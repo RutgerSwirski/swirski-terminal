@@ -34,6 +34,8 @@ namespace swirski::state::system
     {
         ConnectionState connection;
 
+        std::optional<std::uint16_t> batteryMillivolts;
+
         std::optional<std::uint8_t> batteryPercent;
 
         bool charging = false;
@@ -48,6 +50,10 @@ namespace swirski::state::system
         ConnectionStatus status);
 
     void setBatteryPercent(
+        std::optional<std::uint8_t> percentage);
+
+    void setBatteryMeasurement(
+        std::optional<std::uint16_t> millivolts,
         std::optional<std::uint8_t> percentage);
 
     void setCharging(bool charging);

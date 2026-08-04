@@ -56,6 +56,21 @@ The firmware currently targets an ESP32-S3 with 4 MB flash, an ILI9341
 320x240 SPI display, a rotary encoder, and a back button. Hardware pins are
 defined near the top of `esp32/main/main.cpp` and in `esp32/main/inputs/`.
 
+The MAX17048 fuel gauge is read at I2C address `0x36` every five seconds.
+For the current direct-GPIO prototype, connect it as follows:
+
+- MAX17048 SDA to ESP32-S3 GPIO 1
+- MAX17048 SCL to ESP32-S3 GPIO 2
+- MAX17048 VIN to 3.3 V and GND to GND
+
+The two JST-PH battery sockets on the breakout are a pass-through pair: connect
+the single-cell LiPo to either socket and the terminal's power/charging path to
+the other. Battery voltage is retained in system state as millivolts, charge
+percentage is shown in the status bar, and both readings are logged at debug
+level. The PCB-v1 schematic instead reserves GPIO 8/9 for its shared I2C bus;
+those pins must not be selected in this prototype firmware while the back and
+encoder switches still use direct GPIO.
+
 Install ESP-IDF, then build from the `esp32` directory:
 
 ```bash

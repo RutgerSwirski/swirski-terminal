@@ -145,6 +145,7 @@ if(BUILD_TESTING)
         ../app/services/notification_service.cpp
         ../app/services/keyboard_service.cpp
         ../app/services/wifi_service.cpp
+        ../app/state/system_state.cpp
     )
 
     target_include_directories(
@@ -153,6 +154,8 @@ if(BUILD_TESTING)
             ../app/protocol
             ../app/services
             ../app/transport
+            ../app/state
+            ../esp32/main/power
     )
 
     target_link_libraries(

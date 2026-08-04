@@ -8,6 +8,7 @@
 #include "swirski_ui.hpp"
 
 #include <ctime>
+#include <cstdio>
 
 #include "system_state.hpp"
 
@@ -21,6 +22,7 @@ namespace swirski::ui::status_bar
 
         lv_obj_t *connectionLabel = nullptr;
         lv_obj_t *connectionDot = nullptr;
+        lv_obj_t *batteryLabel = nullptr;
         lv_obj_t *wifiIndicator = nullptr;
         lv_obj_t *wifiBars[3]{};
 
@@ -76,9 +78,26 @@ namespace swirski::ui::status_bar
 
             if (
                 connectionLabel == nullptr ||
-                connectionDot == nullptr)
+                connectionDot == nullptr ||
+                batteryLabel == nullptr)
             {
                 return;
+            }
+
+            if (snapshot.batteryPercent.has_value())
+            {
+                char batteryText[5]{};
+                std::snprintf(
+                    batteryText,
+                    sizeof(batteryText),
+                    "%u%%",
+                    static_cast<unsigned>(*snapshot.batteryPercent));
+                lv_label_set_text(batteryLabel, batteryText);
+                lv_obj_remove_flag(batteryLabel, LV_OBJ_FLAG_HIDDEN);
+            }
+            else
+            {
+                lv_obj_add_flag(batteryLabel, LV_OBJ_FLAG_HIDDEN);
             }
 
             const char *transportText = "-";
@@ -215,7 +234,7 @@ namespace swirski::ui::status_bar
 
         lv_obj_t *centerSection = lv_obj_create(parent);
         lv_obj_remove_style_all(centerSection);
-        lv_obj_set_size(centerSection, LV_PCT(54), LV_PCT(100));
+        lv_obj_set_size(centerSection, LV_PCT(43), LV_PCT(100));
         lv_obj_set_layout(centerSection, LV_LAYOUT_FLEX);
         lv_obj_set_flex_flow(centerSection, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(
@@ -226,7 +245,7 @@ namespace swirski::ui::status_bar
 
         lv_obj_t *rightSection = lv_obj_create(parent);
         lv_obj_remove_style_all(rightSection);
-        lv_obj_set_size(rightSection, LV_PCT(18), LV_PCT(100));
+        lv_obj_set_size(rightSection, LV_PCT(29), LV_PCT(100));
         lv_obj_set_layout(rightSection, LV_LAYOUT_FLEX);
         lv_obj_set_flex_flow(rightSection, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(
@@ -278,6 +297,18 @@ namespace swirski::ui::status_bar
             pagePathLabel,
             swirski::ui::swirski_ui::color::ink(),
             LV_PART_MAIN);
+
+        batteryLabel = lv_label_create(rightSection);
+        lv_label_set_text(batteryLabel, "");
+        lv_obj_set_style_text_color(
+            batteryLabel,
+            swirski::ui::swirski_ui::color::ink(),
+            LV_PART_MAIN);
+        lv_obj_set_style_text_font(
+            batteryLabel,
+            &swirski_font_12,
+            LV_PART_MAIN);
+        lv_obj_add_flag(batteryLabel, LV_OBJ_FLAG_HIDDEN);
 
         wifiIndicator = lv_obj_create(rightSection);
         lv_obj_remove_style_all(wifiIndicator);
