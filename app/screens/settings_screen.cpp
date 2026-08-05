@@ -20,13 +20,15 @@ namespace swirski::screens::settings_screen
     namespace
     {
         constexpr std::size_t powerModeIndex = 0;
-        constexpr std::size_t dateIndex = 1;
-        constexpr std::size_t keyboardIndex = 3;
-        constexpr std::size_t wifiIndex = 4;
-        constexpr std::size_t buildIndex = 5;
-        constexpr std::size_t updateIndex = 6;
+        constexpr std::size_t brightnessIndex = 1;
+        constexpr std::size_t dateIndex = 2;
+        constexpr std::size_t timeIndex = 3;
+        constexpr std::size_t keyboardIndex = 4;
+        constexpr std::size_t wifiIndex = 5;
+        constexpr std::size_t buildIndex = 6;
+        constexpr std::size_t updateIndex = 7;
 
-        std::array<lv_obj_t *, 7> settingLabels{};
+        std::array<lv_obj_t *, 8> settingLabels{};
         lv_obj_t *updateProgressBar = nullptr;
         std::size_t selectedSettingIndex = 0;
         bool editing = false;
@@ -151,11 +153,15 @@ namespace swirski::screens::settings_screen
 
         void updateScreen()
         {
-            const std::array<std::string, 7> settingTexts{
+            const std::array<std::string, 8> settingTexts{
                 "Power: " +
                     std::string(
                         powerModeName(
                             swirski::service::settings::getPowerMode())),
+                "Brightness: " +
+                    std::to_string(
+                        swirski::service::settings::getBrightnessPercent()) +
+                    "%",
                 "Date: " + dateText(),
                 "Time: " + timeText(),
                 "Keyboard: " +
@@ -250,13 +256,39 @@ namespace swirski::screens::settings_screen
             }
         }
 
+        void changeBrightness(int direction)
+        {
+            const int currentBrightness =
+                swirski::service::settings::getBrightnessPercent();
+            const int requestedBrightness =
+                currentBrightness +
+                direction *
+                    swirski::service::settings::BRIGHTNESS_STEP_PERCENT;
+
+            swirski::service::settings::setBrightnessPercent(
+                static_cast<std::uint8_t>(
+                    requestedBrightness <
+                            swirski::service::settings::MINIMUM_BRIGHTNESS_PERCENT
+                        ? swirski::service::settings::MINIMUM_BRIGHTNESS_PERCENT
+                    : requestedBrightness >
+                            swirski::service::settings::MAXIMUM_BRIGHTNESS_PERCENT
+                        ? swirski::service::settings::MAXIMUM_BRIGHTNESS_PERCENT
+                        : requestedBrightness));
+        }
+
         void changeSelectedSetting(int direction)
         {
             if (selectedSettingIndex == powerModeIndex)
             {
                 changePowerMode(direction);
             }
-            else
+            else if (selectedSettingIndex == brightnessIndex)
+            {
+                changeBrightness(direction);
+            }
+            else if (
+                selectedSettingIndex == dateIndex ||
+                selectedSettingIndex == timeIndex)
             {
                 const std::time_t seconds =
                     selectedSettingIndex == dateIndex
@@ -275,7 +307,9 @@ namespace swirski::screens::settings_screen
 
         void finishEditing()
         {
-            if (selectedSettingIndex != powerModeIndex)
+            if (
+                selectedSettingIndex == dateIndex ||
+                selectedSettingIndex == timeIndex)
             {
                 swirski::service::date_time::save();
             }

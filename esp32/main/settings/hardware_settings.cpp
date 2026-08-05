@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "esp_pm.h"
 
+#include "backlight.hpp"
 #include "settings_service.hpp"
 
 namespace swirski::settings::hardware
@@ -48,11 +49,19 @@ namespace swirski::settings::hardware
             }
         }
 
+        void applyBrightness(std::uint8_t brightnessPercent)
+        {
+            swirski::hardware::backlight::setBrightness(
+                brightnessPercent);
+        }
+
     }
 
     void initialise()
     {
         swirski::service::settings::setPowerModeHandler(
             applyPowerMode);
+        swirski::service::settings::setBrightnessHandler(
+            applyBrightness);
     }
 }

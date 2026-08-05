@@ -12,10 +12,13 @@ namespace swirski::service::settings
     {
         PowerMode powerMode = PowerMode::Balanced;
         PowerModeHandler powerModeHandler = nullptr;
+        std::uint8_t brightnessPercent = MAXIMUM_BRIGHTNESS_PERCENT;
+        BrightnessHandler brightnessHandler = nullptr;
 
 #ifdef ESP_PLATFORM
         constexpr char NVS_NAMESPACE[] = "settings";
         constexpr char NVS_POWER_MODE_KEY[] = "power_mode";
+        constexpr char NVS_BRIGHTNESS_KEY[] = "brightness";
 
         void savePowerMode()
         {
@@ -34,6 +37,27 @@ namespace swirski::service::settings
                 handle,
                 NVS_POWER_MODE_KEY,
                 static_cast<std::int32_t>(powerMode));
+            nvs_commit(handle);
+            nvs_close(handle);
+        }
+
+        void saveBrightness()
+        {
+            nvs_handle_t handle;
+
+            if (
+                nvs_open(
+                    NVS_NAMESPACE,
+                    NVS_READWRITE,
+                    &handle) != ESP_OK)
+            {
+                return;
+            }
+
+            nvs_set_u8(
+                handle,
+                NVS_BRIGHTNESS_KEY,
+                brightnessPercent);
             nvs_commit(handle);
             nvs_close(handle);
         }
@@ -61,13 +85,28 @@ namespace swirski::service::settings
             handle,
             NVS_POWER_MODE_KEY,
             &savedMode);
-        nvs_close(handle);
 
         if (
             savedMode >= static_cast<std::int32_t>(PowerMode::Performance) &&
             savedMode <= static_cast<std::int32_t>(PowerMode::Saver))
         {
             powerMode = static_cast<PowerMode>(savedMode);
+        }
+
+        std::uint8_t savedBrightness = MAXIMUM_BRIGHTNESS_PERCENT;
+
+        nvs_get_u8(
+            handle,
+            NVS_BRIGHTNESS_KEY,
+            &savedBrightness);
+        nvs_close(handle);
+
+        if (
+            savedBrightness >= MINIMUM_BRIGHTNESS_PERCENT &&
+            savedBrightness <= MAXIMUM_BRIGHTNESS_PERCENT &&
+            savedBrightness % BRIGHTNESS_STEP_PERCENT == 0)
+        {
+            brightnessPercent = savedBrightness;
         }
 #endif
     }
@@ -79,6 +118,16 @@ namespace swirski::service::settings
         if (powerModeHandler != nullptr)
         {
             powerModeHandler(powerMode);
+        }
+    }
+
+    void setBrightnessHandler(BrightnessHandler handler)
+    {
+        brightnessHandler = handler;
+
+        if (brightnessHandler != nullptr)
+        {
+            brightnessHandler(brightnessPercent);
         }
     }
 
@@ -103,6 +152,44 @@ namespace swirski::service::settings
         if (powerModeHandler != nullptr)
         {
             powerModeHandler(powerMode);
+        }
+    }
+
+    std::uint8_t getBrightnessPercent()
+    {
+        return brightnessPercent;
+    }
+
+    void setBrightnessPercent(std::uint8_t newBrightnessPercent)
+    {
+        if (newBrightnessPercent < MINIMUM_BRIGHTNESS_PERCENT)
+        {
+            newBrightnessPercent = MINIMUM_BRIGHTNESS_PERCENT;
+        }
+        else if (newBrightnessPercent > MAXIMUM_BRIGHTNESS_PERCENT)
+        {
+            newBrightnessPercent = MAXIMUM_BRIGHTNESS_PERCENT;
+        }
+
+        newBrightnessPercent =
+            static_cast<std::uint8_t>(
+                (newBrightnessPercent / BRIGHTNESS_STEP_PERCENT) *
+                BRIGHTNESS_STEP_PERCENT);
+
+        if (brightnessPercent == newBrightnessPercent)
+        {
+            return;
+        }
+
+        brightnessPercent = newBrightnessPercent;
+
+#ifdef ESP_PLATFORM
+        saveBrightness();
+#endif
+
+        if (brightnessHandler != nullptr)
+        {
+            brightnessHandler(brightnessPercent);
         }
     }
 }
