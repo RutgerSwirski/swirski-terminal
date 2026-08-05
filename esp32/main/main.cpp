@@ -32,6 +32,7 @@
 #include "wifi_screen.hpp"
 #include "protocol.hpp"
 #include "max17048.hpp"
+#include "backlight.hpp"
 
 #include "ble_transport.hpp"
 
@@ -54,6 +55,8 @@ namespace
 
     void setDisplayPower(bool on)
     {
+        swirski::hardware::backlight::setEnabled(on);
+
         if (panelHandle != nullptr)
         {
             esp_lcd_panel_disp_on_off(
@@ -170,6 +173,8 @@ void initialiseDisplay()
 extern "C" void app_main()
 {
     ESP_LOGI(swirski::TAG, "Starting Swirski OS");
+
+    swirski::hardware::backlight::initialise();
 
     esp_err_t nvsResult =
         nvs_flash_init();

@@ -55,6 +55,8 @@ ctest --test-dir desktop/build --output-on-failure
 The firmware currently targets an ESP32-S3 with 4 MB flash, an ILI9341
 320x240 SPI display, a rotary encoder, and a back button. Hardware pins are
 defined near the top of `esp32/main/main.cpp` and in `esp32/main/inputs/`.
+The display backlight uses an active-low BC327 stage on GPIO 12; firmware
+drives it low at boot and switches it off with the display timeout.
 
 The MAX17048 fuel gauge is read at I2C address `0x36` every five seconds.
 For the current direct-GPIO prototype, connect it as follows:

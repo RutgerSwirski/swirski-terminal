@@ -11,6 +11,8 @@ idf_component_register(
 
         "haptics/haptics.cpp"
 
+        "backlight/backlight.cpp"
+
         "power/max17048.cpp"
 
         "ble_transport/ble_transport.cpp"
@@ -59,6 +61,7 @@ idf_component_register(
         "settings"
         "ble_transport"
         "haptics"
+        "backlight"
         "power"
         "${APP_DIR}"
         "${APP_DIR}/screens"
