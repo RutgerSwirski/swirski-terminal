@@ -21,6 +21,7 @@ namespace swirski::transport::ble
         void update() override;
 
         void send(const std::string &message) override;
+        void disconnectAll();
 
     private:
         void sendNextQueuedFrame();

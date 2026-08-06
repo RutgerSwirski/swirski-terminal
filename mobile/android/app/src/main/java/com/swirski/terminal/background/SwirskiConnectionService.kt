@@ -39,6 +39,8 @@ class SwirskiConnectionService : Service() {
       saveDeviceId(this, deviceId)
     }
 
+    val connected = intent?.getBooleanExtra(EXTRA_CONNECTED, false) ?: false
+
     val openAppIntent = PendingIntent.getActivity(
       this,
       0,
@@ -53,8 +55,20 @@ class SwirskiConnectionService : Service() {
     }
 
     val notification = notificationBuilder
-      .setContentTitle("Swirski Terminal connected")
-      .setContentText("Keeping the wearable connection active")
+      .setContentTitle(
+        if (connected) {
+          "Swirski Terminal connected"
+        } else {
+          "Reconnecting to Swirski Terminal"
+        },
+      )
+      .setContentText(
+        if (connected) {
+          "Keeping the wearable connection active"
+        } else {
+          "Waiting for the wearable to become available"
+        },
+      )
       .setSmallIcon(R.mipmap.ic_launcher)
       .setContentIntent(openAppIntent)
       .setOngoing(true)
@@ -72,6 +86,7 @@ class SwirskiConnectionService : Service() {
     private const val PREFERENCES = "swirski_connection"
     private const val DEVICE_ID_KEY = "device_id"
     const val EXTRA_DEVICE_ID = "device_id"
+    const val EXTRA_CONNECTED = "connected"
 
     fun getSavedDeviceId(context: Context): String? {
       return context

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 namespace swirski::services::firmware_update
@@ -28,6 +29,7 @@ namespace swirski::services::firmware_update
     };
 
     void confirmRunningFirmware();
+    void setBeforeRestartHandler(std::function<void()> handler);
     bool start();
 
     State getState();

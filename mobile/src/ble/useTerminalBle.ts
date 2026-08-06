@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { NativeModules } from 'react-native';
+import { AppState, NativeModules } from 'react-native';
 import { BleErrorCode, State } from 'react-native-ble-plx';
 import type { Device, Subscription } from 'react-native-ble-plx';
 
@@ -24,7 +24,7 @@ import { handleMusicCommandMessage } from '../music/handleMusicCommand';
 
 type SwirskiBackgroundModule = {
   requestEnableBluetooth(): Promise<void>;
-  start(deviceId: string): Promise<void>;
+  start(deviceId: string, connected: boolean): Promise<void>;
   stop(): Promise<void>;
   getSavedDeviceId(): Promise<string | null>;
 };
@@ -34,6 +34,7 @@ const SwirskiBackground = NativeModules.SwirskiBackground as
   | undefined;
 
 const RECONNECT_DELAY_MS = 3000;
+const CONNECTION_WATCHDOG_INTERVAL_MS = 5000;
 
 export type ConnectionStatus =
   | 'disconnected'
@@ -80,6 +81,7 @@ export function useTerminalBle() {
   const reconnectRef = useRef<(deviceId: string) => void>(() => {});
   const manualDisconnectRef = useRef<boolean>(false);
   const isConnectingRef = useRef<boolean>(false);
+  const isCheckingConnectionRef = useRef<boolean>(false);
   const restoredConnectionRef = useRef<boolean>(false);
   const messageHandlersRef = useRef<Set<MessageHandler>>(new Set());
 
@@ -156,6 +158,10 @@ export function useTerminalBle() {
   const scheduleReconnect = useCallback(
     (deviceId: string) => {
       clearReconnectTimer();
+
+      SwirskiBackground?.start(deviceId, false).catch(error => {
+        console.error('Could not update background connection status:', error);
+      });
 
       reconnectTimerRef.current = setTimeout(() => {
         reconnectTimerRef.current = null;
@@ -295,7 +301,7 @@ export function useTerminalBle() {
       setConnectionStatus('ready');
 
       try {
-        await SwirskiBackground?.start(discovered.id);
+        await SwirskiBackground?.start(discovered.id, true);
       } catch (error) {
         console.error('Could not start background connection service:', error);
       }
@@ -314,7 +320,9 @@ export function useTerminalBle() {
       try {
         setConnectionStatus('connecting');
 
-        const connected = await bleManager.connectToDevice(deviceId);
+        const connected = await bleManager.connectToDevice(deviceId, {
+          autoConnect: true,
+        });
 
         console.log('Reconnected to device:', connected.name, connected.id);
         await prepareConnectedDevice(connected);
@@ -514,6 +522,78 @@ export function useTerminalBle() {
       console.error('Could not restore terminal connection:', error);
     });
   }, [bleState]);
+
+  useEffect(() => {
+    if (!connectedDevice || connectionStatus !== 'ready') {
+      return;
+    }
+
+    const deviceId = connectedDevice.id;
+
+    async function verifyConnection() {
+      if (
+        isCheckingConnectionRef.current ||
+        isConnectingRef.current ||
+        manualDisconnectRef.current
+      ) {
+        return;
+      }
+
+      isCheckingConnectionRef.current = true;
+
+      try {
+        const isConnected = await bleManager.isDeviceConnected(deviceId);
+
+        if (isConnected || manualDisconnectRef.current) {
+          return;
+        }
+
+        console.log('BLE watchdog detected a stale connection');
+        cleanUpConnection();
+
+        try {
+          await bleManager.cancelDeviceConnection(deviceId);
+        } catch (error) {
+          console.log('Could not close stale BLE connection:', error);
+        }
+
+        if (!manualDisconnectRef.current) {
+          scheduleReconnect(deviceId);
+        }
+      } catch (error) {
+        console.log('Could not verify BLE connection:', error);
+      } finally {
+        isCheckingConnectionRef.current = false;
+      }
+    }
+
+    const watchdog = setInterval(() => {
+      verifyConnection().catch(error => {
+        console.error('BLE connection watchdog failed:', error);
+      });
+    }, CONNECTION_WATCHDOG_INTERVAL_MS);
+
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      nextState => {
+        if (nextState === 'active') {
+          verifyConnection().catch(error => {
+            console.error('Could not verify resumed BLE connection:', error);
+          });
+        }
+      },
+    );
+
+    return () => {
+      clearInterval(watchdog);
+      appStateSubscription.remove();
+    };
+  }, [
+    cleanUpConnection,
+    connectedDevice,
+    connectionStatus,
+    scheduleReconnect,
+  ]);
 
   return {
     bleState,

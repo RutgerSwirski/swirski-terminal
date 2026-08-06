@@ -29,12 +29,13 @@ class SwirskiBackgroundModule(
   }
 
   @ReactMethod
-  fun start(deviceId: String, promise: Promise) {
+  fun start(deviceId: String, connected: Boolean, promise: Promise) {
     try {
       val intent = Intent(
         reactApplicationContext,
         SwirskiConnectionService::class.java,
       ).putExtra(SwirskiConnectionService.EXTRA_DEVICE_ID, deviceId)
+        .putExtra(SwirskiConnectionService.EXTRA_CONNECTED, connected)
 
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         reactApplicationContext.startForegroundService(intent)

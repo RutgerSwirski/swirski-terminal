@@ -3,6 +3,8 @@
 
 #include <atomic>
 #include <cstring>
+#include <functional>
+#include <utility>
 
 #ifdef ESP_PLATFORM
 #include "esp_app_desc.h"
@@ -37,6 +39,7 @@ namespace swirski::services::firmware_update
         std::atomic_uint32_t revision{0};
         std::atomic<FailureReason> failureReason{
             FailureReason::None};
+        std::function<void()> beforeRestartHandler;
 
         void setState(State newState)
         {
@@ -233,6 +236,12 @@ namespace swirski::services::firmware_update
 
             progress = 100;
             setState(State::Restarting);
+
+            if (beforeRestartHandler)
+            {
+                beforeRestartHandler();
+            }
+
             vTaskDelay(pdMS_TO_TICKS(1500));
             esp_restart();
         }
@@ -261,6 +270,11 @@ namespace swirski::services::firmware_update
             }
         }
 #endif
+    }
+
+    void setBeforeRestartHandler(std::function<void()> handler)
+    {
+        beforeRestartHandler = std::move(handler);
     }
 
     bool start()

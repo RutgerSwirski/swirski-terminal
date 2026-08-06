@@ -222,6 +222,11 @@ extern "C" void app_main()
     swirski::transport::ble::BleTransport bleTransport;
 
     bleTransport.initialise();
+    swirski::services::firmware_update::setBeforeRestartHandler(
+        [&bleTransport]()
+        {
+            bleTransport.disconnectAll();
+        });
     swirski::screens::music_screen::setTransport(
         &bleTransport);
 

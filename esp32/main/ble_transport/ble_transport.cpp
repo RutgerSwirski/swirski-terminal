@@ -648,6 +648,24 @@ namespace
 
 namespace swirski::transport::ble
 {
+    void BleTransport::disconnectAll()
+    {
+        if (server == nullptr)
+        {
+            return;
+        }
+
+        for (const std::uint16_t connHandle : server->getPeerDevices())
+        {
+            if (!server->disconnect(connHandle))
+            {
+                std::cerr
+                    << "Could not disconnect BLE client before restart"
+                    << std::endl;
+            }
+        }
+    }
+
     void BleTransport::initialise()
     {
         const auto setBleStatus =
