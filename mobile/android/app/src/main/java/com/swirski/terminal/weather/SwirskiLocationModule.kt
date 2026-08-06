@@ -46,20 +46,65 @@ class SwirskiLocationModule(
           .mapNotNull { provider -> locationManager.getLastKnownLocation(provider) }
           .maxByOrNull { item: Location -> item.time }
 
-      if (location == null) {
+      if (location != null) {
+        val locationName = resolveLocationName(location)
+        saveLocation(location, locationName)
+        promise.resolve(
+          createCoordinates(
+            location.latitude,
+            location.longitude,
+            locationName,
+          ),
+        )
+        return
+      }
+
+      val savedLocation = getSavedLocation()
+
+      if (savedLocation == null) {
         promise.reject("LOCATION_UNAVAILABLE", "No recent phone location is available")
         return
       }
 
-      val coordinates = Arguments.createMap()
-      coordinates.putDouble("latitude", location.latitude)
-      coordinates.putDouble("longitude", location.longitude)
-      coordinates.putString("locationName", resolveLocationName(location))
-      promise.resolve(coordinates)
+      promise.resolve(savedLocation)
     } catch (error: Exception) {
       promise.reject("LOCATION_FAILED", "Could not read phone location", error)
     }
   }
+
+  private fun createCoordinates(
+    latitude: Double,
+    longitude: Double,
+    locationName: String?,
+  ) = Arguments.createMap().apply {
+    putDouble("latitude", latitude)
+    putDouble("longitude", longitude)
+    putString("locationName", locationName)
+  }
+
+  private fun saveLocation(location: Location, locationName: String?) {
+    reactApplicationContext
+      .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+      .edit()
+      .putLong(LATITUDE_KEY, location.latitude.toBits())
+      .putLong(LONGITUDE_KEY, location.longitude.toBits())
+      .putString(LOCATION_NAME_KEY, locationName)
+      .apply()
+  }
+
+  private fun getSavedLocation() =
+    reactApplicationContext
+      .getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE)
+      .takeIf {
+        it.contains(LATITUDE_KEY) && it.contains(LONGITUDE_KEY)
+      }
+      ?.let {
+        createCoordinates(
+          Double.fromBits(it.getLong(LATITUDE_KEY, 0)),
+          Double.fromBits(it.getLong(LONGITUDE_KEY, 0)),
+          it.getString(LOCATION_NAME_KEY, null),
+        )
+      }
 
   @Suppress("DEPRECATION")
   private fun resolveLocationName(location: Location): String? {
@@ -87,5 +132,12 @@ class SwirskiLocationModule(
     } catch (_: Exception) {
       null
     }
+  }
+
+  companion object {
+    private const val PREFERENCES = "swirski_weather"
+    private const val LATITUDE_KEY = "latitude"
+    private const val LONGITUDE_KEY = "longitude"
+    private const val LOCATION_NAME_KEY = "location_name"
   }
 }
