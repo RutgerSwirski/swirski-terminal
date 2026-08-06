@@ -285,9 +285,7 @@ namespace swirski::services::firmware_update
         if (
             currentState == State::Checking ||
             currentState == State::Downloading ||
-            currentState == State::Restarting ||
-            currentState == State::Installed ||
-            currentState == State::UpToDate)
+            currentState == State::Restarting)
         {
             return false;
         }

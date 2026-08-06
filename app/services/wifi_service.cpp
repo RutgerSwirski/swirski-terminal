@@ -41,10 +41,35 @@ namespace swirski::services::wifi_service
         std::atomic_bool pingReplyReceived{false};
         std::atomic_int internetTestResult{0};
         std::atomic_uint32_t pendingInternetLatencyMs{0};
+        bool automaticReconnectEnabled = false;
+        std::uint8_t reconnectAttempt = 0;
 
         using Clock = std::chrono::steady_clock;
         constexpr std::chrono::seconds signalUpdateInterval{5};
+        constexpr std::chrono::seconds minimumReconnectDelay{5};
+        constexpr std::chrono::seconds maximumReconnectDelay{60};
         Clock::time_point lastSignalUpdate = Clock::now();
+        Clock::time_point nextReconnectAt = Clock::now();
+
+        std::chrono::seconds reconnectDelay()
+        {
+            const std::uint32_t multiplier =
+                1U << std::min<std::uint8_t>(reconnectAttempt, 4);
+
+            return std::min(
+                minimumReconnectDelay * multiplier,
+                maximumReconnectDelay);
+        }
+
+        void scheduleReconnect()
+        {
+            nextReconnectAt = Clock::now() + reconnectDelay();
+
+            if (reconnectAttempt < 5)
+            {
+                reconnectAttempt++;
+            }
+        }
 
         void updateSignalStrength()
         {
@@ -319,8 +344,15 @@ namespace swirski::services::wifi_service
         {
             connectedSsid = reinterpret_cast<const char *>(
                 savedConfig.sta.ssid);
+            automaticReconnectEnabled = true;
             connectionState = ConnectionState::Connecting;
-            esp_wifi_connect();
+
+            if (esp_wifi_connect() != ESP_OK)
+            {
+                connectionState = ConnectionState::Failed;
+                scheduleReconnect();
+            }
+
             revision++;
         }
 #endif
@@ -339,6 +371,7 @@ namespace swirski::services::wifi_service
         if (connectionSucceeded.exchange(false))
         {
             connectionState = ConnectionState::Connected;
+            reconnectAttempt = 0;
             updateSignalStrength();
             revision++;
         }
@@ -347,7 +380,27 @@ namespace swirski::services::wifi_service
         {
             connectionState = ConnectionState::Failed;
             signalStrength = -127;
+            if (automaticReconnectEnabled)
+            {
+                scheduleReconnect();
+            }
             revision++;
+        }
+
+        if (
+            automaticReconnectEnabled &&
+            connectionState == ConnectionState::Failed &&
+            Clock::now() >= nextReconnectAt)
+        {
+            if (esp_wifi_connect() == ESP_OK)
+            {
+                connectionState = ConnectionState::Connecting;
+                revision++;
+            }
+            else
+            {
+                scheduleReconnect();
+            }
         }
 
         if (
@@ -435,6 +488,8 @@ namespace swirski::services::wifi_service
     void disconnect()
     {
 #ifdef ESP_PLATFORM
+        automaticReconnectEnabled = false;
+        reconnectAttempt = 0;
         ignoreNextDisconnect = true;
 
         if (esp_wifi_disconnect() != ESP_OK)
@@ -459,6 +514,8 @@ namespace swirski::services::wifi_service
         const std::string &password)
     {
 #ifdef ESP_PLATFORM
+        automaticReconnectEnabled = true;
+        reconnectAttempt = 0;
         wifi_config_t config{};
 
         const std::size_t ssidLength =
@@ -489,6 +546,7 @@ namespace swirski::services::wifi_service
             esp_wifi_connect() != ESP_OK)
         {
             connectionState = ConnectionState::Failed;
+            scheduleReconnect();
         }
         else
         {

@@ -5,11 +5,15 @@
 #include "esp_lcd_ili9341.h"
 #include "esp_log.h"
 #include "esp_lvgl_port.h"
+#include "esp_sleep.h"
+#include "esp_wifi.h"
 #include "nvs_flash.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "lvgl.h"
 #include "driver/gpio.h"
+
+#include <cstdint>
 
 #include "app.hpp"
 #include "./inputs/rotary_encoder.hpp"
@@ -17,11 +21,13 @@
 #include "haptics.hpp"
 #include "app_constants.hpp"
 #include "services/date_time.hpp"
+#include "services/device_control.hpp"
 #include "services/settings_service.hpp"
 #include "services/firmware_update.hpp"
 #include "screen_manager.hpp"
 #include "settings_screen.hpp"
 #include "notifications_screen.hpp"
+#include "notification_screen.hpp"
 #include "music_screen.hpp"
 #include "weather_screen.hpp"
 #include "ui/status_bar.hpp"
@@ -46,6 +52,8 @@ namespace
     constexpr gpio_num_t LCD_PIN_CS = GPIO_NUM_5;
     constexpr gpio_num_t LCD_PIN_DC = GPIO_NUM_4;
     constexpr gpio_num_t LCD_PIN_RST = GPIO_NUM_3;
+    constexpr gpio_num_t BACK_BUTTON_PIN = GPIO_NUM_8;
+    constexpr gpio_num_t ROTARY_BUTTON_PIN = GPIO_NUM_9;
 
     constexpr int LCD_WIDTH = 320;
     constexpr int LCD_HEIGHT = 240;
@@ -222,6 +230,39 @@ extern "C" void app_main()
     swirski::transport::ble::BleTransport bleTransport;
 
     bleTransport.initialise();
+    swirski::services::device_control::setRestartHandler(
+        [&bleTransport]()
+        {
+            bleTransport.disconnectAll();
+            vTaskDelay(pdMS_TO_TICKS(250));
+            esp_restart();
+        });
+    swirski::services::device_control::setPowerOffHandler(
+        [&bleTransport]()
+        {
+            bleTransport.disconnectAll();
+            setDisplayPower(false);
+            esp_wifi_stop();
+
+            while (
+                gpio_get_level(BACK_BUTTON_PIN) == 0 ||
+                gpio_get_level(ROTARY_BUTTON_PIN) == 0)
+            {
+                vTaskDelay(pdMS_TO_TICKS(10));
+            }
+
+            const std::uint64_t wakeButtonMask =
+                (1ULL << BACK_BUTTON_PIN) |
+                (1ULL << ROTARY_BUTTON_PIN);
+
+            ESP_ERROR_CHECK(
+                esp_sleep_enable_ext1_wakeup_io(
+                    wakeButtonMask,
+                    ESP_EXT1_WAKEUP_ANY_LOW));
+
+            vTaskDelay(pdMS_TO_TICKS(250));
+            esp_deep_sleep_start();
+        });
     swirski::services::firmware_update::setBeforeRestartHandler(
         [&bleTransport]()
         {
@@ -320,6 +361,14 @@ extern "C" void app_main()
                 swirski::screens::manager::Screen::Notifications)
             {
                 swirski::screens::notifications_screen::
+                    refreshIfNeeded();
+            }
+
+            if (
+                swirski::screens::manager::getCurrentScreen() ==
+                swirski::screens::manager::Screen::Notification)
+            {
+                swirski::screens::notification_screen::
                     refreshIfNeeded();
             }
 

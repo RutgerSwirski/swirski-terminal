@@ -16,12 +16,54 @@ namespace swirski::screens::notification_screen
     namespace
     {
         lv_obj_t *bodyContainer = nullptr;
+        lv_obj_t *appNameLabel = nullptr;
+        lv_obj_t *titleLabel = nullptr;
+        lv_obj_t *bodyLabel = nullptr;
+        std::string renderedNotificationId;
+        int renderedNotificationRevision = -1;
         constexpr int BODY_SCROLL_STEP = 28;
+
+        bool updateNotification()
+        {
+            const auto *notification =
+                swirski::services::notification_service::
+                    getNotificationById(renderedNotificationId);
+
+            if (notification == nullptr)
+            {
+                return false;
+            }
+
+            const std::string appName =
+                notification->appName.empty()
+                    ? "Unknown app"
+                    : notification->appName;
+            const std::string title =
+                notification->title.empty()
+                    ? "New notification"
+                    : notification->title;
+            const std::string body =
+                notification->body.empty()
+                    ? "No notification preview available."
+                    : notification->body;
+
+            lv_label_set_text(appNameLabel, appName.c_str());
+            lv_label_set_text(titleLabel, title.c_str());
+            lv_label_set_text(bodyLabel, body.c_str());
+            renderedNotificationRevision =
+                swirski::services::notification_service::revision;
+
+            return true;
+        }
     }
 
     void render(const std::string &notificationId)
     {
         bodyContainer = nullptr;
+        appNameLabel = nullptr;
+        titleLabel = nullptr;
+        bodyLabel = nullptr;
+        renderedNotificationId = notificationId;
 
         const auto notificationResult =
             swirski::services::notification_service::
@@ -36,9 +78,6 @@ namespace swirski::screens::notification_screen
 
             return;
         }
-
-        const auto &notification =
-            *notificationResult;
 
         lv_obj_t *pageRoot =
             swirski::screens::manager::
@@ -82,28 +121,14 @@ namespace swirski::screens::notification_screen
             container,
             LV_OBJ_FLAG_SCROLLABLE);
 
-        const std::string appName =
-            notification.appName.empty()
-                ? "Unknown app"
-                : notification.appName;
-
-        swirski::ui::swirski_ui::createBadge(
+        appNameLabel =
+            swirski::ui::swirski_ui::createBadge(
             container,
-            appName.c_str());
+            "");
 
         // Notification title
 
-        lv_obj_t *titleLabel =
-            lv_label_create(container);
-
-        const std::string title =
-            notification.title.empty()
-                ? "New notification"
-                : notification.title;
-
-        lv_label_set_text(
-            titleLabel,
-            title.c_str());
+        titleLabel = lv_label_create(container);
 
         lv_obj_set_width(
             titleLabel,
@@ -166,17 +191,7 @@ namespace swirski::screens::notification_screen
         swirski::ui::swirski_ui::styleScrollbar(
             bodyContainer);
 
-        lv_obj_t *bodyLabel =
-            lv_label_create(bodyContainer);
-
-        const std::string body =
-            notification.body.empty()
-                ? "No notification preview available."
-                : notification.body;
-
-        lv_label_set_text(
-            bodyLabel,
-            body.c_str());
+        bodyLabel = lv_label_create(bodyContainer);
 
         lv_obj_set_width(
             bodyLabel,
@@ -190,6 +205,24 @@ namespace swirski::screens::notification_screen
             bodyLabel,
             swirski::ui::swirski_ui::color::textMuted(),
             LV_PART_MAIN);
+
+        updateNotification();
+    }
+
+    void refreshIfNeeded()
+    {
+        if (
+            renderedNotificationRevision ==
+            swirski::services::notification_service::revision)
+        {
+            return;
+        }
+
+        if (!updateNotification())
+        {
+            swirski::screens::manager::showScreen(
+                swirski::screens::manager::Screen::Notifications);
+        }
     }
 
     void handleInput(swirski::input::input_action action)

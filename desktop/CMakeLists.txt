@@ -89,6 +89,7 @@ add_executable(
     ../app/screens/wifi_screen.cpp
 
     ../app/services/date_time.cpp
+    ../app/services/device_control.cpp
     ../app/services/notification_service.cpp
     ../app/services/music_service.cpp
     ../app/services/weather_service.cpp

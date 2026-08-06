@@ -16,6 +16,7 @@ development and protocol testing.
 - Wi-Fi scanning, connection management, signal status, and internet testing
 - Phone-synchronized date and time with persistent fallback
 - Rotary encoder navigation, virtual keyboard, settings, and optional screen timeout
+- Automatic Wi-Fi and BLE reconnection after transient disconnects
 - Pong and Blackjack
 - Shared LVGL screens and services across ESP32 and desktop targets
 
@@ -60,6 +61,9 @@ can be adjusted from 10–100% in 10% steps in Settings, is retained across
 restarts, and the backlight switches off with the display timeout.
 The 30-second screen sleep can also be disabled in Settings to keep the display
 on, and that choice is retained across restarts.
+Settings also provides confirmed reboot and power-off actions. Power-off uses
+ESP32 deep sleep because the current hardware has no software-controlled load
+switch; press either the rotary knob or back button to start it again.
 
 The MAX17048 fuel gauge is read at I2C address `0x36` every five seconds.
 For the current direct-GPIO prototype, connect it as follows:

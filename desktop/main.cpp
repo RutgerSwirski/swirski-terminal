@@ -21,6 +21,7 @@
 #include "music_screen.hpp"
 #include "weather_screen.hpp"
 #include "notifications_screen.hpp"
+#include "notification_screen.hpp"
 #include "screen_manager.hpp"
 #include "settings_screen.hpp"
 #include "wifi_screen.hpp"
@@ -78,6 +79,9 @@ int main()
         {
         case swirski::screens::manager::Screen::Notifications:
             swirski::screens::notifications_screen::refreshIfNeeded();
+            break;
+        case swirski::screens::manager::Screen::Notification:
+            swirski::screens::notification_screen::refreshIfNeeded();
             break;
         case swirski::screens::manager::Screen::Music:
             swirski::screens::music_screen::refreshIfNeeded();

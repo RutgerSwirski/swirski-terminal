@@ -42,6 +42,7 @@ idf_component_register(
         "${APP_DIR}/screens/wifi_screen.cpp"
         
         "${APP_DIR}/services/date_time.cpp"
+        "${APP_DIR}/services/device_control.cpp"
         "${APP_DIR}/services/notification_service.cpp"
         "${APP_DIR}/services/music_service.cpp"
         "${APP_DIR}/services/weather_service.cpp"

@@ -7,6 +7,7 @@
 #include "lvgl.h"
 
 #include "date_time.hpp"
+#include "device_control.hpp"
 #include "firmware_update.hpp"
 #include "ui/keyboard.hpp"
 #include "screen_manager.hpp"
@@ -28,8 +29,10 @@ namespace swirski::screens::settings_screen
         constexpr std::size_t wifiIndex = 6;
         constexpr std::size_t buildIndex = 7;
         constexpr std::size_t updateIndex = 8;
+        constexpr std::size_t restartIndex = 9;
+        constexpr std::size_t powerOffIndex = 10;
 
-        std::array<lv_obj_t *, 9> settingLabels{};
+        std::array<lv_obj_t *, 11> settingLabels{};
         lv_obj_t *updateProgressBar = nullptr;
         std::size_t selectedSettingIndex = 0;
         bool editing = false;
@@ -154,7 +157,7 @@ namespace swirski::screens::settings_screen
 
         void updateScreen()
         {
-            const std::array<std::string, 9> settingTexts{
+            const std::array<std::string, 11> settingTexts{
                 "Power: " +
                     std::string(
                         powerModeName(
@@ -179,7 +182,13 @@ namespace swirski::screens::settings_screen
                         : "Setup"),
                 "Build: " +
                     swirski::services::firmware_update::getInstalledBuildId(),
-                firmwareUpdateText()};
+                firmwareUpdateText(),
+                editing && selectedSettingIndex == restartIndex
+                    ? "Confirm reboot"
+                    : "Reboot device",
+                editing && selectedSettingIndex == powerOffIndex
+                    ? "Confirm power off"
+                    : "Power off"};
 
             for (std::size_t i = 0; i < settingLabels.size(); ++i)
             {
@@ -445,6 +454,27 @@ namespace swirski::screens::settings_screen
             break;
 
         case swirski::input::input_action::Confirm:
+            if (
+                selectedSettingIndex == restartIndex ||
+                selectedSettingIndex == powerOffIndex)
+            {
+                if (!editing)
+                {
+                    editing = true;
+                    updateScreen();
+                }
+                else if (selectedSettingIndex == restartIndex)
+                {
+                    swirski::services::device_control::restart();
+                }
+                else
+                {
+                    swirski::services::device_control::powerOff();
+                }
+
+                break;
+            }
+
             if (!editing && selectedSettingIndex == buildIndex)
             {
                 break;
