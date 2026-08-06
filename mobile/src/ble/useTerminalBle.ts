@@ -55,6 +55,11 @@ export type TransferProgress = {
 
 export type MessageHandler = (message: Record<string, unknown>) => void;
 
+type BackgroundAutoConnectAttempt = {
+  deviceId: string;
+  cancelledForForeground: boolean;
+};
+
 function shouldLogFrameProgress(
   frameIndex: number,
   frameCount: number,
@@ -85,6 +90,11 @@ export function useTerminalBle() {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectRef = useRef<(deviceId: string) => void>(() => {});
   const bleStateRef = useRef<State>(State.Unknown);
+  const appStateRef = useRef(AppState.currentState);
+  const savedDeviceIdRef = useRef<string | null>(null);
+  const connectedDeviceRef = useRef<Device | null>(null);
+  const backgroundAutoConnectAttemptRef =
+    useRef<BackgroundAutoConnectAttempt | null>(null);
   const disposedRef = useRef<boolean>(false);
   const manualDisconnectRef = useRef<boolean>(false);
   const isConnectingRef = useRef<boolean>(false);
@@ -151,6 +161,7 @@ export function useTerminalBle() {
     disconnectSubscriptionRef.current?.remove();
     disconnectSubscriptionRef.current = null;
 
+    connectedDeviceRef.current = null;
     setConnectedDevice(null);
     setConnectionStatus('disconnected');
   }, []);
@@ -189,16 +200,21 @@ export function useTerminalBle() {
         return;
       }
 
+      savedDeviceIdRef.current = deviceId;
       clearReconnectTimer();
 
       SwirskiBackground?.start(deviceId, false).catch(error => {
         console.error('Could not update background connection status:', error);
       });
 
-      reconnectTimerRef.current = setTimeout(() => {
-        reconnectTimerRef.current = null;
+      if (appStateRef.current === 'active') {
+        reconnectTimerRef.current = setTimeout(() => {
+          reconnectTimerRef.current = null;
+          reconnectRef.current(deviceId);
+        }, RECONNECT_DELAY_MS);
+      } else {
         reconnectRef.current(deviceId);
-      }, RECONNECT_DELAY_MS);
+      }
     },
     [clearReconnectTimer],
   );
@@ -329,6 +345,8 @@ export function useTerminalBle() {
       subscribeToTx(discovered);
 
       manualDisconnectRef.current = false;
+      savedDeviceIdRef.current = discovered.id;
+      connectedDeviceRef.current = discovered;
       setConnectedDevice(discovered);
       setConnectionStatus('ready');
 
@@ -416,6 +434,19 @@ export function useTerminalBle() {
 
       isConnectingRef.current = true;
       let attemptedDeviceId = deviceId;
+      let shouldRetry = false;
+      const useBackgroundAutoConnect = appStateRef.current !== 'active';
+      const backgroundAttempt: BackgroundAutoConnectAttempt | null =
+        useBackgroundAutoConnect
+          ? {
+              deviceId,
+              cancelledForForeground: false,
+            }
+          : null;
+
+      if (backgroundAttempt) {
+        backgroundAutoConnectAttemptRef.current = backgroundAttempt;
+      }
 
       try {
         setConnectionStatus('connecting');
@@ -442,30 +473,68 @@ export function useTerminalBle() {
           }
         }
 
-        const reconnectDevice = await scanForReconnectDevice(deviceId);
-        attemptedDeviceId = reconnectDevice.id;
-        const connected = await reconnectDevice.connect({
-          autoConnect: false,
-          timeout: CONNECT_TIMEOUT_MS,
-        });
+        let connected: Device;
+
+        if (backgroundAttempt) {
+          console.log('Waiting for Android background BLE auto-connect');
+          connected = await bleManager.connectToDevice(deviceId, {
+            autoConnect: true,
+          });
+
+          if (backgroundAttempt.cancelledForForeground) {
+            throw new Error(
+              'Background BLE auto-connect completed while being cancelled',
+            );
+          }
+
+          if (
+            backgroundAutoConnectAttemptRef.current === backgroundAttempt
+          ) {
+            backgroundAutoConnectAttemptRef.current = null;
+          }
+        } else {
+          const reconnectDevice = await scanForReconnectDevice(deviceId);
+          attemptedDeviceId = reconnectDevice.id;
+          connected = await reconnectDevice.connect({
+            autoConnect: false,
+            timeout: CONNECT_TIMEOUT_MS,
+          });
+        }
 
         console.log('Reconnected to device:', connected.name, connected.id);
         await prepareConnectedDevice(connected);
       } catch (error) {
-        console.log('BLE reconnect failed; retrying:', error);
+        const cancelledForForeground =
+          backgroundAttempt?.cancelledForForeground === true;
+
+        console.log(
+          cancelledForForeground
+            ? 'Background BLE auto-connect cancelled for foreground recovery'
+            : 'BLE reconnect failed; retrying:',
+          error,
+        );
         cleanUpConnection();
 
-        try {
-          await bleManager.cancelDeviceConnection(attemptedDeviceId);
-        } catch (cancelError) {
-          console.log('Could not close failed BLE connection:', cancelError);
+        if (!cancelledForForeground) {
+          try {
+            await bleManager.cancelDeviceConnection(attemptedDeviceId);
+          } catch (cancelError) {
+            console.log('Could not close failed BLE connection:', cancelError);
+          }
         }
 
-        if (!manualDisconnectRef.current) {
+        shouldRetry =
+          !cancelledForForeground && !manualDisconnectRef.current;
+      } finally {
+        if (backgroundAutoConnectAttemptRef.current === backgroundAttempt) {
+          backgroundAutoConnectAttemptRef.current = null;
+        }
+
+        isConnectingRef.current = false;
+
+        if (shouldRetry) {
           scheduleReconnect(deviceId);
         }
-      } finally {
-        isConnectingRef.current = false;
       }
     },
     [
@@ -490,6 +559,7 @@ export function useTerminalBle() {
 
       isConnectingRef.current = true;
       manualDisconnectRef.current = false;
+      savedDeviceIdRef.current = device.id;
       clearReconnectTimer();
 
       try {
@@ -582,6 +652,7 @@ export function useTerminalBle() {
 
     setConnectionStatus('disconnecting');
     manualDisconnectRef.current = true;
+    savedDeviceIdRef.current = null;
     clearReconnectTimer();
 
     try {
@@ -642,16 +713,72 @@ export function useTerminalBle() {
       }
     }, true);
 
+    const appStateSubscription = AppState.addEventListener(
+      'change',
+      nextState => {
+        appStateRef.current = nextState;
+
+        if (nextState === 'active') {
+          const backgroundAttempt = backgroundAutoConnectAttemptRef.current;
+
+          if (
+            backgroundAttempt &&
+            !backgroundAttempt.cancelledForForeground &&
+            !connectedDeviceRef.current
+          ) {
+            backgroundAttempt.cancelledForForeground = true;
+            backgroundAutoConnectAttemptRef.current = null;
+
+            bleManager
+              .cancelDeviceConnection(backgroundAttempt.deviceId)
+              .catch(error => {
+                console.log(
+                  'Could not cancel background BLE auto-connect:',
+                  error,
+                );
+              })
+              .finally(() => {
+                scheduleReconnect(backgroundAttempt.deviceId);
+              });
+          }
+
+          return;
+        }
+
+        const savedDeviceId = savedDeviceIdRef.current;
+
+        if (
+          savedDeviceId &&
+          !connectedDeviceRef.current &&
+          !manualDisconnectRef.current
+        ) {
+          clearReconnectTimer();
+
+          if (reconnectScanCancelRef.current) {
+            stopScan();
+          } else if (!isConnectingRef.current) {
+            reconnectRef.current(savedDeviceId);
+          }
+        }
+      },
+    );
+
     return () => {
       disposedRef.current = true;
       stateSubscription.remove();
+      appStateSubscription.remove();
       clearReconnectTimer();
       stopScan();
       txSubscriptionRef.current?.remove();
       txFrameAssemblerRef.current?.stop();
       txFrameAssemblerRef.current = null;
     };
-  }, [cleanUpConnection, clearReconnectTimer, stopScan]);
+  }, [
+    cleanUpConnection,
+    clearReconnectTimer,
+    scheduleReconnect,
+    stopScan,
+  ]);
 
   useEffect(() => {
     if (bleState !== State.PoweredOn || restoredConnectionRef.current) {
@@ -672,6 +799,7 @@ export function useTerminalBle() {
         const deviceId = await SwirskiBackground?.getSavedDeviceId();
 
         if (deviceId) {
+          savedDeviceIdRef.current = deviceId;
           reconnectRef.current(deviceId);
         }
       } catch (error) {
