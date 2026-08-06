@@ -3,6 +3,7 @@
 #include "protocol.hpp"
 #include "date_time.hpp"
 #include "keyboard_service.hpp"
+#include "settings_service.hpp"
 #include "ble_security.hpp"
 #include "wifi_service.hpp"
 #include "weather_service.hpp"
@@ -399,6 +400,17 @@ namespace
         CHECK(getText().size() == 63);
     }
 
+    void screenSleepCanBeDisabled()
+    {
+        using namespace swirski::service::settings;
+
+        setScreenSleepEnabled(false);
+        CHECK(!isScreenSleepEnabled());
+
+        setScreenSleepEnabled(true);
+        CHECK(isScreenSleepEnabled());
+    }
+
     void displayTextRemovesEmoji()
     {
         CHECK(
@@ -541,6 +553,7 @@ int main()
         {"playing music position stops at duration", playingMusicPositionStopsAtDuration},
         {"keyboard text can be edited", keyboardTextCanBeEdited},
         {"keyboard text is limited", keyboardTextIsLimited},
+        {"screen sleep can be disabled", screenSleepCanBeDisabled},
         {"display text removes emoji", displayTextRemovesEmoji},
         {"display text gets newest message line", displayTextGetsNewestMessageLine},
         {"BLE security requires encryption, authentication and bonding", bleSecurityRequiresAllProtections},

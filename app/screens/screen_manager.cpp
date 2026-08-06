@@ -14,6 +14,7 @@
 #include "settings_screen.hpp"
 #include "wifi_screen.hpp"
 #include "ui/keyboard.hpp"
+#include "settings_service.hpp"
 
 #include "status_bar.hpp"
 #include "swirski_ui.hpp"
@@ -257,6 +258,16 @@ namespace swirski::screens::manager
 
     void updatePowerState()
     {
+        if (!swirski::service::settings::isScreenSleepEnabled())
+        {
+            if (sleeping)
+            {
+                wake();
+            }
+
+            return;
+        }
+
         if (
             sleeping ||
             lv_tick_elaps(lastInputAt) < SCREEN_TIMEOUT_MS)

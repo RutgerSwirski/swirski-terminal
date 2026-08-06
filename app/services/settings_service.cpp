@@ -14,11 +14,13 @@ namespace swirski::service::settings
         PowerModeHandler powerModeHandler = nullptr;
         std::uint8_t brightnessPercent = MAXIMUM_BRIGHTNESS_PERCENT;
         BrightnessHandler brightnessHandler = nullptr;
+        bool screenSleepEnabled = true;
 
 #ifdef ESP_PLATFORM
         constexpr char NVS_NAMESPACE[] = "settings";
         constexpr char NVS_POWER_MODE_KEY[] = "power_mode";
         constexpr char NVS_BRIGHTNESS_KEY[] = "brightness";
+        constexpr char NVS_SCREEN_SLEEP_KEY[] = "screen_sleep";
 
         void savePowerMode()
         {
@@ -61,6 +63,27 @@ namespace swirski::service::settings
             nvs_commit(handle);
             nvs_close(handle);
         }
+
+        void saveScreenSleepEnabled()
+        {
+            nvs_handle_t handle;
+
+            if (
+                nvs_open(
+                    NVS_NAMESPACE,
+                    NVS_READWRITE,
+                    &handle) != ESP_OK)
+            {
+                return;
+            }
+
+            nvs_set_u8(
+                handle,
+                NVS_SCREEN_SLEEP_KEY,
+                screenSleepEnabled ? 1 : 0);
+            nvs_commit(handle);
+            nvs_close(handle);
+        }
 #endif
     }
 
@@ -99,6 +122,13 @@ namespace swirski::service::settings
             handle,
             NVS_BRIGHTNESS_KEY,
             &savedBrightness);
+
+        std::uint8_t savedScreenSleepEnabled = 1;
+
+        nvs_get_u8(
+            handle,
+            NVS_SCREEN_SLEEP_KEY,
+            &savedScreenSleepEnabled);
         nvs_close(handle);
 
         if (
@@ -107,6 +137,11 @@ namespace swirski::service::settings
             savedBrightness % BRIGHTNESS_STEP_PERCENT == 0)
         {
             brightnessPercent = savedBrightness;
+        }
+
+        if (savedScreenSleepEnabled <= 1)
+        {
+            screenSleepEnabled = savedScreenSleepEnabled == 1;
         }
 #endif
     }
@@ -191,5 +226,24 @@ namespace swirski::service::settings
         {
             brightnessHandler(brightnessPercent);
         }
+    }
+
+    bool isScreenSleepEnabled()
+    {
+        return screenSleepEnabled;
+    }
+
+    void setScreenSleepEnabled(bool enabled)
+    {
+        if (screenSleepEnabled == enabled)
+        {
+            return;
+        }
+
+        screenSleepEnabled = enabled;
+
+#ifdef ESP_PLATFORM
+        saveScreenSleepEnabled();
+#endif
     }
 }

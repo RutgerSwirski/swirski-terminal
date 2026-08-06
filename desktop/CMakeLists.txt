@@ -144,6 +144,7 @@ if(BUILD_TESTING)
         ../app/services/weather_service.cpp
         ../app/services/notification_service.cpp
         ../app/services/keyboard_service.cpp
+        ../app/services/settings_service.cpp
         ../app/services/wifi_service.cpp
         ../app/state/system_state.cpp
     )

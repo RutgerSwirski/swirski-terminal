@@ -27,4 +27,7 @@ namespace swirski::service::settings
 
     std::uint8_t getBrightnessPercent();
     void setBrightnessPercent(std::uint8_t brightnessPercent);
+
+    bool isScreenSleepEnabled();
+    void setScreenSleepEnabled(bool enabled);
 }

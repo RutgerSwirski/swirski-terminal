@@ -15,7 +15,7 @@ development and protocol testing.
 - BLE pairing, bonding, chunked messages, and automatic reconnection
 - Wi-Fi scanning, connection management, signal status, and internet testing
 - Phone-synchronized date and time with persistent fallback
-- Rotary encoder navigation, virtual keyboard, settings, and screen timeout
+- Rotary encoder navigation, virtual keyboard, settings, and optional screen timeout
 - Pong and Blackjack
 - Shared LVGL screens and services across ESP32 and desktop targets
 
@@ -58,6 +58,8 @@ defined near the top of `esp32/main/main.cpp` and in `esp32/main/inputs/`.
 The display backlight uses an inverted BC327 PWM stage on GPIO 12. Brightness
 can be adjusted from 10–100% in 10% steps in Settings, is retained across
 restarts, and the backlight switches off with the display timeout.
+The 30-second screen sleep can also be disabled in Settings to keep the display
+on, and that choice is retained across restarts.
 
 The MAX17048 fuel gauge is read at I2C address `0x36` every five seconds.
 For the current direct-GPIO prototype, connect it as follows:

@@ -21,14 +21,15 @@ namespace swirski::screens::settings_screen
     {
         constexpr std::size_t powerModeIndex = 0;
         constexpr std::size_t brightnessIndex = 1;
-        constexpr std::size_t dateIndex = 2;
-        constexpr std::size_t timeIndex = 3;
-        constexpr std::size_t keyboardIndex = 4;
-        constexpr std::size_t wifiIndex = 5;
-        constexpr std::size_t buildIndex = 6;
-        constexpr std::size_t updateIndex = 7;
+        constexpr std::size_t screenSleepIndex = 2;
+        constexpr std::size_t dateIndex = 3;
+        constexpr std::size_t timeIndex = 4;
+        constexpr std::size_t keyboardIndex = 5;
+        constexpr std::size_t wifiIndex = 6;
+        constexpr std::size_t buildIndex = 7;
+        constexpr std::size_t updateIndex = 8;
 
-        std::array<lv_obj_t *, 8> settingLabels{};
+        std::array<lv_obj_t *, 9> settingLabels{};
         lv_obj_t *updateProgressBar = nullptr;
         std::size_t selectedSettingIndex = 0;
         bool editing = false;
@@ -153,7 +154,7 @@ namespace swirski::screens::settings_screen
 
         void updateScreen()
         {
-            const std::array<std::string, 8> settingTexts{
+            const std::array<std::string, 9> settingTexts{
                 "Power: " +
                     std::string(
                         powerModeName(
@@ -162,6 +163,11 @@ namespace swirski::screens::settings_screen
                     std::to_string(
                         swirski::service::settings::getBrightnessPercent()) +
                     "%",
+                "Screen sleep: " +
+                    std::string(
+                        swirski::service::settings::isScreenSleepEnabled()
+                            ? "30 sec"
+                            : "Off"),
                 "Date: " + dateText(),
                 "Time: " + timeText(),
                 "Keyboard: " +
@@ -285,6 +291,11 @@ namespace swirski::screens::settings_screen
             else if (selectedSettingIndex == brightnessIndex)
             {
                 changeBrightness(direction);
+            }
+            else if (selectedSettingIndex == screenSleepIndex)
+            {
+                swirski::service::settings::setScreenSleepEnabled(
+                    !swirski::service::settings::isScreenSleepEnabled());
             }
             else if (
                 selectedSettingIndex == dateIndex ||
