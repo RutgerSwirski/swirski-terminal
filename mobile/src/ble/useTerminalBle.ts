@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, NativeModules } from 'react-native';
-import { BleErrorCode, State } from 'react-native-ble-plx';
+import { BleErrorCode, ScanMode, State } from 'react-native-ble-plx';
 import type { Device, Subscription } from 'react-native-ble-plx';
 
 import { bleManager } from './bleManager';
@@ -34,7 +34,10 @@ const SwirskiBackground = NativeModules.SwirskiBackground as
   | undefined;
 
 const RECONNECT_DELAY_MS = 3000;
+const RECONNECT_SCAN_TIMEOUT_MS = 10000;
+const CONNECT_TIMEOUT_MS = 10000;
 const CONNECTION_WATCHDOG_INTERVAL_MS = 5000;
+const TERMINAL_NAME = 'Swirski Terminal';
 
 export type ConnectionStatus =
   | 'disconnected'
@@ -77,8 +80,12 @@ export function useTerminalBle() {
   const txSubscriptionRef = useRef<Subscription | null>(null);
   const disconnectSubscriptionRef = useRef<Subscription | null>(null);
   const txFrameAssemblerRef = useRef<BleFrameAssembler | null>(null);
+  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectScanCancelRef = useRef<(() => void) | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reconnectRef = useRef<(deviceId: string) => void>(() => {});
+  const bleStateRef = useRef<State>(State.Unknown);
+  const disposedRef = useRef<boolean>(false);
   const manualDisconnectRef = useRef<boolean>(false);
   const isConnectingRef = useRef<boolean>(false);
   const isCheckingConnectionRef = useRef<boolean>(false);
@@ -155,8 +162,33 @@ export function useTerminalBle() {
     }
   }, []);
 
+  const stopScan = useCallback(() => {
+    const cancelReconnectScan = reconnectScanCancelRef.current;
+    reconnectScanCancelRef.current = null;
+
+    if (scanTimerRef.current !== null) {
+      clearTimeout(scanTimerRef.current);
+      scanTimerRef.current = null;
+    }
+
+    bleManager.stopDeviceScan().catch(error => {
+      console.log('Could not stop BLE scan:', error);
+    });
+    setIsScanning(false);
+
+    cancelReconnectScan?.();
+  }, []);
+
   const scheduleReconnect = useCallback(
     (deviceId: string) => {
+      if (
+        disposedRef.current ||
+        manualDisconnectRef.current ||
+        bleStateRef.current !== State.PoweredOn
+      ) {
+        return;
+      }
+
       clearReconnectTimer();
 
       SwirskiBackground?.start(deviceId, false).catch(error => {
@@ -260,6 +292,24 @@ export function useTerminalBle() {
 
   const prepareConnectedDevice = useCallback(
     async (connected: Device) => {
+      disconnectSubscriptionRef.current?.remove();
+
+      disconnectSubscriptionRef.current = bleManager.onDeviceDisconnected(
+        connected.id,
+        error => {
+          if (error) {
+            console.log('BLE disconnected:', error);
+          }
+
+          const shouldReconnect = !manualDisconnectRef.current;
+          cleanUpConnection();
+
+          if (shouldReconnect) {
+            scheduleReconnect(connected.id);
+          }
+        },
+      );
+
       const mtuDevice = await connected.requestMTU(247);
 
       console.log('Negotiated MTU:', mtuDevice.mtu);
@@ -278,24 +328,6 @@ export function useTerminalBle() {
       );
       subscribeToTx(discovered);
 
-      disconnectSubscriptionRef.current?.remove();
-
-      disconnectSubscriptionRef.current = bleManager.onDeviceDisconnected(
-        discovered.id,
-        error => {
-          if (error) {
-            console.log('BLE disconnected:', error);
-          }
-
-          const shouldReconnect = !manualDisconnectRef.current;
-          cleanUpConnection();
-
-          if (shouldReconnect) {
-            scheduleReconnect(discovered.id);
-          }
-        },
-      );
-
       manualDisconnectRef.current = false;
       setConnectedDevice(discovered);
       setConnectionStatus('ready');
@@ -309,6 +341,73 @@ export function useTerminalBle() {
     [cleanUpConnection, inspectGatt, scheduleReconnect, subscribeToTx],
   );
 
+  const scanForReconnectDevice = useCallback(
+    (savedDeviceId: string): Promise<Device> => {
+      stopScan();
+      setIsScanning(true);
+
+      return new Promise((resolve, reject) => {
+        let settled = false;
+
+        const finish = (device?: Device, error?: unknown) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          reconnectScanCancelRef.current = null;
+          stopScan();
+
+          if (device) {
+            resolve(device);
+          } else {
+            reject(error ?? new Error('Terminal was not found'));
+          }
+        };
+
+        scanTimerRef.current = setTimeout(() => {
+          finish(undefined, new Error('BLE reconnect scan timed out'));
+        }, RECONNECT_SCAN_TIMEOUT_MS);
+
+        reconnectScanCancelRef.current = () => {
+          finish(undefined, new Error('BLE reconnect scan was cancelled'));
+        };
+
+        bleManager
+          .startDeviceScan(
+            [SERVICE_UUID],
+            { scanMode: ScanMode.LowLatency },
+            (error, device) => {
+              if (error) {
+                finish(undefined, error);
+                return;
+              }
+
+              if (!device) {
+                return;
+              }
+
+              const deviceName = device.name ?? device.localName;
+
+              if (
+                device.id === savedDeviceId ||
+                deviceName === TERMINAL_NAME
+              ) {
+                console.log(
+                  'Found terminal for reconnect:',
+                  deviceName,
+                  device.id,
+                );
+                finish(device);
+              }
+            },
+          )
+          .catch(error => finish(undefined, error));
+      });
+    },
+    [stopScan],
+  );
+
   const reconnectToDevice = useCallback(
     async (deviceId: string) => {
       if (isConnectingRef.current || manualDisconnectRef.current) {
@@ -316,12 +415,38 @@ export function useTerminalBle() {
       }
 
       isConnectingRef.current = true;
+      let attemptedDeviceId = deviceId;
 
       try {
         setConnectionStatus('connecting');
 
-        const connected = await bleManager.connectToDevice(deviceId, {
-          autoConnect: true,
+        let isStillConnected = false;
+
+        try {
+          isStillConnected = await bleManager.isDeviceConnected(deviceId);
+        } catch (error) {
+          console.log(
+            'Saved BLE device is not known to this manager; scanning:',
+            error,
+          );
+        }
+
+        if (isStillConnected) {
+          const knownDevices = await bleManager.devices([deviceId]);
+          const knownDevice = knownDevices[0];
+
+          if (knownDevice) {
+            console.log('Restored existing BLE connection:', knownDevice.id);
+            await prepareConnectedDevice(knownDevice);
+            return;
+          }
+        }
+
+        const reconnectDevice = await scanForReconnectDevice(deviceId);
+        attemptedDeviceId = reconnectDevice.id;
+        const connected = await reconnectDevice.connect({
+          autoConnect: false,
+          timeout: CONNECT_TIMEOUT_MS,
         });
 
         console.log('Reconnected to device:', connected.name, connected.id);
@@ -329,12 +454,26 @@ export function useTerminalBle() {
       } catch (error) {
         console.log('BLE reconnect failed; retrying:', error);
         cleanUpConnection();
-        scheduleReconnect(deviceId);
+
+        try {
+          await bleManager.cancelDeviceConnection(attemptedDeviceId);
+        } catch (cancelError) {
+          console.log('Could not close failed BLE connection:', cancelError);
+        }
+
+        if (!manualDisconnectRef.current) {
+          scheduleReconnect(deviceId);
+        }
       } finally {
         isConnectingRef.current = false;
       }
     },
-    [cleanUpConnection, prepareConnectedDevice, scheduleReconnect],
+    [
+      cleanUpConnection,
+      prepareConnectedDevice,
+      scanForReconnectDevice,
+      scheduleReconnect,
+    ],
   );
 
   reconnectRef.current = deviceId => {
@@ -354,22 +493,32 @@ export function useTerminalBle() {
       clearReconnectTimer();
 
       try {
-        bleManager.stopDeviceScan();
-        setIsScanning(false);
+        stopScan();
         setConnectionStatus('connecting');
 
-        const connected = await device.connect();
+        const connected = await device.connect({ timeout: CONNECT_TIMEOUT_MS });
 
         console.log('Connected to device:', connected.name, connected.id);
         await prepareConnectedDevice(connected);
       } catch (error) {
         console.error('BLE connection error:', error);
         cleanUpConnection();
+
+        try {
+          await bleManager.cancelDeviceConnection(device.id);
+        } catch (cancelError) {
+          console.log('Could not close failed BLE connection:', cancelError);
+        }
       } finally {
         isConnectingRef.current = false;
       }
     },
-    [clearReconnectTimer, cleanUpConnection, prepareConnectedDevice],
+    [
+      clearReconnectTimer,
+      cleanUpConnection,
+      prepareConnectedDevice,
+      stopScan,
+    ],
   );
 
   const startScan = useCallback(async () => {
@@ -385,13 +534,14 @@ export function useTerminalBle() {
       return;
     }
 
+    stopScan();
     setDevices([]);
     setIsScanning(true);
 
     bleManager.startDeviceScan([SERVICE_UUID], null, (error, device) => {
       if (error) {
         console.error('BLE scan error:', error);
-        setIsScanning(false);
+        stopScan();
         return;
       }
 
@@ -422,11 +572,8 @@ export function useTerminalBle() {
       });
     });
 
-    setTimeout(() => {
-      bleManager.stopDeviceScan();
-      setIsScanning(false);
-    }, 5000);
-  }, [bleState]);
+    scanTimerRef.current = setTimeout(stopScan, 5000);
+  }, [bleState, stopScan]);
 
   const disconnectFromDevice = useCallback(async () => {
     if (!connectedDevice || connectionStatus === 'disconnecting') {
@@ -479,25 +626,32 @@ export function useTerminalBle() {
   }, []);
 
   useEffect(() => {
+    disposedRef.current = false;
+
     const stateSubscription = bleManager.onStateChange(nextState => {
       console.log('BLE state:', nextState);
+      bleStateRef.current = nextState;
       setBleState(nextState);
 
       if (nextState !== State.PoweredOn) {
-        bleManager.stopDeviceScan();
+        stopScan();
+        clearReconnectTimer();
+        restoredConnectionRef.current = false;
         setDevices([]);
-        setIsScanning(false);
+        cleanUpConnection();
       }
     }, true);
 
     return () => {
+      disposedRef.current = true;
       stateSubscription.remove();
       clearReconnectTimer();
+      stopScan();
       txSubscriptionRef.current?.remove();
       txFrameAssemblerRef.current?.stop();
       txFrameAssemblerRef.current = null;
     };
-  }, [clearReconnectTimer]);
+  }, [cleanUpConnection, clearReconnectTimer, stopScan]);
 
   useEffect(() => {
     if (bleState !== State.PoweredOn || restoredConnectionRef.current) {
@@ -508,6 +662,13 @@ export function useTerminalBle() {
 
     async function restoreConnection() {
       try {
+        const hasPermission = await requestBlePermissions();
+
+        if (!hasPermission) {
+          console.log('BLE permission denied; auto reconnect is disabled');
+          return;
+        }
+
         const deviceId = await SwirskiBackground?.getSavedDeviceId();
 
         if (deviceId) {
