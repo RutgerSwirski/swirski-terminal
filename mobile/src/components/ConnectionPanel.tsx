@@ -4,12 +4,14 @@ import { Button, Card, CardContent, Text, Title } from '@swirski/ui/native';
 import type { Device } from 'react-native-ble-plx';
 import { State } from 'react-native-ble-plx';
 
+import type { TerminalBatteryStatus } from '../battery/useTerminalBattery';
 import type { ConnectionStatus } from '../ble/useTerminalBle';
 
 type ConnectionPanelProps = {
   bleState: State;
   connectionStatus: ConnectionStatus;
   connectedDevice: Device | null;
+  batteryStatus: TerminalBatteryStatus | null;
   isScanning: boolean;
   notificationAccessEnabled: boolean;
   onEnableBluetooth(): void;
@@ -21,6 +23,7 @@ export function ConnectionPanel({
   bleState,
   connectionStatus,
   connectedDevice,
+  batteryStatus,
   isScanning,
   notificationAccessEnabled,
   onEnableBluetooth,
@@ -50,12 +53,22 @@ export function ConnectionPanel({
       )}
 
       {bleState === State.PoweredOn && connectedDevice && (
-        <Text weight="medium">
-          Connected:{' '}
-          {connectedDevice.name ??
-            connectedDevice.localName ??
-            'Swirski Terminal'}
-        </Text>
+        <View style={styles.connectedInfo}>
+          <Text weight="medium">
+            Connected:{' '}
+            {connectedDevice.name ??
+              connectedDevice.localName ??
+              'Swirski Terminal'}
+          </Text>
+          <Text tone="muted">
+            Battery:{' '}
+            {batteryStatus?.percent !== null &&
+            batteryStatus?.percent !== undefined
+              ? `${batteryStatus.percent}%`
+              : 'Unavailable'}
+            {batteryStatus?.charging ? ' · Charging' : ''}
+          </Text>
+        </View>
       )}
 
       {bleState === State.PoweredOff && (
@@ -76,6 +89,10 @@ export function ConnectionPanel({
 
 const styles = StyleSheet.create({
   header: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  connectedInfo: {
     alignItems: 'center',
     gap: 4,
   },

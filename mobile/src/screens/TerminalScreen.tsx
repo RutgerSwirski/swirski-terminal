@@ -5,6 +5,7 @@ import type { Device } from 'react-native-ble-plx';
 import { State } from 'react-native-ble-plx';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useTerminalBattery } from '../battery/useTerminalBattery';
 import { useTerminalBle } from '../ble/useTerminalBle';
 import { ConnectionPanel } from '../components/ConnectionPanel';
 import { DebugActions } from '../components/DebugActions';
@@ -47,6 +48,12 @@ export function TerminalScreen() {
     sendBleMessage,
   });
   const terminalWifi = useTerminalWifi({
+    connectedDevice,
+    connectionStatus,
+    addMessageHandler: terminalBle.addMessageHandler,
+    sendBleMessage,
+  });
+  const terminalBattery = useTerminalBattery({
     connectedDevice,
     connectionStatus,
     addMessageHandler: terminalBle.addMessageHandler,
@@ -171,6 +178,7 @@ export function TerminalScreen() {
           bleState={terminalBle.bleState}
           connectionStatus={terminalBle.connectionStatus}
           connectedDevice={terminalBle.connectedDevice}
+          batteryStatus={terminalBattery.status}
           isScanning={terminalBle.isScanning}
           notificationAccessEnabled={
             notificationBridge.notificationAccessEnabled

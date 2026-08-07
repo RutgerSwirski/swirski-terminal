@@ -98,6 +98,14 @@ export function createWifiDisconnectMessage(): Record<string, unknown> {
   };
 }
 
+export function createBatteryStatusRequestMessage(): Record<string, unknown> {
+  return {
+    version: 1,
+    type: 'battery.status.request',
+    id: `mobile-battery-${Date.now()}`,
+  };
+}
+
 export function createTestNotificationSnapshotMessage(): Record<
   string,
   unknown
