@@ -10,6 +10,7 @@
 #include "date_time.hpp"
 #include "music_service.hpp"
 #include "notification_service.hpp"
+#include "system_state.hpp"
 #include "weather_service.hpp"
 #include "wifi_service.hpp"
 
@@ -87,6 +88,16 @@ namespace
         if (rawType == "wifi.internet.test")
         {
             return swirski::protocol::MessageType::WifiInternetTest;
+        }
+
+        if (rawType == "battery.status.request")
+        {
+            return swirski::protocol::MessageType::BatteryStatusRequest;
+        }
+
+        if (rawType == "battery.status")
+        {
+            return swirski::protocol::MessageType::BatteryStatus;
         }
 
         if (rawType == "disconnect.requested")
@@ -272,6 +283,46 @@ namespace swirski::protocol
             services::wifi_service::getInternetTestState());
         payload["internetLatencyMs"] =
             services::wifi_service::getInternetLatencyMs();
+
+        return serializeDocument(document);
+    }
+
+    std::string createBatteryStatusMessage()
+    {
+        const auto snapshot =
+            state::system::getSnapshot();
+
+        JsonDocument document;
+        document["version"] = 1;
+        document["type"] = "battery.status";
+        document["id"] =
+            "terminal-battery-" +
+            std::to_string(snapshot.revision);
+
+        JsonObject payload =
+            document["payload"].to<JsonObject>();
+
+        if (snapshot.batteryPercent)
+        {
+            payload["percent"] =
+                *snapshot.batteryPercent;
+        }
+        else
+        {
+            payload["percent"] = nullptr;
+        }
+
+        if (snapshot.batteryMillivolts)
+        {
+            payload["millivolts"] =
+                *snapshot.batteryMillivolts;
+        }
+        else
+        {
+            payload["millivolts"] = nullptr;
+        }
+
+        payload["charging"] = snapshot.charging;
 
         return serializeDocument(document);
     }
@@ -478,6 +529,12 @@ namespace swirski::protocol
         case MessageType::WifiInternetTest:
             services::wifi_service::startInternetTest();
             return {createWifiStatusMessage(), false};
+
+        case MessageType::BatteryStatusRequest:
+            return {createBatteryStatusMessage(), false};
+
+        case MessageType::BatteryStatus:
+            return {};
 
         case MessageType::DisconnectRequested:
             return {

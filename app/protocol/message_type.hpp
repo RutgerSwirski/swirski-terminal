@@ -17,6 +17,8 @@ namespace swirski::protocol
         WifiDisconnect,
         WifiStatus,
         WifiInternetTest,
+        BatteryStatusRequest,
+        BatteryStatus,
         DisconnectRequested,
         NotificationsSnapshot,
         // MediaStateChanged,

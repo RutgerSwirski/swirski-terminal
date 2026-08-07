@@ -21,4 +21,5 @@ namespace swirski::protocol
     std::string createPongMessage(const std::string &messageId);
     std::string createWifiNetworksMessage();
     std::string createWifiStatusMessage();
+    std::string createBatteryStatusMessage();
 }

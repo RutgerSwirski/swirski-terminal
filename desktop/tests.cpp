@@ -107,6 +107,38 @@ namespace
             after.revision);
     }
 
+    void batteryStatusContainsCurrentMeasurement()
+    {
+        swirski::state::system::setBatteryMeasurement(3987, 64);
+        swirski::state::system::setCharging(true);
+
+        JsonDocument status;
+        CHECK(!deserializeJson(
+            status,
+            swirski::protocol::createBatteryStatusMessage()));
+
+        CHECK(status["type"] == "battery.status");
+        CHECK(status["payload"]["percent"] == 64);
+        CHECK(status["payload"]["millivolts"] == 3987);
+        CHECK(status["payload"]["charging"] == true);
+    }
+
+    void batteryStatusRequestReturnsCurrentMeasurement()
+    {
+        swirski::state::system::setBatteryMeasurement(3987, 64);
+
+        const auto result =
+            swirski::protocol::handleIncomingMessage(
+                R"({"version":1,"type":"battery.status.request","id":"battery-1"})");
+
+        CHECK(result.response.has_value());
+
+        JsonDocument status;
+        CHECK(!deserializeJson(status, *result.response));
+        CHECK(status["type"] == "battery.status");
+        CHECK(status["payload"]["percent"] == 64);
+    }
+
     void orderedFirmwareVersionsPreventDowngrades()
     {
         using swirski::services::firmware_update::BuildComparison;
@@ -532,6 +564,8 @@ int main()
     const std::vector<Test> tests{
         {"MAX17048 registers convert to app values", max17048RegistersConvertToAppValues},
         {"battery measurement updates system state together", batteryMeasurementUpdatesSystemStateTogether},
+        {"battery status contains current measurement", batteryStatusContainsCurrentMeasurement},
+        {"battery status request returns current measurement", batteryStatusRequestReturnsCurrentMeasurement},
         {"ordered firmware versions prevent downgrades", orderedFirmwareVersionsPreventDowngrades},
         {"valid protocol message parses", validProtocolMessageParses},
         {"malformed JSON is rejected", malformedJsonIsRejected},

@@ -14,6 +14,7 @@
 #include "driver/gpio.h"
 
 #include <cstdint>
+#include <optional>
 
 #include "app.hpp"
 #include "./inputs/rotary_encoder.hpp"
@@ -37,6 +38,7 @@
 #include "wifi_service.hpp"
 #include "wifi_screen.hpp"
 #include "protocol.hpp"
+#include "system_state.hpp"
 #include "max17048.hpp"
 #include "backlight.hpp"
 
@@ -291,6 +293,9 @@ extern "C" void app_main()
         swirski::services::wifi_service::getConnectionState();
     auto lastInternetTestState =
         swirski::services::wifi_service::getInternetTestState();
+    std::optional<std::uint8_t> lastSentBatteryPercent;
+    bool lastSentCharging = false;
+    bool batteryStatusSent = false;
 
     swirski::services::notification_service::setAlertHandler(
         playNotificationHaptic);
@@ -301,6 +306,31 @@ extern "C" void app_main()
         bleTransport.update();
         swirski::services::wifi_service::update();
         swirski::hardware::max17048::update();
+
+        const auto systemSnapshot =
+            swirski::state::system::getSnapshot();
+
+        if (
+            systemSnapshot.connection.status !=
+            swirski::state::system::ConnectionStatus::Connected)
+        {
+            batteryStatusSent = false;
+        }
+        else if (
+            !batteryStatusSent ||
+            systemSnapshot.batteryPercent !=
+                lastSentBatteryPercent ||
+            systemSnapshot.charging != lastSentCharging)
+        {
+            bleTransport.send(
+                swirski::protocol::createBatteryStatusMessage());
+
+            lastSentBatteryPercent =
+                systemSnapshot.batteryPercent;
+            lastSentCharging =
+                systemSnapshot.charging;
+            batteryStatusSent = true;
+        }
 
         const bool wifiScanning =
             swirski::services::wifi_service::isScanning();
